@@ -129,6 +129,10 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
             [new Oid(ClientAuthOid, "Client Authentication")], false));
 
         var notBefore = now.AddMinutes(-5);
+        if (notBefore < ca.NotBefore)
+        {
+            notBefore = new DateTimeOffset(ca.NotBefore.ToUniversalTime(), TimeSpan.Zero); // nicht vor der CA gültig
+        }
         var notAfter = now.AddDays(Math.Clamp(options.Value.Mtls.CertificateValidityDays, 1, 3650));
         if (notAfter > ca.NotAfter)
         {

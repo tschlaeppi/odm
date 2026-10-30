@@ -103,10 +103,11 @@ public class AgentCertificateAuthorityTests : IDisposable
         var ca = NewAuthority(validityDays: 30);
         var agent = Guid.NewGuid();
         var (key, csr) = NewRequest();
-        var issued = ca.Issue(csr, agent, DateTimeOffset.UtcNow.AddDays(-100));
+        var issued = ca.Issue(csr, agent, DateTimeOffset.UtcNow);
         using var cert = WithKey(issued, key);
 
-        Assert.False(ca.IsValid(cert, agent, issued.Thumbprint, DateTimeOffset.UtcNow));
+        Assert.True(ca.IsValid(cert, agent, issued.Thumbprint, DateTimeOffset.UtcNow));
+        Assert.False(ca.IsValid(cert, agent, issued.Thumbprint, DateTimeOffset.UtcNow.AddDays(100)));
     }
 
     [Fact]

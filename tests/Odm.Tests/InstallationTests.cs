@@ -145,7 +145,7 @@ public class InstallationTests
         var installation = Installation.Create(Guid.NewGuid(), Guid.NewGuid(), V1, T0);
         installation.MarkQueued(Guid.NewGuid(), T0);
 
-        installation.Complete(success: false, new string('a', 3000) + "ENDE", T0);
+        installation.Complete(success: false, new string('a', Installation.MaxMessageLength + 1000) + "ENDE", T0);
 
         Assert.Equal(Installation.MaxMessageLength, installation.Message!.Length);
         Assert.EndsWith("ENDE", installation.Message);
