@@ -15,6 +15,23 @@
   let notFound = $state(false)
   let failed = $state(false)
 
+  let certMessage = $state('')
+  let certBusy = $state(false)
+
+  async function resetCertificate() {
+    if (!device || !confirm(i18n.t('dev.detail.certConfirm', { name: device.name }))) return
+    certBusy = true
+    certMessage = ''
+    try {
+      await api.resetDeviceCertificate(device.id)
+      certMessage = i18n.t('dev.detail.certDone')
+    } catch {
+      certMessage = i18n.t('devices.error')
+    } finally {
+      certBusy = false
+    }
+  }
+
   const statusClass = { Pending: '', Running: 'run', Installed: 'ok', Failed: 'err' } as const
 
   async function load() {
@@ -107,6 +124,13 @@
       <div><dt>{i18n.t('devices.costCenter')}</dt><dd>{device.costCenter ?? '–'}</dd></div>
     </dl>
 
+    {#if auth.isAdmin}
+      <div class="cert">
+        <button class="ghost" disabled={certBusy} onclick={resetCertificate}>{i18n.t('dev.detail.certReset')}</button>
+        <span class="muted">{certMessage || i18n.t('dev.detail.certResetHint')}</span>
+      </div>
+    {/if}
+
     <h2>{i18n.t('dev.detail.groups')} ({groups.length})</h2>
     <DataTable rows={groups} columns={groupColumns} rowKey={(g) => g.id} emptyText={i18n.t('dev.detail.groupsEmpty')} pageSize={25} />
 
@@ -153,6 +177,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     vertical-align: bottom;
+  }
+  .cert {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
   }
   .error {
     color: var(--danger);

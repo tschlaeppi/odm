@@ -42,6 +42,11 @@ class AuthStore {
     return role === 'Admin' || role === 'Operator'
   }
 
+  /** Nur Administratoren (serverseitig ebenfalls erzwungen). */
+  get isAdmin() {
+    return this.session?.user.role === 'Admin'
+  }
+
   async login(userName: string, password: string) {
     const response = await api.login(userName, password)
     this.session = response

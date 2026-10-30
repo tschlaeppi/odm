@@ -421,6 +421,9 @@ export const api = {
     request<TokenCreatedDto>('/agents/tokens', { method: 'POST', body: JSON.stringify({ label, validHours }) }),
   deleteRegistrationToken: (id: string) => request<void>(`/agents/tokens/${id}`, { method: 'DELETE' }),
 
+  resetDeviceCertificate: (deviceId: string) =>
+    request<void>(`/agents/devices/${deviceId}/certificate`, { method: 'DELETE' }),
+
   jobs: (deviceId: string) => request<JobDto[]>(`/agents/jobs?deviceId=${deviceId}`),
   createJob: (deviceId: string, type: string) =>
     request<JobDto>('/agents/jobs', { method: 'POST', body: JSON.stringify({ deviceId, type }) }),
