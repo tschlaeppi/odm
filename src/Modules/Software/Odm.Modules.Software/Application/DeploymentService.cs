@@ -27,6 +27,57 @@ public sealed class DeploymentService(
 
     private sealed record VersionInfo(Guid Id, Guid PackageId, DateTimeOffset UploadedAt);
 
+    private sealed record Desired(Guid Version, int Priority, IReadOnlyList<Guid> Prerequisites);
+
+    private sealed record SourceItem(Guid PackageId, VersionPolicy Policy, Guid? PinnedVersionId);
+
+    /// <summary>Eine Zuweisung als Quelle des Soll-Zustands; bei Profilen mehrere Einträge in Installationsreihenfolge.</summary>
+    private sealed record Source(
+        Guid Id, TargetKind Kind, string Target, DateTimeOffset Start, RolloutPlan? Rollout, bool FromProfile,
+        IReadOnlyList<SourceItem> Items);
+
+    private async Task<List<Source>> LoadSourcesAsync(CancellationToken ct)
+    {
+        var sources = new List<Source>();
+
+        foreach (var a in await db.Assignments.AsNoTracking().OrderBy(o => o.CreatedAt).ToListAsync(ct))
+        {
+            sources.Add(new Source(a.Id, a.TargetKind, a.Target, a.CreatedAt, RolloutPlan.Parse(a.RolloutJson), false,
+                [new SourceItem(a.PackageId, a.VersionPolicy, a.PinnedVersionId)]));
+        }
+
+        var profileItems = (await db.ProfileItems.AsNoTracking().OrderBy(i => i.Position).ToListAsync(ct))
+            .GroupBy(i => i.ProfileId)
+            .ToDictionary(g => g.Key, g => g.Select(i => new SourceItem(i.PackageId, i.VersionPolicy, i.PinnedVersionId)).ToList());
+
+        foreach (var a in await db.ProfileAssignments.AsNoTracking().OrderBy(o => o.CreatedAt).ToListAsync(ct))
+        {
+            if (profileItems.TryGetValue(a.ProfileId, out var items))
+            {
+                sources.Add(new Source(a.Id, a.TargetKind, a.Target, a.CreatedAt, RolloutPlan.Parse(a.RolloutJson), true, items));
+            }
+        }
+
+        return sources;
+    }
+
+    /// <summary>Gewünschte Version: feste Version (nur PSADT) oder die neueste; null, wenn es keine gibt.</summary>
+    private static Guid? ResolveVersion(
+        SoftwarePackage package, VersionPolicy policy, Guid? pinnedVersionId,
+        IReadOnlyDictionary<Guid, VersionInfo> versionsById, IReadOnlyDictionary<Guid, Guid> latestByPackage)
+    {
+        if (package.Kind == PackageKind.Psadt && policy == VersionPolicy.Pinned)
+        {
+            return pinnedVersionId is { } pinned &&
+                   versionsById.TryGetValue(pinned, out var version) &&
+                   version.PackageId == package.Id
+                ? pinned
+                : null;
+        }
+
+        return latestByPackage.TryGetValue(package.Id, out var latest) ? latest : null;
+    }
+
     public async Task ReconcileAsync(CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
@@ -43,54 +94,81 @@ public sealed class DeploymentService(
             .GroupBy(v => v.PackageId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.UploadedAt).First().Id);
 
-        // 1. Soll-Zustand: (Gerät, Paket) -> Version, bei mehreren Zuweisungen gewinnt die spezifischere.
-        var desired = new Dictionary<(Guid Device, Guid Package), (Guid Version, int Priority)>();
-        var assignments = await db.Assignments.AsNoTracking().OrderBy(a => a.CreatedAt).ToListAsync(ct);
+        var installations = await db.Installations.ToListAsync(ct);
+        var byKey = installations.ToDictionary(i => (i.DeviceId, i.PackageId));
 
-        foreach (var assignment in assignments)
+        // 1. Quellen des Soll-Zustands: einzelne Paketzuweisungen und Profilzuweisungen (mit Reihenfolge).
+        var sources = await LoadSourcesAsync(ct);
+
+        var groupMembers = new Dictionary<Guid, HashSet<Guid>>();
+        foreach (var groupId in sources.Where(s => s.Rollout is { Mode: RolloutMode.Groups })
+                     .SelectMany(s => s.Rollout!.Stages).Select(s => s.GroupId!.Value).Distinct())
         {
-            if (!packages.TryGetValue(assignment.PackageId, out var package))
-            {
-                continue;
-            }
+            groupMembers[groupId] = (await directory.ResolveGroupAsync(groupId, ct)).Select(d => d.Id).ToHashSet();
+        }
 
-            Guid versionId;
-            if (package.Kind == PackageKind.Psadt && assignment.VersionPolicy == VersionPolicy.Pinned)
+        bool IsMember(Guid groupId, Guid deviceId) => groupMembers.TryGetValue(groupId, out var m) && m.Contains(deviceId);
+
+        // (Gerät, Paket) -> Version; bei mehreren Quellen gewinnt die spezifischere (Gerät vor Benutzer vor Gruppe,
+        // innerhalb davon die einzelne Paketzuweisung vor dem Profil).
+        var desired = new Dictionary<(Guid Device, Guid Package), Desired>();
+
+        foreach (var source in sources)
+        {
+            var devices = await ResolveAsync(source.Kind, source.Target, ct);
+            var elapsed = now - source.Start;
+            var priority = (int)source.Kind * 2 + (source.FromProfile ? 1 : 0);
+            var earlier = new Dictionary<Guid, List<Guid>>();
+
+            foreach (var item in source.Items)
             {
-                if (assignment.PinnedVersionId is not { } pinned ||
-                    !versionsById.TryGetValue(pinned, out var pinnedVersion) ||
-                    pinnedVersion.PackageId != assignment.PackageId)
+                if (!packages.TryGetValue(item.PackageId, out var package) ||
+                    ResolveVersion(package, item.Policy, item.PinnedVersionId, versionsById, latestByPackage) is not { } versionId)
                 {
-                    continue;
+                    continue; // Paket gelöscht, ohne Version/Revision oder feste Version ungültig
                 }
 
-                versionId = pinned;
-            }
-            else if (!latestByPackage.TryGetValue(assignment.PackageId, out versionId))
-            {
-                continue; // Paket hat noch keine Version bzw. Revision
-            }
-
-            foreach (var device in await ResolveAsync(assignment, ct))
-            {
-                if (!DistroFamily.Applies(package.Kind, device))
+                foreach (var device in devices)
                 {
-                    continue;
-                }
+                    if (!DistroFamily.Applies(package.Kind, device))
+                    {
+                        continue;
+                    }
 
-                var key = (device.Id, assignment.PackageId);
-                var priority = (int)assignment.TargetKind;
-                if (!desired.TryGetValue(key, out var current) || priority < current.Priority)
-                {
-                    desired[key] = (versionId, priority);
+                    var key = (device.Id, item.PackageId);
+
+                    // Tranchen gelten nur für neue Installationen; wer das Paket schon hat, wird nicht ausgebremst.
+                    var allowed = source.Rollout is null ||
+                                  byKey.ContainsKey(key) ||
+                                  source.Rollout.IsReleased(source.Id, device.Id, elapsed, IsMember);
+                    if (!allowed)
+                    {
+                        continue;
+                    }
+
+                    var prerequisites = source.FromProfile && earlier.TryGetValue(device.Id, out var before)
+                        ? before.ToList()
+                        : [];
+
+                    if (!desired.TryGetValue(key, out var current) || priority < current.Priority)
+                    {
+                        desired[key] = new Desired(versionId, priority, prerequisites);
+                    }
+
+                    if (source.FromProfile)
+                    {
+                        if (!earlier.TryGetValue(device.Id, out var list))
+                        {
+                            earlier[device.Id] = list = [];
+                        }
+
+                        list.Add(item.PackageId);
+                    }
                 }
             }
         }
 
         // 2. Installationen anlegen bzw. neu bewerten
-        var installations = await db.Installations.ToListAsync(ct);
-        var byKey = installations.ToDictionary(i => (i.DeviceId, i.PackageId));
-
         foreach (var (key, want) in desired)
         {
             if (byKey.TryGetValue(key, out var installation))
@@ -108,8 +186,12 @@ public sealed class DeploymentService(
         await db.SaveChangesAsync(ct);
 
         // 3. Offene Installationen als Aufträge einreihen
+        // Profile: ein Paket wartet, bis alle Pakete davor auf demselben Gerät installiert sind.
+        var statusByKey = db.Installations.Local.ToDictionary(i => (i.DeviceId, i.PackageId), i => i.Status);
         var pending = db.Installations.Local
-            .Where(i => i.Status == InstallStatus.Pending && desired.ContainsKey((i.DeviceId, i.PackageId)))
+            .Where(i => i.Status == InstallStatus.Pending &&
+                        desired.TryGetValue((i.DeviceId, i.PackageId), out var want) &&
+                        want.Prerequisites.All(p => statusByKey.GetValueOrDefault((i.DeviceId, p)) == InstallStatus.Installed))
             .Take(MaxEnqueuePerRun)
             .ToList();
         if (pending.Count == 0)
@@ -165,23 +247,23 @@ public sealed class DeploymentService(
             Json));
     }
 
-    private async Task<IReadOnlyList<DeviceRef>> ResolveAsync(Assignment assignment, CancellationToken ct)
+    private async Task<IReadOnlyList<DeviceRef>> ResolveAsync(TargetKind kind, string target, CancellationToken ct)
     {
-        switch (assignment.TargetKind)
+        switch (kind)
         {
             case TargetKind.Device:
-                if (Guid.TryParse(assignment.Target, out var deviceId) && await directory.GetAsync(deviceId, ct) is { } device)
+                if (Guid.TryParse(target, out var deviceId) && await directory.GetAsync(deviceId, ct) is { } device)
                 {
                     return [device];
                 }
 
                 return [];
             case TargetKind.Group:
-                return Guid.TryParse(assignment.Target, out var groupId)
+                return Guid.TryParse(target, out var groupId)
                     ? await directory.ResolveGroupAsync(groupId, ct)
                     : [];
             case TargetKind.User:
-                return await directory.ResolveUserAsync(assignment.Target, ct);
+                return await directory.ResolveUserAsync(target, ct);
             default:
                 return [];
         }

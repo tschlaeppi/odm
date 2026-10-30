@@ -27,44 +27,38 @@ internal static class AssignmentEndpoints
                 .Select(a => Guid.Parse(a.Target)).ToList();
             var devices = await directory.GetManyAsync(deviceIds, ct);
 
-            return Results.Ok(rows.Select(a => new AssignmentDto(
-                a.Id, a.PackageId, a.TargetKind.ToString(), a.Target,
-                a.TargetKind == TargetKind.Device && Guid.TryParse(a.Target, out var id) && devices.TryGetValue(id, out var d) ? d.Name : null,
-                a.VersionPolicy.ToString(), a.PinnedVersionId, a.CreatedAt)));
+            var now = DateTimeOffset.UtcNow;
+            return Results.Ok(rows.Select(a =>
+            {
+                var plan = RolloutPlan.Parse(a.RolloutJson);
+                return new AssignmentDto(
+                    a.Id, a.PackageId, a.TargetKind.ToString(), a.Target,
+                    a.TargetKind == TargetKind.Device && Guid.TryParse(a.Target, out var id) && devices.TryGetValue(id, out var d) ? d.Name : null,
+                    a.VersionPolicy.ToString(), a.PinnedVersionId, a.CreatedAt,
+                    AssignmentTargets.ToDto(plan), AssignmentTargets.ToStatus(plan, a.CreatedAt, now));
+            }));
         });
 
         assignments.MapPost("/", async (
                 AssignmentRequest request, SoftwareDbContext db, IDeviceDirectory directory,
                 DeploymentTrigger trigger, CancellationToken ct) =>
             {
-                if (!Enum.TryParse<TargetKind>(request.TargetKind, true, out var kind) || !Enum.IsDefined(kind) ||
-                    !Enum.TryParse<VersionPolicy>(request.VersionPolicy, true, out var policy) || !Enum.IsDefined(policy))
+                if (!Enum.TryParse<VersionPolicy>(request.VersionPolicy, true, out var policy) || !Enum.IsDefined(policy))
                 {
-                    return Invalid("targetKind", "Ungültiger Zieltyp oder ungültige Versionsregel.");
+                    return Invalid("versionPolicy", "Ungültige Versionsregel.");
                 }
 
-                var target = request.Target?.Trim() ?? "";
-                if (target.Length is 0 or > 256)
+                var (kind, target, errorField, targetError) =
+                    await AssignmentTargets.ParseAsync(request.TargetKind, request.Target, directory, ct);
+                if (targetError is not null)
                 {
-                    return Invalid("target", "Ziel ist erforderlich.");
+                    return Invalid(errorField!, targetError);
                 }
 
-                if (kind != TargetKind.User)
+                var (rollout, rolloutError) = await AssignmentTargets.ParseRolloutAsync(request.Rollout, directory, ct);
+                if (rolloutError is not null)
                 {
-                    if (!Guid.TryParse(target, out var targetId))
-                    {
-                        return Invalid("target", "Ungültige ID.");
-                    }
-
-                    var exists = kind == TargetKind.Device
-                        ? await directory.GetAsync(targetId, ct) is not null
-                        : await directory.GroupExistsAsync(targetId, ct);
-                    if (!exists)
-                    {
-                        return Invalid("target", "Ziel nicht gefunden.");
-                    }
-
-                    target = targetId.ToString("D");
+                    return Invalid("rollout", rolloutError);
                 }
 
                 var package = await db.Packages.AsNoTracking().SingleOrDefaultAsync(p => p.Id == request.PackageId, ct);
@@ -92,19 +86,22 @@ internal static class AssignmentEndpoints
                     return Results.Conflict();
                 }
 
-                var assignment = Assignment.Create(request.PackageId, kind, target, policy, request.PinnedVersionId);
+                var assignment = Assignment.Create(request.PackageId, kind, target, policy, request.PinnedVersionId, rollout);
                 db.Assignments.Add(assignment);
                 await db.SaveChangesAsync(ct);
                 trigger.Request();
 
                 return Results.Created($"/api/software/assignments/{assignment.Id}",
                     new AssignmentDto(assignment.Id, assignment.PackageId, kind.ToString(), assignment.Target, null,
-                        policy.ToString(), assignment.PinnedVersionId, assignment.CreatedAt));
+                        policy.ToString(), assignment.PinnedVersionId, assignment.CreatedAt,
+                        AssignmentTargets.ToDto(rollout),
+                        AssignmentTargets.ToStatus(rollout, assignment.CreatedAt, DateTimeOffset.UtcNow)));
             })
             .RequireAuthorization(Policies.Operator);
 
         assignments.MapPut("/{id:guid}", async (
-                Guid id, UpdateAssignmentRequest request, SoftwareDbContext db, DeploymentTrigger trigger, CancellationToken ct) =>
+                Guid id, UpdateAssignmentRequest request, SoftwareDbContext db, IDeviceDirectory directory,
+                DeploymentTrigger trigger, CancellationToken ct) =>
             {
                 if (!Enum.TryParse<VersionPolicy>(request.VersionPolicy, true, out var policy) || !Enum.IsDefined(policy))
                 {
@@ -129,7 +126,14 @@ internal static class AssignmentEndpoints
                     return Invalid("pinnedVersionId", pinError);
                 }
 
+                var (rollout, rolloutError) = await AssignmentTargets.ParseRolloutAsync(request.Rollout, directory, ct);
+                if (rolloutError is not null)
+                {
+                    return Invalid("rollout", rolloutError);
+                }
+
                 assignment.ChangePolicy(policy, request.PinnedVersionId);
+                assignment.SetRollout(rollout);
                 await db.SaveChangesAsync(ct);
                 trigger.Request();
                 return Results.NoContent();

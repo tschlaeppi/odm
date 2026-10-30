@@ -57,6 +57,7 @@ public sealed class SoftwareModule : IModule
     {
         PackageEndpoints.Map(endpoints, _maxPackageBytes);
         AssignmentEndpoints.Map(endpoints);
+        ProfileEndpoints.Map(endpoints);
         AgentDownloadEndpoint.Map(endpoints);
         SecretEndpoints.Map(endpoints);
     }

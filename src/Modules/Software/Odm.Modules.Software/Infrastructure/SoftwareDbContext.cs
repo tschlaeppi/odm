@@ -14,6 +14,9 @@ public sealed class SoftwareDbContext(DbContextOptions<SoftwareDbContext> option
     public DbSet<Assignment> Assignments => Set<Assignment>();
     public DbSet<Installation> Installations => Set<Installation>();
     public DbSet<SoftwareSecret> Secrets => Set<SoftwareSecret>();
+    public DbSet<SoftwareProfile> Profiles => Set<SoftwareProfile>();
+    public DbSet<ProfileItem> ProfileItems => Set<ProfileItem>();
+    public DbSet<ProfileAssignment> ProfileAssignments => Set<ProfileAssignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,8 +54,40 @@ public sealed class SoftwareDbContext(DbContextOptions<SoftwareDbContext> option
             b.Property(a => a.TargetKind).HasConversion<string>().HasMaxLength(16);
             b.Property(a => a.Target).HasMaxLength(256).IsRequired();
             b.Property(a => a.VersionPolicy).HasConversion<string>().HasMaxLength(16);
+            b.Property(a => a.RolloutJson).HasMaxLength(2000);
             b.HasIndex(a => new { a.PackageId, a.TargetKind, a.Target }).IsUnique();
             b.HasOne<SoftwarePackage>().WithMany().HasForeignKey(a => a.PackageId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SoftwareProfile>(b =>
+        {
+            b.ToTable("profiles");
+            b.HasKey(p => p.Id);
+            b.Property(p => p.Name).HasMaxLength(128).IsRequired();
+            b.HasIndex(p => p.Name).IsUnique();
+            b.Property(p => p.Description).HasMaxLength(1024);
+        });
+
+        modelBuilder.Entity<ProfileItem>(b =>
+        {
+            b.ToTable("profile_items");
+            b.HasKey(i => i.Id);
+            b.Property(i => i.VersionPolicy).HasConversion<string>().HasMaxLength(16);
+            b.HasIndex(i => new { i.ProfileId, i.PackageId }).IsUnique();
+            b.HasIndex(i => new { i.ProfileId, i.Position });
+            b.HasOne<SoftwareProfile>().WithMany().HasForeignKey(i => i.ProfileId).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne<SoftwarePackage>().WithMany().HasForeignKey(i => i.PackageId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProfileAssignment>(b =>
+        {
+            b.ToTable("profile_assignments");
+            b.HasKey(a => a.Id);
+            b.Property(a => a.TargetKind).HasConversion<string>().HasMaxLength(16);
+            b.Property(a => a.Target).HasMaxLength(256).IsRequired();
+            b.Property(a => a.RolloutJson).HasMaxLength(2000);
+            b.HasIndex(a => new { a.ProfileId, a.TargetKind, a.Target }).IsUnique();
+            b.HasOne<SoftwareProfile>().WithMany().HasForeignKey(a => a.ProfileId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SoftwareSecret>(b =>

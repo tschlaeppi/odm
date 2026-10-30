@@ -19,14 +19,46 @@ public sealed record PackageDetailDto(
     Guid Id, string Name, string? Description, string Kind, DateTimeOffset CreatedAt,
     PackageSpecDto Spec, IReadOnlyList<VersionDto> Versions);
 
-public sealed record AssignmentRequest(
-    Guid PackageId, string? TargetKind, string? Target, string? VersionPolicy, Guid? PinnedVersionId);
+/// <summary>Tranchenplan. Modus "Percent" (Stufen mit Prozent) oder "Groups" (Stufen mit Untergruppe).</summary>
+public sealed record RolloutStageDto(int AfterDays, int? Percent, Guid? GroupId);
 
-public sealed record UpdateAssignmentRequest(string? VersionPolicy, Guid? PinnedVersionId);
+public sealed record RolloutDto(string? Mode, IReadOnlyList<RolloutStageDto>? Stages);
+
+/// <summary>Stand der Tranchen: erreichte Stufen und (im Prozentmodus) der freigegebene Anteil.</summary>
+public sealed record RolloutStatusDto(int StagesReached, int StagesTotal, int? ReleasedPercent);
+
+public sealed record AssignmentRequest(
+    Guid PackageId, string? TargetKind, string? Target, string? VersionPolicy, Guid? PinnedVersionId,
+    RolloutDto? Rollout = null);
+
+public sealed record UpdateAssignmentRequest(string? VersionPolicy, Guid? PinnedVersionId, RolloutDto? Rollout = null);
 
 public sealed record AssignmentDto(
     Guid Id, Guid PackageId, string TargetKind, string Target, string? TargetName,
-    string VersionPolicy, Guid? PinnedVersionId, DateTimeOffset CreatedAt);
+    string VersionPolicy, Guid? PinnedVersionId, DateTimeOffset CreatedAt,
+    RolloutDto? Rollout = null, RolloutStatusDto? RolloutStatus = null);
+
+public sealed record ProfileItemRequest(Guid PackageId, string? VersionPolicy, Guid? PinnedVersionId);
+
+public sealed record CreateProfileRequest(string? Name, string? Description, IReadOnlyList<ProfileItemRequest>? Items);
+
+public sealed record UpdateProfileRequest(string? Description, IReadOnlyList<ProfileItemRequest>? Items);
+
+public sealed record ProfileItemDto(
+    Guid PackageId, string PackageName, string PackageKind, int Position, string VersionPolicy, Guid? PinnedVersionId);
+
+public sealed record ProfileDto(Guid Id, string Name, string? Description, int ItemCount, DateTimeOffset CreatedAt);
+
+public sealed record ProfileDetailDto(
+    Guid Id, string Name, string? Description, DateTimeOffset CreatedAt, IReadOnlyList<ProfileItemDto> Items);
+
+public sealed record ProfileAssignmentRequest(Guid ProfileId, string? TargetKind, string? Target, RolloutDto? Rollout);
+
+public sealed record UpdateProfileAssignmentRequest(RolloutDto? Rollout);
+
+public sealed record ProfileAssignmentDto(
+    Guid Id, Guid ProfileId, string TargetKind, string Target, string? TargetName, DateTimeOffset CreatedAt,
+    RolloutDto? Rollout, RolloutStatusDto? RolloutStatus);
 
 public sealed record InstallationDto(
     Guid Id, Guid DeviceId, string? DeviceName, Guid PackageId, string PackageName,

@@ -32,16 +32,21 @@ public sealed class Assignment : Entity
     public Guid? PinnedVersionId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
+    /// <summary>Optionaler Tranchenplan (JSON); Start ist <see cref="CreatedAt"/>.</summary>
+    public string? RolloutJson { get; private set; }
+
     private Assignment() { }
 
     public static Assignment Create(
-        Guid packageId, TargetKind kind, string target, VersionPolicy policy, Guid? pinnedVersionId) => new()
+        Guid packageId, TargetKind kind, string target, VersionPolicy policy, Guid? pinnedVersionId,
+        RolloutPlan? rollout = null) => new()
     {
         PackageId = packageId,
         TargetKind = kind,
         Target = target.Trim().ToLowerInvariant(),
         VersionPolicy = policy,
         PinnedVersionId = policy == VersionPolicy.Pinned ? pinnedVersionId : null,
+        RolloutJson = rollout?.ToJson(),
         CreatedAt = DateTimeOffset.UtcNow
     };
 
@@ -50,4 +55,6 @@ public sealed class Assignment : Entity
         VersionPolicy = policy;
         PinnedVersionId = policy == VersionPolicy.Pinned ? pinnedVersionId : null;
     }
+
+    public void SetRollout(RolloutPlan? rollout) => RolloutJson = rollout?.ToJson();
 }
