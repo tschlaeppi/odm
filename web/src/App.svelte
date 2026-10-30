@@ -6,6 +6,8 @@
   import Login from './lib/Login.svelte'
   import OsUpdates from './lib/OsUpdates.svelte'
   import PackageDetail from './lib/PackageDetail.svelte'
+  import ProfileDetail from './lib/ProfileDetail.svelte'
+  import Profiles from './lib/Profiles.svelte'
   import Software from './lib/Software.svelte'
   import { auth } from './lib/auth.svelte'
   import { i18n } from './lib/i18n.svelte'
@@ -14,16 +16,19 @@
 
   const editorId = $derived(router.path.startsWith('/groups/') ? router.path.slice('/groups/'.length) : null)
   const packageId = $derived(router.path.startsWith('/software/') ? router.path.slice('/software/'.length) : null)
+  const profileId = $derived(router.path.startsWith('/profiles/') ? router.path.slice('/profiles/'.length) : null)
   const section = $derived(
     router.path.startsWith('/groups')
       ? 'groups'
       : router.path.startsWith('/software')
         ? 'software'
-        : router.path.startsWith('/os-updates')
-          ? 'os-updates'
-          : router.path.startsWith('/enrollment')
-            ? 'enrollment'
-            : 'devices',
+        : router.path.startsWith('/profiles')
+          ? 'profiles'
+          : router.path.startsWith('/os-updates')
+            ? 'os-updates'
+            : router.path.startsWith('/enrollment')
+              ? 'enrollment'
+              : 'devices',
   )
 </script>
 
@@ -34,6 +39,7 @@
       <a href="#/devices" class:active={section === 'devices'}>{i18n.t('nav.devices')}</a>
       <a href="#/groups" class:active={section === 'groups'}>{i18n.t('nav.groups')}</a>
       <a href="#/software" class:active={section === 'software'}>{i18n.t('nav.software')}</a>
+      <a href="#/profiles" class:active={section === 'profiles'}>{i18n.t('nav.profiles')}</a>
       <a href="#/os-updates" class:active={section === 'os-updates'}>{i18n.t('nav.osUpdates')}</a>
       {#if auth.canEdit}
         <a href="#/enrollment" class:active={section === 'enrollment'}>{i18n.t('nav.enrollment')}</a>
@@ -69,6 +75,12 @@
       {/key}
     {:else if section === 'software'}
       <Software />
+    {:else if section === 'profiles' && profileId}
+      {#key profileId}
+        <ProfileDetail id={profileId} />
+      {/key}
+    {:else if section === 'profiles'}
+      <Profiles />
     {:else if section === 'os-updates'}
       <OsUpdates />
     {:else if section === 'enrollment' && auth.canEdit}

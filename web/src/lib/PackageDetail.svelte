@@ -9,6 +9,7 @@
     type GroupDto,
     type InstallationDto,
     type PackageDetailDto,
+    type Rollout,
     type TargetKind,
     type VersionPolicy,
   } from './api'
@@ -16,6 +17,7 @@
   import { formatSize } from './format'
   import { i18n, type MessageKey } from './i18n.svelte'
   import PackageSpecForm from './PackageSpecForm.svelte'
+  import RolloutEditor from './RolloutEditor.svelte'
   import { router } from './router.svelte'
   import { emptySpec, specFromDto, specToDto } from './spec'
 
@@ -51,6 +53,7 @@
   let deviceId = $state('')
   let policy = $state<VersionPolicy>('Latest')
   let pinnedId = $state('')
+  let rollout = $state<Rollout | null>(null)
   let assignErrorKey = $state<MessageKey | null>(null)
 
   const statusClass = { Pending: '', Running: 'run', Installed: 'ok', Failed: 'err' } as const
@@ -149,7 +152,9 @@
         target,
         versionPolicy: policy,
         pinnedVersionId: policy === 'Pinned' ? pinnedId || null : null,
+        rollout,
       })
+      rollout = null
       userName = ''
       deviceSearch = ''
       deviceId = ''
@@ -162,7 +167,7 @@
   async function changePolicy(assignment: AssignmentDto, newPolicy: VersionPolicy, pinned: string | null) {
     const pin = newPolicy === 'Pinned' ? (pinned ?? pkg?.versions[0]?.id ?? null) : null
     try {
-      await api.updatePackageAssignment(assignment.id, newPolicy, pin)
+      await api.updatePackageAssignment(assignment.id, newPolicy, pin, assignment.rollout)
     } catch {
       /* Anzeige wird unten neu geladen */
     }
@@ -197,6 +202,18 @@
     if (!pkg || !confirm(i18n.t('sw.confirmDelete', { name: pkg.name }))) return
     await api.deletePackage(id)
     router.navigate('/software')
+  }
+
+  function rolloutText(a: AssignmentDto): string {
+    const status = a.rolloutStatus
+    if (!status) return i18n.t('rollout.immediate')
+    return status.releasedPercent === null
+      ? i18n.t('rollout.status', { reached: status.stagesReached, total: status.stagesTotal })
+      : i18n.t('rollout.statusPercent', {
+          reached: status.stagesReached,
+          total: status.stagesTotal,
+          percent: status.releasedPercent,
+        })
   }
 
   function targetLabel(a: AssignmentDto): string {
@@ -374,6 +391,7 @@
 
           <button class="primary" type="submit">{i18n.t('sw.assign')}</button>
         </div>
+        <RolloutEditor bind:value={rollout} {groups} />
         <p class="muted small">{i18n.t('sw.assignmentHint')}</p>
         {#if assignErrorKey}<p class="error" role="alert">{i18n.t(assignErrorKey)}</p>{/if}
       </form>
@@ -389,6 +407,7 @@
               <th>{i18n.t('sw.targetKind')}</th>
               <th>{i18n.t('sw.name')}</th>
               <th>{i18n.t('sw.policy')}</th>
+              <th>{i18n.t('rollout.column')}</th>
               <th></th>
             </tr>
           </thead>
@@ -420,6 +439,7 @@
                     {i18n.t(`sw.policy.${a.versionPolicy}` as MessageKey)}
                   {/if}
                 </td>
+                <td>{rolloutText(a)}</td>
                 <td class="actions">
                   {#if auth.canEdit}
                     <button class="ghost" onclick={() => removeAssignment(a)}>{i18n.t('sw.removeAssignment')}</button>

@@ -131,6 +131,26 @@ export interface PackageDetailDto {
 export type TargetKind = 'Device' | 'User' | 'Group'
 export type VersionPolicy = 'Latest' | 'Pinned'
 
+export type RolloutMode = 'Percent' | 'Groups'
+
+/** Eine Stufe der Tranchenverteilung: je nach Modus mit Prozentwert oder Untergruppe. */
+export interface RolloutStage {
+  afterDays: number
+  percent: number | null
+  groupId: string | null
+}
+
+export interface Rollout {
+  mode: RolloutMode
+  stages: RolloutStage[]
+}
+
+export interface RolloutStatus {
+  stagesReached: number
+  stagesTotal: number
+  releasedPercent: number | null
+}
+
 export interface AssignmentDto {
   id: string
   packageId: string
@@ -140,6 +160,50 @@ export interface AssignmentDto {
   versionPolicy: VersionPolicy
   pinnedVersionId: string | null
   createdAt: string
+  rollout: Rollout | null
+  rolloutStatus: RolloutStatus | null
+}
+
+export interface ProfileDto {
+  id: string
+  name: string
+  description: string | null
+  itemCount: number
+  createdAt: string
+}
+
+export interface ProfileItemDto {
+  packageId: string
+  packageName: string
+  packageKind: PackageKind
+  position: number
+  versionPolicy: VersionPolicy
+  pinnedVersionId: string | null
+}
+
+export interface ProfileDetailDto {
+  id: string
+  name: string
+  description: string | null
+  createdAt: string
+  items: ProfileItemDto[]
+}
+
+export interface ProfileItemInput {
+  packageId: string
+  versionPolicy: VersionPolicy
+  pinnedVersionId: string | null
+}
+
+export interface ProfileAssignmentDto {
+  id: string
+  profileId: string
+  targetKind: TargetKind
+  target: string
+  targetName: string | null
+  createdAt: string
+  rollout: Rollout | null
+  rolloutStatus: RolloutStatus | null
 }
 
 export interface SoftwareAssignmentInput {
@@ -148,6 +212,7 @@ export interface SoftwareAssignmentInput {
   target: string
   versionPolicy: VersionPolicy
   pinnedVersionId: string | null
+  rollout: Rollout | null
 }
 
 export interface InstallationDto {
@@ -341,12 +406,39 @@ export const api = {
   assignments: (packageId: string) => request<AssignmentDto[]>(`/software/assignments?packageId=${packageId}`),
   createAssignment: (input: SoftwareAssignmentInput) =>
     request<AssignmentDto>('/software/assignments', { method: 'POST', body: JSON.stringify(input) }),
-  updatePackageAssignment: (id: string, versionPolicy: VersionPolicy, pinnedVersionId: string | null) =>
+  updatePackageAssignment: (
+    id: string,
+    versionPolicy: VersionPolicy,
+    pinnedVersionId: string | null,
+    rollout: Rollout | null,
+  ) =>
     request<void>(`/software/assignments/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ versionPolicy, pinnedVersionId }),
+      body: JSON.stringify({ versionPolicy, pinnedVersionId, rollout }),
     }),
   deleteAssignment: (id: string) => request<void>(`/software/assignments/${id}`, { method: 'DELETE' }),
+
+  profiles: () => request<ProfileDto[]>('/software/profiles'),
+  profile: (id: string) => request<ProfileDetailDto>(`/software/profiles/${id}`),
+  createProfile: (name: string, description: string | null, items: ProfileItemInput[]) =>
+    request<ProfileDetailDto>('/software/profiles', {
+      method: 'POST',
+      body: JSON.stringify({ name, description, items }),
+    }),
+  updateProfile: (id: string, description: string | null, items: ProfileItemInput[]) =>
+    request<ProfileDetailDto>(`/software/profiles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ description, items }),
+    }),
+  deleteProfile: (id: string) => request<void>(`/software/profiles/${id}`, { method: 'DELETE' }),
+  profileAssignments: (profileId: string) =>
+    request<ProfileAssignmentDto[]>(`/software/profile-assignments?profileId=${profileId}`),
+  createProfileAssignment: (profileId: string, targetKind: TargetKind, target: string, rollout: Rollout | null) =>
+    request<ProfileAssignmentDto>('/software/profile-assignments', {
+      method: 'POST',
+      body: JSON.stringify({ profileId, targetKind, target, rollout }),
+    }),
+  deleteProfileAssignment: (id: string) => request<void>(`/software/profile-assignments/${id}`, { method: 'DELETE' }),
 
   installations: (packageId: string) => request<InstallationDto[]>(`/software/installations?packageId=${packageId}`),
   retryInstallation: (id: string) => request<void>(`/software/installations/${id}/retry`, { method: 'POST' }),
