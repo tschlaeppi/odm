@@ -12,6 +12,7 @@ public sealed class AgentService(
     IDeviceRegistry devices,
     IEnumerable<IJobResultListener> listeners,
     IOptions<AgentsOptions> options,
+    AgentPackageCatalog packages,
     ILogger<AgentService> logger)
 {
     private const int MaxJobsPerHeartbeat = 10;
@@ -126,6 +127,7 @@ public sealed class AgentService(
 
         return new HeartbeatResponse(
             due.Select(j => new AgentJobDto(j.Id, j.Type, j.Payload)).ToList(),
-            HeartbeatSeconds);
+            HeartbeatSeconds,
+            AgentUpdatePlanner.Plan(options.Value.Update, packages, request.Platform, request.AgentVersion, deviceId));
     }
 }

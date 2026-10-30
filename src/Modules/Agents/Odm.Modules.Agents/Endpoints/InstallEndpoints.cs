@@ -37,9 +37,10 @@ internal static class InstallEndpoints
             return Results.Ok(new AgentPackagesResponse(baseUrl, packages));
         });
 
-        group.MapGet("/download/{platform}", (string platform, AgentPackageCatalog catalog) =>
+        group.MapGet("/download/{platform}", (string platform, string? version, AgentPackageCatalog catalog) =>
         {
-            var package = catalog.Find(platform);
+            // Die Version wird nur als Suchschlüssel verwendet; der Dateiname stammt immer aus dem Paketverzeichnis.
+            var package = string.IsNullOrEmpty(version) ? catalog.Find(platform) : catalog.Find(platform, version);
             return package is null
                 ? Results.NotFound()
                 : Results.File(package.FullPath, MediaTypeNames.Application.Octet, package.FileName, enableRangeProcessing: true);

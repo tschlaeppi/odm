@@ -15,6 +15,32 @@ public sealed class AgentsOptions
     /// Leer = aus der Anfrage abgeleitet. Hinter einem Proxy sollte sie gesetzt werden.
     /// </summary>
     public string PublicBaseUrl { get; set; } = "";
+
+    /// <summary>Selbstaktualisierung der Agents (standardmäßig aus).</summary>
+    public AgentUpdateOptions Update { get; set; } = new();
+}
+
+public enum AgentUpdateMode
+{
+    /// <summary>Der Server bietet keine Updates an.</summary>
+    Off,
+
+    /// <summary>Agents erhalten die höchste vorhandene Version (nur Aufwärts).</summary>
+    Latest,
+
+    /// <summary>Agents erhalten genau <see cref="AgentUpdateOptions.TargetVersion"/> (auch Rückstufung möglich).</summary>
+    Pinned
+}
+
+public sealed class AgentUpdateOptions
+{
+    public AgentUpdateMode Mode { get; set; } = AgentUpdateMode.Off;
+
+    /// <summary>Soll-Version bei <see cref="AgentUpdateMode.Pinned"/>, z. B. 0.4.1.</summary>
+    public string TargetVersion { get; set; } = "";
+
+    /// <summary>Anteil der Geräte (0–100), die das Update angeboten bekommen. Stabil je Gerät; schrittweise erhöhen für gestaffelte Verteilung.</summary>
+    public int RolloutPercent { get; set; } = 100;
 }
 
 // ---- Agent-Protokoll (/api/agent/v1) ----
@@ -28,11 +54,15 @@ public sealed record JobResultDto(Guid JobId, bool Success, string? Output);
 
 public sealed record HeartbeatRequest(
     string OsFamily, string OsName, string OsVersion, string AgentVersion,
-    List<JobResultDto>? Results, List<Guid>? RunningJobs);
+    List<JobResultDto>? Results, List<Guid>? RunningJobs, string? Platform = null);
 
 public sealed record AgentJobDto(Guid Id, string Type, string? Payload);
 
-public sealed record HeartbeatResponse(IReadOnlyList<AgentJobDto> Jobs, int NextHeartbeatSeconds);
+/// <summary>Angebot für ein Agent-Update; <c>Url</c> ist relativ zur Server-Adresse.</summary>
+public sealed record AgentUpdateOfferDto(string Version, string Sha256, long Size, string Url);
+
+public sealed record HeartbeatResponse(
+    IReadOnlyList<AgentJobDto> Jobs, int NextHeartbeatSeconds, AgentUpdateOfferDto? Update = null);
 
 // ---- Verwaltung (Web-UI) ----
 

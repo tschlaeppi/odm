@@ -65,6 +65,33 @@ public sealed partial class AgentPackageCatalog(IOptions<AgentsOptions> options,
         return pa == pb ? string.CompareOrdinal(a, b) : (pa ? -1 : 1);
     }
 
+    /// <summary>Alle gültig benannten Pakete (auch ältere Versionen), je Plattform absteigend nach Version.</summary>
+    public IReadOnlyList<AgentPackage> ListAll()
+    {
+        if (!System.IO.Directory.Exists(Directory))
+        {
+            return [];
+        }
+
+        var all = new List<AgentPackage>();
+        foreach (var file in System.IO.Directory.EnumerateFiles(Directory))
+        {
+            if (ParseFileName(Path.GetFileName(file)) is { } p)
+            {
+                var info = new FileInfo(file);
+                all.Add(new AgentPackage(p.Platform, p.Version, info.Name, info.FullName, info.Length, Hash(info)));
+            }
+        }
+
+        return all
+            .OrderBy(a => Array.IndexOf(Platforms, a.Platform))
+            .ThenByDescending(a => a.Version, Comparer<string>.Create(CompareVersions))
+            .ToList();
+    }
+
+    public AgentPackage? Find(string platform, string version) =>
+        ListAll().FirstOrDefault(p => p.Platform == platform && p.Version == version);
+
     public IReadOnlyList<AgentPackage> List()
     {
         if (!System.IO.Directory.Exists(Directory))
