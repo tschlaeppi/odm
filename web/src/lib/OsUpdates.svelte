@@ -1,0 +1,533 @@
+<script lang="ts">
+  import { onDestroy, onMount } from 'svelte'
+  import {
+    api,
+    ApiError,
+    type MaintenanceWindowDto,
+    type OsAssignmentDto,
+    type RebootBehavior,
+    type UpdateMode,
+    type UpdatePolicyDto,
+    type UpdateRunDto,
+    type WeekDay,
+  } from './api'
+  import { auth } from './auth.svelte'
+  import { i18n, type MessageKey } from './i18n.svelte'
+  import TargetPicker from './TargetPicker.svelte'
+
+  const weekDays: WeekDay[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  const durations = [30, 60, 120, 180, 240, 360, 480, 720, 1440]
+  const statusClass = { Queued: 'run', Succeeded: 'ok', Failed: 'err' } as const
+
+  let policies = $state<UpdatePolicyDto[]>([])
+  let windows = $state<MaintenanceWindowDto[]>([])
+  let runs = $state<UpdateRunDto[]>([])
+  // Zuweisungen je Richtlinie bzw. Fenster
+  let assignments = $state<Record<string, OsAssignmentDto[]>>({})
+  let loading = $state(true)
+  let errorKey = $state<MessageKey | null>(null)
+  let timer: ReturnType<typeof setInterval> | undefined
+
+  // Formular Richtlinie
+  let policyName = $state('')
+  let policyMode = $state<UpdateMode>('SecurityOnly')
+  let policyReboot = $state<RebootBehavior>('Never')
+
+  // Formular Fenster (auch zum Bearbeiten)
+  const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const zones: string[] = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ?? [localZone]
+  let editingWindowId = $state<string | null>(null)
+  let windowName = $state('')
+  let windowDays = $state<WeekDay[]>(['Saturday'])
+  let windowStart = $state('02:00')
+  let windowDuration = $state(120)
+  let windowZone = $state(localZone)
+
+  async function loadAssignments() {
+    const next: Record<string, OsAssignmentDto[]> = {}
+    await Promise.all([
+      ...policies.map(async (p) => (next[p.id] = await api.osAssignments('Policy', p.id))),
+      ...windows.map(async (w) => (next[w.id] = await api.osAssignments('Window', w.id))),
+    ])
+    assignments = next
+  }
+
+  async function load() {
+    try {
+      ;[policies, windows] = await Promise.all([api.osPolicies(), api.osWindows()])
+      await loadAssignments()
+      runs = await api.osRuns()
+    } catch {
+      errorKey = 'devices.error'
+    } finally {
+      loading = false
+    }
+  }
+
+  async function refreshRuns() {
+    try {
+      runs = await api.osRuns()
+    } catch {
+      /* nächster Versuch beim nächsten Intervall */
+    }
+  }
+
+  onMount(() => {
+    load()
+    timer = setInterval(refreshRuns, 15000)
+  })
+  onDestroy(() => clearInterval(timer))
+
+  function conflictOr(e: unknown, conflictKey: MessageKey): MessageKey {
+    return e instanceof ApiError && e.status === 409 ? conflictKey : 'common.saveFailed'
+  }
+
+  async function createPolicy(event: SubmitEvent) {
+    event.preventDefault()
+    errorKey = null
+    try {
+      await api.createOsPolicy({ name: policyName.trim(), description: null, mode: policyMode, reboot: policyReboot })
+      policyName = ''
+      await load()
+    } catch (e) {
+      errorKey = conflictOr(e, 'os.nameTaken')
+    }
+  }
+
+  async function changePolicy(policy: UpdatePolicyDto, mode: UpdateMode, reboot: RebootBehavior) {
+    try {
+      await api.updateOsPolicy(policy.id, { name: policy.name, description: policy.description, mode, reboot })
+    } finally {
+      await load()
+    }
+  }
+
+  async function removePolicy(policy: UpdatePolicyDto) {
+    if (!confirm(i18n.t('os.confirmDelete', { name: policy.name }))) return
+    await api.deleteOsPolicy(policy.id)
+    await load()
+  }
+
+  function toMinutes(time: string): number {
+    const [h, m] = time.split(':').map(Number)
+    return h * 60 + m
+  }
+
+  function toTime(minutes: number): string {
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+  }
+
+  function resetWindowForm() {
+    editingWindowId = null
+    windowName = ''
+    windowDays = ['Saturday']
+    windowStart = '02:00'
+    windowDuration = 120
+    windowZone = localZone
+  }
+
+  function editWindow(w: MaintenanceWindowDto) {
+    editingWindowId = w.id
+    windowName = w.name
+    windowDays = [...w.days]
+    windowStart = toTime(w.startMinutes)
+    windowDuration = w.durationMinutes
+    windowZone = w.timeZoneId
+  }
+
+  async function saveWindow(event: SubmitEvent) {
+    event.preventDefault()
+    errorKey = null
+    const input = {
+      name: windowName.trim(),
+      days: windowDays,
+      startMinutes: toMinutes(windowStart),
+      durationMinutes: windowDuration,
+      timeZoneId: windowZone,
+    }
+    try {
+      if (editingWindowId) await api.updateOsWindow(editingWindowId, input)
+      else await api.createOsWindow(input)
+      resetWindowForm()
+      await load()
+    } catch (e) {
+      errorKey = conflictOr(e, 'os.nameTaken')
+    }
+  }
+
+  async function removeWindow(w: MaintenanceWindowDto) {
+    if (!confirm(i18n.t('os.confirmDelete', { name: w.name }))) return
+    await api.deleteOsWindow(w.id)
+    if (editingWindowId === w.id) resetWindowForm()
+    await load()
+  }
+
+  function toggleDay(day: WeekDay) {
+    windowDays = windowDays.includes(day) ? windowDays.filter((d) => d !== day) : [...windowDays, day]
+  }
+
+  async function addTarget(scope: 'Policy' | 'Window', parentId: string, kind: 'Device' | 'Group', target: string) {
+    errorKey = null
+    try {
+      await api.createOsAssignment(scope, parentId, kind, target)
+      assignments[parentId] = await api.osAssignments(scope, parentId)
+    } catch (e) {
+      errorKey = conflictOr(e, 'os.targetTaken')
+    }
+  }
+
+  async function removeTarget(scope: 'Policy' | 'Window', parentId: string, id: string) {
+    await api.deleteOsAssignment(id)
+    assignments[parentId] = await api.osAssignments(scope, parentId)
+  }
+
+  function describeWindow(w: MaintenanceWindowDto): string {
+    const days = weekDays.filter((d) => w.days.includes(d)).map((d) => i18n.t(`day.${d}` as MessageKey)).join(', ')
+    const duration = w.durationMinutes % 60 === 0
+      ? i18n.t('os.hours', { count: w.durationMinutes / 60 })
+      : i18n.t('os.minutes', { count: w.durationMinutes })
+    return `${days} · ${toTime(w.startMinutes)} · ${duration} · ${w.timeZoneId}`
+  }
+
+  function runSummary(r: UpdateRunDto): string {
+    const parts: string[] = []
+    if (r.installed !== null) parts.push(`${i18n.t('os.installed')}: ${r.installed}`)
+    if (r.failed) parts.push(`${i18n.t('os.failedCount')}: ${r.failed}`)
+    if (r.rebooting) parts.push(i18n.t('os.rebooting'))
+    else if (r.rebootRequired) parts.push(i18n.t('os.rebootRequired'))
+    return parts.join(' · ')
+  }
+</script>
+
+<section>
+  <h1>{i18n.t('os.title')}</h1>
+  <p class="muted intro">{i18n.t('os.intro')}</p>
+
+  {#if errorKey}<p class="error" role="alert">{i18n.t(errorKey)}</p>{/if}
+
+  {#if loading}
+    <p class="muted">{i18n.t('devices.loading')}</p>
+  {:else}
+    <!-- Richtlinien -->
+    <h2>{i18n.t('os.policies')}</h2>
+
+    {#if auth.canEdit}
+      <form class="card form" onsubmit={createPolicy}>
+        <div class="row">
+          <label class="grow">
+            <span>{i18n.t('os.name')}</span>
+            <input bind:value={policyName} required maxlength="128" />
+          </label>
+          <label>
+            <span>{i18n.t('os.mode')}</span>
+            <select bind:value={policyMode}>
+              <option value="SecurityOnly">{i18n.t('os.mode.SecurityOnly')}</option>
+              <option value="All">{i18n.t('os.mode.All')}</option>
+            </select>
+          </label>
+          <label>
+            <span>{i18n.t('os.reboot')}</span>
+            <select bind:value={policyReboot}>
+              <option value="Never">{i18n.t('os.reboot.Never')}</option>
+              <option value="IfRequired">{i18n.t('os.reboot.IfRequired')}</option>
+            </select>
+          </label>
+          <button class="primary" type="submit">{i18n.t('os.newPolicy')}</button>
+        </div>
+        <p class="muted small">{i18n.t('os.policyPerTarget')}</p>
+      </form>
+    {/if}
+
+    {#if policies.length === 0}
+      <p class="muted">{i18n.t('os.noPolicies')}</p>
+    {/if}
+    {#each policies as policy (policy.id)}
+      <article class="card item">
+        <header>
+          <h3>{policy.name}</h3>
+          {#if auth.canEdit}
+            <button class="ghost" onclick={() => removePolicy(policy)}>{i18n.t('common.delete')}</button>
+          {/if}
+        </header>
+        <div class="row">
+          <label>
+            <span>{i18n.t('os.mode')}</span>
+            <select
+              value={policy.mode}
+              disabled={!auth.canEdit}
+              onchange={(e) => changePolicy(policy, e.currentTarget.value as UpdateMode, policy.reboot)}
+            >
+              <option value="SecurityOnly">{i18n.t('os.mode.SecurityOnly')}</option>
+              <option value="All">{i18n.t('os.mode.All')}</option>
+            </select>
+          </label>
+          <label>
+            <span>{i18n.t('os.reboot')}</span>
+            <select
+              value={policy.reboot}
+              disabled={!auth.canEdit}
+              onchange={(e) => changePolicy(policy, policy.mode, e.currentTarget.value as RebootBehavior)}
+            >
+              <option value="Never">{i18n.t('os.reboot.Never')}</option>
+              <option value="IfRequired">{i18n.t('os.reboot.IfRequired')}</option>
+            </select>
+          </label>
+        </div>
+        {@render targets('Policy', policy.id)}
+      </article>
+    {/each}
+
+    <!-- Wartungsfenster -->
+    <h2>{i18n.t('os.windows')}</h2>
+
+    {#if auth.canEdit}
+      <form class="card form" onsubmit={saveWindow}>
+        <div class="row">
+          <label class="grow">
+            <span>{i18n.t('os.name')}</span>
+            <input bind:value={windowName} required maxlength="128" />
+          </label>
+          <label>
+            <span>{i18n.t('os.start')}</span>
+            <input type="time" bind:value={windowStart} required />
+          </label>
+          <label>
+            <span>{i18n.t('os.duration')}</span>
+            <select bind:value={windowDuration}>
+              {#each durations as d}
+                <option value={d}>
+                  {d % 60 === 0 ? i18n.t('os.hours', { count: d / 60 }) : i18n.t('os.minutes', { count: d })}
+                </option>
+              {/each}
+            </select>
+          </label>
+          <label>
+            <span>{i18n.t('os.timeZone')}</span>
+            <select bind:value={windowZone}>
+              {#each zones as zone}
+                <option value={zone}>{zone}</option>
+              {/each}
+            </select>
+          </label>
+        </div>
+        <div class="row days">
+          <span class="muted small">{i18n.t('os.days')}:</span>
+          {#each weekDays as day}
+            <label class="check">
+              <input type="checkbox" checked={windowDays.includes(day)} onchange={() => toggleDay(day)} />
+              {i18n.t(`day.${day}` as MessageKey)}
+            </label>
+          {/each}
+        </div>
+        <div class="row">
+          <button class="primary" type="submit" disabled={windowDays.length === 0}>
+            {editingWindowId ? i18n.t('os.saveWindow') : i18n.t('os.newWindow')}
+          </button>
+          {#if editingWindowId}
+            <button type="button" onclick={resetWindowForm}>{i18n.t('common.cancel')}</button>
+          {/if}
+        </div>
+        <p class="muted small">{i18n.t('os.windowRule')}</p>
+      </form>
+    {/if}
+
+    {#if windows.length === 0}
+      <p class="muted">{i18n.t('os.noWindows')}</p>
+    {/if}
+    {#each windows as w (w.id)}
+      <article class="card item">
+        <header>
+          <div>
+            <h3>{w.name}</h3>
+            <p class="muted small">{describeWindow(w)}</p>
+          </div>
+          {#if auth.canEdit}
+            <div>
+              <button class="ghost" onclick={() => editWindow(w)}>{i18n.t('common.edit')}</button>
+              <button class="ghost" onclick={() => removeWindow(w)}>{i18n.t('common.delete')}</button>
+            </div>
+          {/if}
+        </header>
+        {@render targets('Window', w.id)}
+      </article>
+    {/each}
+
+    <!-- Läufe -->
+    <h2>{i18n.t('os.runs')}</h2>
+    {#if runs.length === 0}
+      <p class="muted">{i18n.t('os.noRuns')}</p>
+    {:else}
+      <div class="card list">
+        <table>
+          <thead>
+            <tr>
+              <th>{i18n.t('os.when')}</th>
+              <th>{i18n.t('devices.name')}</th>
+              <th>{i18n.t('os.window')}</th>
+              <th>{i18n.t('sw.status')}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each runs as r (r.id)}
+              <tr>
+                <td>{i18n.formatDate(r.createdAt)}</td>
+                <td class="strong">{r.deviceName ?? r.deviceId}</td>
+                <td>{r.windowName ?? i18n.t('os.manual')}</td>
+                <td><span class="badge {statusClass[r.status]}">{i18n.t(`os.status.${r.status}` as MessageKey)}</span></td>
+                <td class="muted">{runSummary(r)}</td>
+              </tr>
+              {#if r.status === 'Failed' && r.message}
+                <tr class="detail"><td colspan="5"><pre>{r.message}</pre></td></tr>
+              {/if}
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
+  {/if}
+</section>
+
+{#snippet targets(scope: 'Policy' | 'Window', parentId: string)}
+  <div class="targets">
+    <span class="muted small">{i18n.t('os.targets')}:</span>
+    {#if (assignments[parentId] ?? []).length === 0}
+      <span class="muted small">{i18n.t('os.noTargets')}</span>
+    {/if}
+    {#each assignments[parentId] ?? [] as a (a.id)}
+      <span class="chip">
+        {i18n.t(`target.kind.${a.targetKind}` as MessageKey)}: {a.targetName ?? a.target}
+        {#if auth.canEdit}
+          <button class="x" onclick={() => removeTarget(scope, parentId, a.id)} aria-label={i18n.t('os.removeTarget')}>✕</button>
+        {/if}
+      </span>
+    {/each}
+  </div>
+  {#if auth.canEdit}
+    <TargetPicker label={i18n.t('os.addTarget')} onpick={(kind, target) => addTarget(scope, parentId, kind, target)} />
+  {/if}
+{/snippet}
+
+<style>
+  h1 {
+    font-size: 1.35rem;
+    margin: 0 0 0.5rem;
+  }
+  h2 {
+    font-size: 1.05rem;
+    margin: 1.75rem 0 0.75rem;
+  }
+  h3 {
+    font-size: 1rem;
+    margin: 0;
+  }
+  .intro {
+    margin: 0 0 1rem;
+    max-width: 48rem;
+  }
+  .form,
+  .item {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .item header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: end;
+  }
+  .days {
+    align-items: center;
+  }
+  .grow {
+    flex: 1;
+    min-width: 12rem;
+  }
+  label {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  label.check {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--text);
+  }
+  .small {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  .targets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.85rem;
+  }
+  .x {
+    border: none;
+    background: transparent;
+    padding: 0 0.2rem;
+    color: var(--muted);
+  }
+  .list {
+    padding: 0;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    white-space: nowrap;
+  }
+  th {
+    font-weight: 500;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr + tr td {
+    border-top: 1px solid var(--border);
+  }
+  tr.detail td {
+    white-space: normal;
+    padding-top: 0;
+    border-top: none;
+  }
+  pre {
+    margin: 0;
+    max-height: 8rem;
+    overflow: auto;
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: pre-wrap;
+  }
+  .strong {
+    font-weight: 600;
+  }
+  .error {
+    color: var(--danger);
+    margin: 0 0 0.75rem;
+  }
+</style>
