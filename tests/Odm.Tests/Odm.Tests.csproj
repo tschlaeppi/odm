@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Odm.Tests.TestData" Static="true" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+    <PackageReference Include="xunit" Version="2.9.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Agent\Odm.Agent\Odm.Agent.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Agents\Odm.Modules.Agents\Odm.Modules.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Devices\Odm.Modules.Devices\Odm.Modules.Devices.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Odm.Modules.Identity\Odm.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\OsUpdates\Odm.Modules.OsUpdates\Odm.Modules.OsUpdates.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Software\Odm.Modules.Software\Odm.Modules.Software.csproj" />
+  </ItemGroup>
+</Project>
