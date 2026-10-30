@@ -44,10 +44,10 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
         }
     }
 
-    private string UpdatesDirectory => Path.Combine(store.Directory, "updates");
-    private string PendingFile => Path.Combine(store.Directory, "update-pending");
-    private string OkFile => Path.Combine(store.Directory, "update-ok");
-    private string FailedFile => Path.Combine(store.Directory, "update-failed");
+    private string UpdatesDirectory => Path.Combine(store.StateDirectory, "updates");
+    private string PendingFile => Path.Combine(store.StateDirectory, "update-pending");
+    private string OkFile => Path.Combine(store.StateDirectory, "update-ok");
+    private string FailedFile => Path.Combine(store.StateDirectory, "update-failed");
 
     /// <summary>
     /// Wird nach dem ersten erfolgreichen Heartbeat aufgerufen: meldet dem Hilfsskript, dass die neue Version läuft.
@@ -210,7 +210,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
             foreach (var arg in new[]
                      {
                          "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
-                         "-Install", install, "-Stage", stage, "-State", store.Directory, "-Version", version
+                         "-Install", install, "-Stage", stage, "-State", store.StateDirectory, "-Version", version
                      })
             {
                 info.ArgumentList.Add(arg);
@@ -228,7 +228,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
         var run = new ProcessStartInfo("systemd-run") { UseShellExecute = false };
         foreach (var arg in new[]
                  {
-                     "--unit=odm-agent-update", "--collect", "--no-block", "/bin/sh", shell, install, stage, store.Directory, version
+                     "--unit=odm-agent-update", "--collect", "--no-block", "/bin/sh", shell, install, stage, store.StateDirectory, version
                  })
         {
             run.ArgumentList.Add(arg);

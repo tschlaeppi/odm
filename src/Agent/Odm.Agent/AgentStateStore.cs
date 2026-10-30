@@ -20,7 +20,7 @@ public sealed class AgentStateStore
     private readonly string _directory;
 
     /// <summary>Zustandsverzeichnis (Zugangsdaten, Logs, Update-Dateien).</summary>
-    public string Directory => _directory;
+    public string StateDirectory => _directory;
     private readonly string _file;
 
     public AgentStateStore(IOptions<AgentOptions> options)
