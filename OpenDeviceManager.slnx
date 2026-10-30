@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Odm.Host/Odm.Host.csproj" />
+    <Project Path="src/Odm.SharedKernel/Odm.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Agent/">
+    <Project Path="src/Agent/Odm.Agent/Odm.Agent.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/Identity/Odm.Modules.Identity/Odm.Modules.Identity.csproj" />
+    <Project Path="src/Modules/Devices/Odm.Modules.Devices/Odm.Modules.Devices.csproj" />
+    <Project Path="src/Modules/Agents/Odm.Modules.Agents/Odm.Modules.Agents.csproj" />
+    <Project Path="src/Modules/Software/Odm.Modules.Software/Odm.Modules.Software.csproj" />
+    <Project Path="src/Modules/OsUpdates/Odm.Modules.OsUpdates/Odm.Modules.OsUpdates.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Odm.Tests/Odm.Tests.csproj" />
+  </Folder>
+</Solution>
