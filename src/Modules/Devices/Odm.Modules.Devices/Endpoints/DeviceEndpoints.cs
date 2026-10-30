@@ -45,6 +45,26 @@ internal static class DeviceEndpoints
             return device is null ? Results.NotFound() : Results.Ok(DeviceDto.From(device));
         });
 
+        // Gruppen, in denen das Gerät aktuell Mitglied ist (Gruppen sind dynamisch und werden hier ausgewertet).
+        group.MapGet("/{id:guid}/groups", async (Guid id, DevicesDbContext db, CancellationToken ct) =>
+        {
+            if (!await db.Devices.AnyAsync(d => d.Id == id, ct))
+            {
+                return Results.NotFound();
+            }
+
+            var result = new List<DeviceGroupRefDto>();
+            foreach (var g in await db.Groups.AsNoTracking().OrderBy(g => g.Name).ToListAsync(ct))
+            {
+                if (await db.Devices.Where(d => d.Id == id).Where(GroupFilter.Build(g.MatchMode, g.Rules)).AnyAsync(ct))
+                {
+                    result.Add(new DeviceGroupRefDto(g.Id, g.Name, g.Description));
+                }
+            }
+
+            return Results.Ok(result);
+        });
+
         group.MapPut("/{id:guid}/assignment", async (
                 Guid id, AssignmentRequest request, DevicesDbContext db, CancellationToken ct) =>
             {

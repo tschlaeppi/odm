@@ -382,7 +382,16 @@ export interface AgentPackagesDto {
   packages: AgentPackageDto[]
 }
 
+export interface DeviceGroupRefDto {
+  id: string
+  name: string
+  description: string | null
+}
+
 export const api = {
+  device: (id: string) => request<DeviceDto>(`/devices/${id}`),
+  deviceGroups: (id: string) => request<DeviceGroupRefDto[]>(`/devices/${id}/groups`),
+  deviceInstallations: (id: string) => request<InstallationDto[]>(`/software/installations/by-device?deviceId=${id}`),
   agentPackages: () => request<AgentPackagesDto>('/agent/packages'),
   login: (userName: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ userName, password }) }),

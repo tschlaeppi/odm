@@ -22,6 +22,8 @@ public sealed record DeviceDto(
         d.PrimaryUser, d.PrimaryUserOrgUnit, d.CostCenter, d.RegisteredAt, d.LastSeenAt, d.AgentVersion);
 }
 
+public sealed record DeviceGroupRefDto(Guid Id, string Name, string? Description);
+
 public sealed record AssignmentRequest(string? PrimaryUser, string? OrgUnit, string? CostCenter);
 
 public static class DeviceQueries

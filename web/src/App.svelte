@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DeviceDetail from './lib/DeviceDetail.svelte'
   import Devices from './lib/Devices.svelte'
   import Enrollment from './lib/Enrollment.svelte'
   import GroupEditor from './lib/GroupEditor.svelte'
@@ -14,6 +15,7 @@
   import { router } from './lib/router.svelte'
   import { theme } from './lib/theme.svelte'
 
+  const deviceId = $derived(router.path.startsWith('/devices/') ? router.path.slice('/devices/'.length) : null)
   const editorId = $derived(router.path.startsWith('/groups/') ? router.path.slice('/groups/'.length) : null)
   const packageId = $derived(router.path.startsWith('/software/') ? router.path.slice('/software/'.length) : null)
   const profileId = $derived(router.path.startsWith('/profiles/') ? router.path.slice('/profiles/'.length) : null)
@@ -108,6 +110,10 @@
         <OsUpdates />
       {:else if section === 'enrollment' && auth.canEdit}
         <Enrollment />
+      {:else if deviceId}
+        {#key deviceId}
+          <DeviceDetail id={deviceId} />
+        {/key}
       {:else}
         <Devices />
       {/if}

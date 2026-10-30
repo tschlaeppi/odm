@@ -178,6 +178,36 @@ internal static class AssignmentEndpoints
                 i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt)));
         });
 
+        installations.MapGet("/by-device", async (Guid deviceId, SoftwareDbContext db, IDeviceDirectory directory, CancellationToken ct) =>
+        {
+            var device = await directory.GetAsync(deviceId, ct);
+            if (device is null)
+            {
+                return Results.NotFound();
+            }
+
+            var rows = await db.Installations.AsNoTracking()
+                .Where(i => i.DeviceId == deviceId)
+                .OrderBy(i => i.UpdatedAt)
+                .Take(500)
+                .ToListAsync(ct);
+
+            var packageIds = rows.Select(i => i.PackageId).Distinct().ToList();
+            var names = await db.Packages.AsNoTracking()
+                .Where(p => packageIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+            var versions = await db.Versions.AsNoTracking()
+                .Where(v => packageIds.Contains(v.PackageId))
+                .ToDictionaryAsync(v => v.Id, v => v.Version, ct);
+
+            return Results.Ok(rows.Select(i => new InstallationDto(
+                i.Id, i.DeviceId, device.Name,
+                i.PackageId, names.GetValueOrDefault(i.PackageId, "?"),
+                versions.GetValueOrDefault(i.TargetVersionId),
+                i.InstalledVersionId is { } installed ? versions.GetValueOrDefault(installed) : null,
+                i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt)));
+        });
+
         installations.MapPost("/{id:guid}/retry", async (Guid id, SoftwareDbContext db, DeploymentTrigger trigger, CancellationToken ct) =>
             {
                 var installation = await db.Installations.SingleOrDefaultAsync(i => i.Id == id, ct);

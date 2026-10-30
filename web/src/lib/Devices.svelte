@@ -58,7 +58,7 @@
   })
 
   const columns = $derived<Column<DeviceDto>[]>([
-    { key: 'name', label: i18n.t('devices.name'), value: (d) => d.name, strong: true },
+    { key: 'name', label: i18n.t('devices.name'), value: (d) => d.name, cell: nameCell, strong: true },
     {
       key: 'status',
       label: i18n.t('devices.status'),
@@ -105,6 +105,10 @@
     }
   }
 </script>
+
+{#snippet nameCell(device: DeviceDto)}
+  <a href={`#/devices/${device.id}`}>{device.name}</a>
+{/snippet}
 
 {#snippet status(device: DeviceDto)}
   <span class="dot" class:on={isOnline(device)}></span>
