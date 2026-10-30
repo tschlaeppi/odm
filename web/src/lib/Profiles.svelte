@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { api, ApiError, type PackageDto, type ProfileDto } from './api'
   import { auth } from './auth.svelte'
+  import DataTable, { type Column } from './DataTable.svelte'
   import { i18n } from './i18n.svelte'
   import { router } from './router.svelte'
 
@@ -48,7 +49,17 @@
       busy = false
     }
   }
+
+  const columns = $derived<Column<ProfileDto>[]>([
+    { key: 'name', label: i18n.t('prof.name'), value: (p) => p.name, cell: nameCell, strong: true },
+    { key: 'desc', label: i18n.t('prof.description'), value: (p) => p.description, muted: true },
+    { key: 'items', label: i18n.t('prof.items'), value: (p) => p.itemCount, align: 'right', filter: 'none' },
+  ])
 </script>
+
+{#snippet nameCell(p: ProfileDto)}
+  <a href={`#/profiles/${p.id}`}>{p.name}</a>
+{/snippet}
 
 <section>
   <h1>{i18n.t('prof.title')}</h1>
@@ -85,29 +96,8 @@
   {:else if failed}
     <p class="error">{i18n.t('prof.failedToLoad')}</p>
     <button onclick={load}>{i18n.t('devices.retry')}</button>
-  {:else if profiles.length === 0}
-    <p class="muted">{i18n.t('prof.empty')}</p>
   {:else}
-    <div class="card list">
-      <table>
-        <thead>
-          <tr>
-            <th>{i18n.t('prof.name')}</th>
-            <th>{i18n.t('prof.description')}</th>
-            <th>{i18n.t('prof.items')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each profiles as p (p.id)}
-            <tr>
-              <td class="strong"><a href={`#/profiles/${p.id}`}>{p.name}</a></td>
-              <td class="muted">{p.description ?? ''}</td>
-              <td>{p.itemCount}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    <DataTable rows={profiles} {columns} rowKey={(p) => p.id} emptyText={i18n.t('prof.empty')} />
   {/if}
 </section>
 
@@ -136,32 +126,6 @@
     gap: 0.35rem;
     font-size: 0.85rem;
     color: var(--muted);
-  }
-  .list {
-    padding: 0;
-    overflow-x: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.92rem;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.6rem 1rem;
-  }
-  th {
-    font-weight: 500;
-    font-size: 0.8rem;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  tbody tr + tr td {
-    border-top: 1px solid var(--border);
-  }
-  .strong {
-    font-weight: 600;
   }
   .error {
     color: var(--danger);

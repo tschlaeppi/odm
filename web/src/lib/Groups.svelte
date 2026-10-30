@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { api, type GroupDto } from './api'
   import { auth } from './auth.svelte'
+  import DataTable, { type Column } from './DataTable.svelte'
   import { i18n } from './i18n.svelte'
   import { router } from './router.svelte'
 
@@ -32,10 +33,28 @@
   }
 
   onMount(load)
+
+  const columns = $derived<Column<GroupDto>[]>([
+    { key: 'name', label: i18n.t('groups.name'), value: (g) => g.name, cell: nameCell, strong: true },
+    { key: 'desc', label: i18n.t('groups.description'), value: (g) => g.description, muted: true },
+    { key: 'devices', label: i18n.t('groups.devicesLabel'), value: (g) => g.deviceCount, align: 'right', filter: 'none' },
+    { key: 'rules', label: i18n.t('groups.rulesLabel'), value: (g) => g.rules.length, align: 'right', filter: 'none' },
+  ])
 </script>
 
+{#snippet nameCell(group: GroupDto)}
+  <a href={`#/groups/${group.id}`}>{group.name}</a>
+{/snippet}
+
+{#snippet rowActions(group: GroupDto)}
+  {#if auth.canEdit}
+    <a class="link" href={`#/groups/${group.id}`}>{i18n.t('common.edit')}</a>
+    <button class="ghost" onclick={() => remove(group)}>{i18n.t('common.delete')}</button>
+  {/if}
+{/snippet}
+
 <section>
-  <header class="head">
+  <header class="page-head">
     <h1>{i18n.t('groups.title')}</h1>
     <span class="spacer"></span>
     {#if auth.canEdit}
@@ -50,74 +69,15 @@
       <p class="error">{i18n.t('groups.error')}</p>
       <button onclick={load}>{i18n.t('devices.retry')}</button>
     </div>
-  {:else if groups.length === 0}
-    <p class="muted">{i18n.t('groups.empty')}</p>
   {:else}
-    <div class="list">
-      {#each groups as group (group.id)}
-        <article class="card item">
-          <div class="info">
-            <h2>{group.name}</h2>
-            {#if group.description}<p class="muted">{group.description}</p>{/if}
-            <p class="meta muted">
-              {i18n.t('groups.devices', { count: group.deviceCount })} ·
-              {i18n.t('groups.rules', { count: group.rules.length })}
-            </p>
-          </div>
-          <div class="buttons">
-            <a class="link" href={`#/groups/${group.id}`}>{auth.canEdit ? i18n.t('common.edit') : i18n.t('groups.title')}</a>
-            {#if auth.canEdit}
-              <button class="ghost" onclick={() => remove(group)}>{i18n.t('common.delete')}</button>
-            {/if}
-          </div>
-        </article>
-      {/each}
-    </div>
+    <DataTable rows={groups} {columns} rowKey={(g) => g.id} actions={rowActions} emptyText={i18n.t('groups.empty')} />
   {/if}
 </section>
 
 <style>
-  .head {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-  .spacer {
-    flex: 1;
-  }
-  h1 {
-    font-size: 1.35rem;
-    margin: 0;
-  }
-  h2 {
-    font-size: 1rem;
-    margin: 0;
-  }
-  .list {
-    display: grid;
-    gap: 0.75rem;
-  }
-  .item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-  }
-  .info p {
-    margin: 0.2rem 0 0;
-    font-size: 0.9rem;
-  }
-  .buttons {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
   .link {
-    color: var(--accent);
     text-decoration: none;
-    padding: 0.4rem 0.6rem;
+    padding: 0.25rem 0.55rem;
   }
   .error {
     color: var(--danger);

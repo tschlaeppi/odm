@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { api, type AgentPackagesDto, type TokenCreatedDto, type TokenDto } from './api'
+  import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
 
   const validities = [1, 24, 72, 168]
@@ -84,7 +85,26 @@
       errorKey = 'common.saveFailed'
     }
   }
+
+  const columns = $derived<Column<TokenDto>[]>([
+    { key: 'label', label: i18n.t('groups.name'), value: (t) => t.label, strong: true },
+    { key: 'status', label: i18n.t('enroll.status'), value: (t) => i18n.t(`enroll.status.${t.status}` as MessageKey), filter: 'select' },
+    { key: 'created', label: i18n.t('enroll.createdAt'), value: (t) => t.createdAt, cell: createdCell, filter: 'none' },
+    { key: 'expires', label: i18n.t('enroll.expires'), value: (t) => t.expiresAt, cell: expiresCell, filter: 'none' },
+  ])
 </script>
+
+{#snippet createdCell(t: TokenDto)}
+  {i18n.formatDate(t.createdAt)}
+{/snippet}
+
+{#snippet expiresCell(t: TokenDto)}
+  {i18n.formatDate(t.expiresAt)}
+{/snippet}
+
+{#snippet rowActions(t: TokenDto)}
+  <button class="ghost" onclick={() => remove(t)}>{i18n.t('common.delete')}</button>
+{/snippet}
 
 <section>
   <h1>{i18n.t('enroll.title')}</h1>
@@ -177,35 +197,8 @@
     <p class="muted">{i18n.t('devices.loading')}</p>
   {:else if failed}
     <p class="error">{i18n.t('devices.error')}</p>
-  {:else if tokens.length === 0}
-    <p class="muted">{i18n.t('enroll.empty')}</p>
   {:else}
-    <div class="card list">
-      <table>
-        <thead>
-          <tr>
-            <th>{i18n.t('groups.name')}</th>
-            <th>{i18n.t('enroll.status')}</th>
-            <th>{i18n.t('enroll.createdAt')}</th>
-            <th>{i18n.t('enroll.expires')}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each tokens as token (token.id)}
-            <tr>
-              <td class="strong">{token.label}</td>
-              <td>{i18n.t(`enroll.status.${token.status}` as MessageKey)}</td>
-              <td>{i18n.formatDate(token.createdAt)}</td>
-              <td>{i18n.formatDate(token.expiresAt)}</td>
-              <td class="actions">
-                <button class="ghost" onclick={() => remove(token)}>{i18n.t('common.delete')}</button>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    <DataTable rows={tokens} {columns} rowKey={(t) => t.id} actions={rowActions} emptyText={i18n.t('enroll.empty')} />
   {/if}
 </section>
 
@@ -289,12 +282,6 @@
   }
   tbody tr + tr td {
     border-top: 1px solid var(--border);
-  }
-  .strong {
-    font-weight: 600;
-  }
-  .actions {
-    text-align: right;
   }
   .error {
     color: var(--danger);

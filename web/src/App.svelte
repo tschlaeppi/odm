@@ -32,109 +32,198 @@
   )
 </script>
 
-<header class="topbar">
-  <span class="brand">{i18n.t('app.title')}</span>
+<div class="shell" class:authed={auth.isAuthenticated}>
+  <header class="topbar">
+    <span class="brand"><span class="logo" aria-hidden="true">◧</span>{i18n.t('app.title')}</span>
+    <span class="spacer"></span>
+    <button class="ghost" onclick={() => i18n.toggle()} aria-label={i18n.t('lang.toggle')}>
+      {i18n.locale === 'de' ? 'EN' : 'DE'}
+    </button>
+    <button class="ghost" onclick={() => theme.toggle()} aria-label={i18n.t('theme.toggle')}>
+      {theme.current === 'dark' ? '☀' : '☾'}
+    </button>
+    {#if auth.isAuthenticated}
+      <span class="user">{auth.user?.displayName}</span>
+      <button class="ghost" onclick={() => auth.logout()}>{i18n.t('logout')}</button>
+    {/if}
+  </header>
+
   {#if auth.isAuthenticated}
-    <nav>
-      <a href="#/devices" class:active={section === 'devices'}>{i18n.t('nav.devices')}</a>
-      <a href="#/groups" class:active={section === 'groups'}>{i18n.t('nav.groups')}</a>
-      <a href="#/software" class:active={section === 'software'}>{i18n.t('nav.software')}</a>
-      <a href="#/profiles" class:active={section === 'profiles'}>{i18n.t('nav.profiles')}</a>
-      <a href="#/os-updates" class:active={section === 'os-updates'}>{i18n.t('nav.osUpdates')}</a>
+    <nav class="side" aria-label="Navigation">
+      <div class="group">{i18n.t('nav.group.manage')}</div>
+      <a href="#/devices" class:active={section === 'devices'}>
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg>
+        {i18n.t('nav.devices')}
+      </a>
+      <a href="#/groups" class:active={section === 'groups'}>
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><circle cx="17" cy="9" r="2.3" /><path d="M16 14.2c2.7.2 5 2.4 5 5.8" /></svg>
+        {i18n.t('nav.groups')}
+      </a>
+      <div class="group">{i18n.t('nav.group.deploy')}</div>
+      <a href="#/software" class:active={section === 'software'}>
+        <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5l8 4.5 8-4.5M12 12v9" /></svg>
+        {i18n.t('nav.software')}
+      </a>
+      <a href="#/profiles" class:active={section === 'profiles'}>
+        <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="1.5" /><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h4" /></svg>
+        {i18n.t('nav.profiles')}
+      </a>
+      <a href="#/os-updates" class:active={section === 'os-updates'}>
+        <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7" /><path d="M20 4v5h-5" /></svg>
+        {i18n.t('nav.osUpdates')}
+      </a>
       {#if auth.canEdit}
-        <a href="#/enrollment" class:active={section === 'enrollment'}>{i18n.t('nav.enrollment')}</a>
+        <div class="group">{i18n.t('nav.group.system')}</div>
+        <a href="#/enrollment" class:active={section === 'enrollment'}>
+          <svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16 7l3 3M14 9l2 2" /></svg>
+          {i18n.t('nav.enrollment')}
+        </a>
       {/if}
     </nav>
   {/if}
-  <span class="spacer"></span>
-  <button class="ghost" onclick={() => i18n.toggle()} aria-label={i18n.t('lang.toggle')}>
-    {i18n.locale === 'de' ? 'EN' : 'DE'}
-  </button>
-  <button class="ghost" onclick={() => theme.toggle()} aria-label={i18n.t('theme.toggle')}>
-    {theme.current === 'dark' ? '☀' : '☾'}
-  </button>
-  {#if auth.isAuthenticated}
-    <span class="muted user">{auth.user?.displayName}</span>
-    <button class="ghost" onclick={() => auth.logout()}>{i18n.t('logout')}</button>
-  {/if}
-</header>
 
-{#if auth.isAuthenticated}
-  <main class="content">
-    {#if editorId === 'new'}
-      <GroupEditor />
-    {:else if editorId}
-      {#key editorId}
-        <GroupEditor id={editorId} />
-      {/key}
-    {:else if section === 'groups'}
-      <Groups />
-    {:else if section === 'software' && packageId}
-      {#key packageId}
-        <PackageDetail id={packageId} />
-      {/key}
-    {:else if section === 'software'}
-      <Software />
-    {:else if section === 'profiles' && profileId}
-      {#key profileId}
-        <ProfileDetail id={profileId} />
-      {/key}
-    {:else if section === 'profiles'}
-      <Profiles />
-    {:else if section === 'os-updates'}
-      <OsUpdates />
-    {:else if section === 'enrollment' && auth.canEdit}
-      <Enrollment />
-    {:else}
-      <Devices />
-    {/if}
-  </main>
-{:else}
-  <Login />
-{/if}
+  {#if auth.isAuthenticated}
+      <main class="content">
+      {#if editorId === 'new'}
+        <GroupEditor />
+      {:else if editorId}
+        {#key editorId}
+          <GroupEditor id={editorId} />
+        {/key}
+      {:else if section === 'groups'}
+        <Groups />
+      {:else if section === 'software' && packageId}
+        {#key packageId}
+          <PackageDetail id={packageId} />
+        {/key}
+      {:else if section === 'software'}
+        <Software />
+      {:else if section === 'profiles' && profileId}
+        {#key profileId}
+          <ProfileDetail id={profileId} />
+        {/key}
+      {:else if section === 'profiles'}
+        <Profiles />
+      {:else if section === 'os-updates'}
+        <OsUpdates />
+      {:else if section === 'enrollment' && auth.canEdit}
+        <Enrollment />
+      {:else}
+        <Devices />
+      {/if}
+    </main>
+  {:else}
+    <Login />
+  {/if}
+</div>
 
 <style>
+  .shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: 3rem 1fr;
+    grid-template-columns: 1fr;
+  }
+  .shell.authed {
+    grid-template-columns: 13.5rem 1fr;
+  }
   .topbar {
-    height: 3.5rem;
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0 1.25rem;
-    border-bottom: 1px solid var(--border);
+    padding: 0 1rem;
     background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
   }
   .brand {
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    margin-right: 1rem;
-  }
-  nav {
     display: flex;
-    gap: 0.25rem;
-  }
-  nav a {
-    color: var(--muted);
-    text-decoration: none;
-    padding: 0.4rem 0.7rem;
-    border-radius: 0.45rem;
-  }
-  nav a:hover {
-    background: var(--hover);
-  }
-  nav a.active {
-    color: var(--text);
+    align-items: center;
+    gap: 0.5rem;
     font-weight: 600;
+  }
+  .logo {
+    color: var(--accent);
+    font-size: 1.2rem;
   }
   .spacer {
     flex: 1;
   }
   .user {
     margin: 0 0.25rem;
-    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+  }
+  .group {
+    padding: 0.9rem 1rem 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .side a {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 1rem;
+    color: var(--text);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+  }
+  .side a:hover {
+    background: var(--hover);
+  }
+  .side a.active {
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: none;
   }
   .content {
-    max-width: 72rem;
-    margin: 0 auto;
-    padding: 1.5rem 1.25rem;
+    min-width: 0;
+    padding: 1.25rem 1.5rem;
+  }
+
+  @media (max-width: 760px) {
+    .shell.authed {
+      grid-template-columns: 1fr;
+      grid-template-rows: 3rem auto 1fr;
+    }
+    .side {
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 0;
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .group {
+      display: none;
+    }
+    .side a {
+      border-left: 0;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+    }
+    .side a.active {
+      border-bottom-color: var(--accent);
+    }
   }
 </style>

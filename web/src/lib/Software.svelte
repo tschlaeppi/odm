@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { api, ApiError, type PackageDto, type PackageKind, type SecretDto } from './api'
   import { auth } from './auth.svelte'
+  import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
   import PackageSpecForm from './PackageSpecForm.svelte'
   import { router } from './router.svelte'
@@ -81,7 +82,35 @@
       secretError = e instanceof ApiError && e.status === 409 ? i18n.t('sw.secrets.inUse') : i18n.t('common.saveFailed')
     }
   }
+
+  const columns = $derived<Column<PackageDto>[]>([
+    { key: 'name', label: i18n.t('sw.name'), value: (p) => p.name, cell: nameCell, strong: true },
+    { key: 'kind', label: i18n.t('sw.kindLabel'), value: (p) => i18n.t(`sw.kind.${p.kind}` as MessageKey), filter: 'select' },
+    { key: 'latest', label: i18n.t('sw.latest'), value: (p) => p.latestVersion },
+    { key: 'desc', label: i18n.t('sw.description'), value: (p) => p.description, muted: true },
+  ])
+
+  const secretColumns = $derived<Column<SecretDto>[]>([
+    { key: 'name', label: i18n.t('sw.secrets.name'), value: (x) => x.name, cell: secretLabel, strong: true },
+    { key: 'updated', label: i18n.t('sw.secrets.updated'), value: (x) => x.updatedAt, cell: secretUpdated, filter: 'none' },
+  ])
 </script>
+
+{#snippet nameCell(p: PackageDto)}
+  <a href={`#/software/${p.id}`}>{p.name}</a>
+{/snippet}
+
+{#snippet secretLabel(x: SecretDto)}
+  <code>{`{{secret:${x.name}}}`}</code>
+{/snippet}
+
+{#snippet secretUpdated(x: SecretDto)}
+  {i18n.formatDate(x.updatedAt)}
+{/snippet}
+
+{#snippet secretActions(x: SecretDto)}
+  <button class="ghost" onclick={() => removeSecret(x)}>{i18n.t('common.delete')}</button>
+{/snippet}
 
 <section>
   <h1>{i18n.t('sw.title')}</h1>
@@ -122,31 +151,8 @@
     <p class="muted">{i18n.t('devices.loading')}</p>
   {:else if failed}
     <p class="error">{i18n.t('devices.error')}</p>
-  {:else if packages.length === 0}
-    <p class="muted">{i18n.t('sw.empty')}</p>
   {:else}
-    <div class="card list">
-      <table>
-        <thead>
-          <tr>
-            <th>{i18n.t('sw.name')}</th>
-            <th>{i18n.t('sw.kindLabel')}</th>
-            <th>{i18n.t('sw.latest')}</th>
-            <th>{i18n.t('sw.description')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each packages as pkg (pkg.id)}
-            <tr>
-              <td class="strong"><a href={`#/software/${pkg.id}`}>{pkg.name}</a></td>
-              <td>{i18n.t(`sw.kind.${pkg.kind}` as MessageKey)}</td>
-              <td>{pkg.latestVersion ?? '–'}</td>
-              <td class="muted">{pkg.description ?? ''}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    <DataTable rows={packages} {columns} rowKey={(p) => p.id} emptyText={i18n.t('sw.empty')} />
   {/if}
 
   <h2>{i18n.t('sw.secrets')}</h2>
@@ -171,34 +177,13 @@
   {/if}
   {#if secretError}<p class="error" role="alert">{secretError}</p>{/if}
 
-  {#if secrets.length === 0}
-    <p class="muted">{i18n.t('sw.secrets.empty')}</p>
-  {:else}
-    <div class="card list">
-      <table>
-        <thead>
-          <tr>
-            <th>{i18n.t('sw.secrets.name')}</th>
-            <th>{i18n.t('sw.secrets.updated')}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each secrets as secret (secret.name)}
-            <tr>
-              <td class="strong"><code>{`{{secret:${secret.name}}}`}</code></td>
-              <td>{i18n.formatDate(secret.updatedAt)}</td>
-              <td class="actions">
-                {#if isAdmin}
-                  <button class="ghost" onclick={() => removeSecret(secret)}>{i18n.t('common.delete')}</button>
-                {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  {/if}
+  <DataTable
+    rows={secrets}
+    columns={secretColumns}
+    rowKey={(x) => x.name}
+    actions={isAdmin ? secretActions : undefined}
+    emptyText={i18n.t('sw.secrets.empty')}
+  />
 </section>
 
 <style>
@@ -209,9 +194,6 @@
   h2 {
     font-size: 1.05rem;
     margin: 1.75rem 0 0.5rem;
-  }
-  .actions {
-    text-align: right;
   }
   code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -241,33 +223,6 @@
   .small {
     font-size: 0.85rem;
     margin: 0;
-  }
-  .list {
-    padding: 0;
-    overflow-x: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.92rem;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.7rem 1rem;
-    white-space: nowrap;
-  }
-  th {
-    font-weight: 500;
-    font-size: 0.8rem;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  tbody tr + tr td {
-    border-top: 1px solid var(--border);
-  }
-  .strong {
-    font-weight: 600;
   }
   a {
     color: var(--accent);
