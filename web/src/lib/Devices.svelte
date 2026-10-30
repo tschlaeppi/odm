@@ -70,6 +70,7 @@
     { key: 'user', label: i18n.t('devices.primaryUser'), value: (d) => d.primaryUser },
     { key: 'org', label: i18n.t('devices.orgUnit'), value: (d) => d.orgUnit, filter: 'select' },
     { key: 'cost', label: i18n.t('devices.costCenter'), value: (d) => d.costCenter, filter: 'select' },
+    { key: 'agent', label: i18n.t('devices.agentVersion'), value: (d) => d.agentVersion, filter: 'select' },
     { key: 'seen', label: i18n.t('devices.lastSeen'), value: (d) => d.lastSeenAt ?? '', cell: seen },
   ])
 
