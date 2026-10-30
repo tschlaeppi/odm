@@ -6,6 +6,8 @@ public sealed record LoginRequest(string UserName, string Password);
 
 public sealed record UserDto(Guid Id, string UserName, string DisplayName, string Role);
 
+public sealed record OidcProviderDto(string Id, string DisplayName);
+
 public sealed record LoginResponse(string Token, DateTimeOffset ExpiresAt, UserDto User);
 
 /// <summary>Ergebnis einer erfolgreichen Authentisierung, unabhängig vom Provider.</summary>

@@ -16,6 +16,7 @@ using Odm.Modules.Identity.Application;
 using Odm.Modules.Identity.Domain;
 using Odm.Modules.Identity.Infrastructure;
 using Odm.Modules.Identity.Infrastructure.Ldap;
+using Odm.Modules.Identity.Infrastructure.Oidc;
 using Odm.SharedKernel;
 using Odm.SharedKernel.Persistence;
 
@@ -60,6 +61,16 @@ public sealed class IdentityModule : IModule
             services.AddSingleton<ILdapDirectory, SystemLdapDirectory>();
             services.AddScoped<IAuthenticationProvider, LdapAuthenticationProvider>();
         }
+
+        // Optional: Anmeldung über OpenID Connect (Entra ID, authentik, Keycloak ...). Ohne Anbieter passiert nichts.
+        services.AddOptions<OidcOptions>()
+            .Bind(configuration.GetSection(OidcOptions.SectionName))
+            .Validate(o => o.Problem() is null,
+                "Identity:Oidc ist unvollständig (PublicBaseUrl, je Anbieter Id, Authority, ClientId und mindestens ein Rollenwert).")
+            .ValidateOnStart();
+        services.AddHttpClient(OidcService.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(15));
+        services.AddSingleton<OidcStateProtector>();
+        services.AddSingleton<OidcService>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
@@ -118,6 +129,8 @@ public sealed class IdentityModule : IModule
             .AllowAnonymous()
             .RequireRateLimiting("login");
 
+        MapOidc(group);
+
         group.MapGet("/me", (ClaimsPrincipal principal) =>
             {
                 var id = Guid.TryParse(principal.FindFirstValue("sub"), out var guid) ? guid : Guid.Empty;
@@ -128,6 +141,74 @@ public sealed class IdentityModule : IModule
                     principal.FindFirstValue("role") ?? ""));
             })
             .RequireAuthorization();
+    }
+
+    private const string OidcCookie = "odm_oidc";
+    private const string OidcCookiePath = "/api/auth/oidc";
+
+    private static void MapOidc(RouteGroupBuilder group)
+    {
+        group.MapGet("/oidc/providers", (OidcService oidc) =>
+                Results.Ok(oidc.Providers.Select(p => new OidcProviderDto(p.Id, p.DisplayName))))
+            .AllowAnonymous();
+
+        // Start: Browser wird zum Anbieter geschickt. Der Anmeldezustand liegt in einem kurzlebigen, signierten Cookie.
+        group.MapGet("/oidc/{provider:regex(^[a-z0-9-]{{1,32}}$)}/login", async (
+                string provider, OidcService oidc, IOptions<OidcOptions> options, HttpContext http, CancellationToken ct) =>
+            {
+                var start = await oidc.StartAsync(provider, ct);
+                if (start is null)
+                {
+                    return Results.NotFound();
+                }
+
+                http.Response.Headers.CacheControl = "no-store";
+                http.Response.Cookies.Append(OidcCookie, start.StateCookie, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = options.Value.SecureCookies,
+                    SameSite = SameSiteMode.Lax, // die Rückkehr vom Anbieter ist eine Navigation von aussen
+                    Path = OidcCookiePath,
+                    MaxAge = TimeSpan.FromMinutes(10),
+                    IsEssential = true
+                });
+                return Results.Redirect(start.AuthorizationUrl);
+            })
+            .AllowAnonymous()
+            .RequireRateLimiting("login");
+
+        // Rückkehr: Code gegen Token tauschen, prüfen, ODM-Token ausstellen. Das Token reist im Fragment (#) der
+        // Adresse zurück zur Oberfläche; ein Fragment wird nie an einen Server gesendet. Die Oberfläche entfernt es sofort.
+        group.MapGet("/oidc/callback", async (
+                string? code, string? state, string? error, OidcService oidc, IOptions<OidcOptions> options,
+                HttpContext http, CancellationToken ct) =>
+            {
+                var cookie = http.Request.Cookies[OidcCookie];
+                http.Response.Cookies.Delete(OidcCookie, new CookieOptions
+                {
+                    Path = OidcCookiePath,
+                    Secure = options.Value.SecureCookies,
+                    SameSite = SameSiteMode.Lax
+                });
+                http.Response.Headers.CacheControl = "no-store";
+
+                if (!string.IsNullOrEmpty(error))
+                {
+                    return Results.Redirect("/#/login?oidc=failed");
+                }
+
+                var result = await oidc.CompleteAsync(code, state, cookie, ct);
+                if (result.Response is null)
+                {
+                    return Results.Redirect($"/#/login?oidc={result.Error ?? "failed"}");
+                }
+
+                return Results.Redirect(
+                    $"/#/oidc?token={Uri.EscapeDataString(result.Response.Token)}" +
+                    $"&expires={Uri.EscapeDataString(result.Response.ExpiresAt.ToString("O"))}");
+            })
+            .AllowAnonymous()
+            .RequireRateLimiting("login");
     }
 
     public async Task InitializeAsync(IServiceProvider services, CancellationToken ct)
