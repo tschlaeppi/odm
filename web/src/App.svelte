@@ -15,6 +15,22 @@
   import { router } from './lib/router.svelte'
   import { theme } from './lib/theme.svelte'
 
+  let collapsed = $state(false)
+  try {
+    collapsed = localStorage.getItem('odm.sidebar') === 'collapsed'
+  } catch {
+    // Speicher nicht verfügbar
+  }
+
+  function toggleSidebar() {
+    collapsed = !collapsed
+    try {
+      localStorage.setItem('odm.sidebar', collapsed ? 'collapsed' : 'expanded')
+    } catch {
+      // ignorieren
+    }
+  }
+
   const deviceId = $derived(router.path.startsWith('/devices/') ? router.path.slice('/devices/'.length) : null)
   const editorId = $derived(router.path.startsWith('/groups/') ? router.path.slice('/groups/'.length) : null)
   const packageId = $derived(router.path.startsWith('/software/') ? router.path.slice('/software/'.length) : null)
@@ -34,7 +50,7 @@
   )
 </script>
 
-<div class="shell" class:authed={auth.isAuthenticated}>
+<div class="shell" class:authed={auth.isAuthenticated} class:collapsed>
   <header class="topbar">
     <span class="brand"><span class="logo" aria-hidden="true">◧</span>{i18n.t('app.title')}</span>
     <span class="spacer"></span>
@@ -53,34 +69,46 @@
   {#if auth.isAuthenticated}
     <nav class="side" aria-label="Navigation">
       <div class="group">{i18n.t('nav.group.manage')}</div>
-      <a href="#/devices" class:active={section === 'devices'}>
+      <a href="#/devices" title={collapsed ? i18n.t('nav.devices') : undefined} class:active={section === 'devices'}>
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg>
-        {i18n.t('nav.devices')}
+        <span class="label">{i18n.t('nav.devices')}</span>
       </a>
-      <a href="#/groups" class:active={section === 'groups'}>
+      <a href="#/groups" title={collapsed ? i18n.t('nav.groups') : undefined} class:active={section === 'groups'}>
         <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><circle cx="17" cy="9" r="2.3" /><path d="M16 14.2c2.7.2 5 2.4 5 5.8" /></svg>
-        {i18n.t('nav.groups')}
+        <span class="label">{i18n.t('nav.groups')}</span>
       </a>
       <div class="group">{i18n.t('nav.group.deploy')}</div>
-      <a href="#/software" class:active={section === 'software'}>
+      <a href="#/software" title={collapsed ? i18n.t('nav.software') : undefined} class:active={section === 'software'}>
         <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5l8 4.5 8-4.5M12 12v9" /></svg>
-        {i18n.t('nav.software')}
+        <span class="label">{i18n.t('nav.software')}</span>
       </a>
-      <a href="#/profiles" class:active={section === 'profiles'}>
+      <a href="#/profiles" title={collapsed ? i18n.t('nav.profiles') : undefined} class:active={section === 'profiles'}>
         <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="1.5" /><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h4" /></svg>
-        {i18n.t('nav.profiles')}
+        <span class="label">{i18n.t('nav.profiles')}</span>
       </a>
-      <a href="#/os-updates" class:active={section === 'os-updates'}>
+      <a href="#/os-updates" title={collapsed ? i18n.t('nav.osUpdates') : undefined} class:active={section === 'os-updates'}>
         <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7" /><path d="M20 4v5h-5" /></svg>
-        {i18n.t('nav.osUpdates')}
+        <span class="label">{i18n.t('nav.osUpdates')}</span>
       </a>
       {#if auth.canEdit}
         <div class="group">{i18n.t('nav.group.system')}</div>
-        <a href="#/enrollment" class:active={section === 'enrollment'}>
+        <a href="#/enrollment" title={collapsed ? i18n.t('nav.enrollment') : undefined} class:active={section === 'enrollment'}>
           <svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16 7l3 3M14 9l2 2" /></svg>
-          {i18n.t('nav.enrollment')}
+          <span class="label">{i18n.t('nav.enrollment')}</span>
         </a>
       {/if}
+      <span class="fill"></span>
+      <button
+        class="collapse"
+        onclick={toggleSidebar}
+        aria-label={collapsed ? i18n.t('nav.expand') : i18n.t('nav.collapse')}
+        title={collapsed ? i18n.t('nav.expand') : i18n.t('nav.collapse')}
+      >
+        <svg viewBox="0 0 24 24">
+          {#if collapsed}<path d="M9 6l6 6-6 6" />{:else}<path d="M15 6l-6 6 6 6" />{/if}
+        </svg>
+        <span class="label">{i18n.t('nav.collapse')}</span>
+      </button>
     </nav>
   {/if}
 
@@ -131,7 +159,10 @@
     grid-template-columns: 1fr;
   }
   .shell.authed {
-    grid-template-columns: 13.5rem 1fr;
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+  }
+  .shell.authed.collapsed {
+    grid-template-columns: 3.4rem minmax(0, 1fr);
   }
   .topbar {
     grid-column: 1 / -1;
@@ -161,6 +192,11 @@
     color: var(--muted);
   }
   .side {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: calc(100vh - 3rem);
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     padding: 0.5rem 0;
@@ -193,6 +229,38 @@
     color: var(--accent);
     font-weight: 600;
   }
+  .fill {
+    flex: 1;
+  }
+  .collapse {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    color: var(--muted);
+    background: transparent;
+    border-color: transparent;
+  }
+  .collapsed .group {
+    height: 0;
+    padding: 0;
+    margin: 0.5rem 0.75rem;
+    border-top: 1px solid var(--border);
+    overflow: hidden;
+    font-size: 0;
+  }
+  .collapsed .label {
+    display: none;
+  }
+  .collapsed .side a {
+    justify-content: center;
+    padding: 0.55rem 0;
+  }
+  .collapsed .collapse {
+    justify-content: center;
+    margin: 0.5rem 0.4rem;
+  }
   svg {
     width: 1.15rem;
     height: 1.15rem;
@@ -209,19 +277,27 @@
   }
 
   @media (max-width: 760px) {
-    .shell.authed {
-      grid-template-columns: 1fr;
+    .shell.authed,
+    .shell.authed.collapsed {
+      grid-template-columns: minmax(0, 1fr);
       grid-template-rows: 3rem auto 1fr;
     }
     .side {
+      position: static;
+      height: auto;
       flex-direction: row;
       overflow-x: auto;
       padding: 0;
       border-right: 0;
       border-bottom: 1px solid var(--border);
     }
-    .group {
+    .group,
+    .fill,
+    .collapse {
       display: none;
+    }
+    .collapsed .label {
+      display: inline;
     }
     .side a {
       border-left: 0;

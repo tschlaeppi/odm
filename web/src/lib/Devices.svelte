@@ -160,6 +160,8 @@
       emptyText={i18n.t('devices.empty')}
       stale={loading}
       toolbar={groupFilter}
+      defaultHidden={['org', 'cost']}
+      storageKey="devices"
     />
   {/if}
 </section>

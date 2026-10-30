@@ -30,9 +30,13 @@
     /** Zusätzliche Bedienelemente rechts neben der Suche. */
     toolbar?: Snippet
     pageSize?: number
+    /** Spalten (key), die anfangs ausgeblendet sind. */
+    defaultHidden?: string[]
+    /** Schlüssel, unter dem die Spaltenauswahl im Browser gemerkt wird. */
+    storageKey?: string
   }
 
-  let { rows, columns, rowKey, actions, searchPlaceholder, emptyText, stale = false, toolbar, pageSize = 50 }: Props = $props()
+  let { rows, columns, rowKey, actions, searchPlaceholder, emptyText, stale = false, toolbar, pageSize = 50, defaultHidden = [], storageKey }: Props = $props()
 
   let query = $state('')
   let filters = $state<Record<string, string>>({})
@@ -42,15 +46,41 @@
   let page = $state(0)
   let size = $state(untrack(() => pageSize))
 
+  // Ausgeblendete Spalten; die Auswahl wird (falls möglich) im Browser gemerkt.
+  function loadHidden(): string[] {
+    try {
+      const raw = storageKey ? localStorage.getItem(`odm.columns.${storageKey}`) : null
+      if (raw) return JSON.parse(raw) as string[]
+    } catch {
+      // Speicher nicht verfügbar: Standard verwenden
+    }
+    return [...defaultHidden]
+  }
+
+  let hidden = $state<string[]>(untrack(loadHidden))
+  let menuOpen = $state(false)
+  let menu = $state<HTMLElement>()
+
+  function toggleColumn(key: string) {
+    hidden = hidden.includes(key) ? hidden.filter((k) => k !== key) : [...hidden, key]
+    try {
+      if (storageKey) localStorage.setItem(`odm.columns.${storageKey}`, JSON.stringify(hidden))
+    } catch {
+      // ignorieren
+    }
+  }
+
+  const shown = $derived(columns.filter((c) => !hidden.includes(c.key)))
+
   const text = (v: string | number | null | undefined) => (v === null || v === undefined ? '' : String(v))
 
-  const activeFilters = $derived(Object.values(filters).filter((v) => v !== '').length)
+  const activeFilters = $derived(shown.filter((c) => (filters[c.key] ?? '') !== '').length)
 
   const filtered = $derived.by(() => {
     const q = query.trim().toLowerCase()
     return rows.filter((row) => {
       if (q && !columns.some((c) => text(c.value(row)).toLowerCase().includes(q))) return false
-      for (const c of columns) {
+      for (const c of shown) {
         const f = filters[c.key]
         if (!f) continue
         const v = text(c.value(row))
@@ -61,7 +91,7 @@
   })
 
   const sorted = $derived.by(() => {
-    const column = columns.find((c) => c.key === sortKey)
+    const column = shown.find((c) => c.key === sortKey)
     if (!column) return filtered
     const dir = sortDesc ? -1 : 1
     return [...filtered].sort((a, b) => {
@@ -112,6 +142,8 @@
   const to = $derived(Math.min(sorted.length, current * size + size))
 </script>
 
+<svelte:window onclick={(e) => { if (menuOpen && menu && !menu.contains(e.target as Node)) menuOpen = false }} />
+
 <div class="dt">
   <div class="bar">
     <input class="search" type="search" placeholder={searchPlaceholder ?? i18n.t('table.search')} bind:value={query} />
@@ -123,13 +155,28 @@
     {/if}
     <span class="grow"></span>
     {@render toolbar?.()}
+    <div class="cols" bind:this={menu}>
+      <button class:on={menuOpen} onclick={() => (menuOpen = !menuOpen)} aria-expanded={menuOpen}>
+        {i18n.t('table.columns')}
+      </button>
+      {#if menuOpen}
+        <div class="menu" role="group" aria-label={i18n.t('table.columns')}>
+          {#each columns as column (column.key)}
+            <label>
+              <input type="checkbox" checked={!hidden.includes(column.key)} onchange={() => toggleColumn(column.key)} />
+              {column.label}
+            </label>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="wrap" class:stale>
     <table>
       <thead>
         <tr>
-          {#each columns as column (column.key)}
+          {#each shown as column (column.key)}
             <th class:right={column.align === 'right'} aria-sort={sortKey === column.key ? (sortDesc ? 'descending' : 'ascending') : 'none'}>
               <button class="sort" onclick={() => sortBy(column)}>
                 {column.label}
@@ -141,7 +188,7 @@
         </tr>
         {#if showFilters}
           <tr class="filters">
-            {#each columns as column (column.key)}
+            {#each shown as column (column.key)}
               <th>
                 {#if column.filter === 'select'}
                   <select bind:value={filters[column.key]} aria-label={column.label}>
@@ -162,7 +209,7 @@
       <tbody>
         {#each visible as row (rowKey(row))}
           <tr>
-            {#each columns as column (column.key)}
+            {#each shown as column (column.key)}
               <td class:right={column.align === 'right'} class:muted={column.muted} class:strong={column.strong}>
                 {#if column.cell}
                   {@render column.cell(row)}
@@ -175,7 +222,7 @@
           </tr>
         {:else}
           <tr>
-            <td class="empty" colspan={columns.length + (actions ? 1 : 0)}>
+            <td class="empty" colspan={shown.length + (actions ? 1 : 0)}>
               {rows.length === 0 ? (emptyText ?? i18n.t('table.empty')) : i18n.t('table.noMatch')}
             </td>
           </tr>
@@ -209,7 +256,6 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
   }
   .bar,
   .foot {
@@ -222,13 +268,48 @@
   .bar {
     border-bottom: 1px solid var(--border);
     background: var(--header);
+    border-radius: var(--radius) var(--radius) 0 0;
   }
   .foot {
+    border-radius: 0 0 var(--radius) var(--radius);
     border-top: 1px solid var(--border);
     font-size: 0.85rem;
   }
   .grow {
     flex: 1;
+  }
+  .cols {
+    position: relative;
+  }
+  .menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 10;
+    min-width: 12rem;
+    max-height: 20rem;
+    overflow-y: auto;
+    padding: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+  }
+  .menu label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    border-radius: var(--radius);
+    white-space: nowrap;
+  }
+  .menu label:hover {
+    background: var(--hover);
+  }
+  .menu input {
+    min-height: 0;
+    padding: 0;
   }
   .search {
     width: min(22rem, 100%);
