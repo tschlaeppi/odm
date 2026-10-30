@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,7 @@ public sealed class AgentService(
     IEnumerable<IJobResultListener> listeners,
     IOptions<AgentsOptions> options,
     AgentPackageCatalog packages,
+    AgentCertificateAuthority authority,
     ILogger<AgentService> logger)
 {
     private const int MaxJobsPerHeartbeat = 10;
@@ -51,10 +53,49 @@ public sealed class AgentService(
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.RevokedAt, now), ct);
 
         var (credential, secret) = AgentCredential.Issue(deviceId);
+
+        // Zertifikat gleich bei der Registrierung ausstellen. Eine ungültige CSR darf die Registrierung nicht scheitern
+        // lassen (das Token ist bereits verbraucht); der Agent fordert das Zertifikat dann beim Heartbeat erneut an.
+        IssuedCertificate? issued = null;
+        if (authority.Enabled && !string.IsNullOrWhiteSpace(request.Csr))
+        {
+            try
+            {
+                issued = authority.Issue(request.Csr, credential.Id, now);
+                credential.SetCertificate(issued.Thumbprint, issued.NotAfter);
+            }
+            catch (CryptographicException ex)
+            {
+                logger.LogWarning(ex, "Die Zertifikatsanforderung bei der Registrierung ist ungültig.");
+            }
+        }
+
         db.Credentials.Add(credential);
         await db.SaveChangesAsync(ct);
 
-        return new RegisterResponse(credential.Id, secret, deviceId, HeartbeatSeconds);
+        return new RegisterResponse(
+            credential.Id, secret, deviceId, HeartbeatSeconds,
+            issued?.CertificatePem, issued is null ? null : authority.CaCertificatePem);
+    }
+
+    /// <summary>Stellt (erneut) ein Zertifikat für einen bestehenden Agent aus und hinterlegt den neuen Fingerabdruck.</summary>
+    public async Task<CertificateResponse?> IssueCertificateAsync(Guid agentId, string csrPem, CancellationToken ct)
+    {
+        if (!authority.Enabled)
+        {
+            return null;
+        }
+
+        var credential = await db.Credentials.SingleOrDefaultAsync(c => c.Id == agentId && c.RevokedAt == null, ct);
+        if (credential is null)
+        {
+            return null;
+        }
+
+        var issued = authority.Issue(csrPem, credential.Id, DateTimeOffset.UtcNow);
+        credential.SetCertificate(issued.Thumbprint, issued.NotAfter);
+        await db.SaveChangesAsync(ct);
+        return new CertificateResponse(issued.CertificatePem, authority.CaCertificatePem);
     }
 
     public async Task<HeartbeatResponse> HeartbeatAsync(

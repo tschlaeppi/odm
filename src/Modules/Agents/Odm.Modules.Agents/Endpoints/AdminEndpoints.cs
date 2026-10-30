@@ -51,6 +51,20 @@ internal static class AdminEndpoints
             return deleted == 0 ? Results.NotFound() : Results.NoContent();
         });
 
+        // Zertifikatsbindung eines Geräts aufheben (verlorener Schlüssel, abgelaufenes Zertifikat): der Agent holt sich
+        // danach mit seinem Secret ein neues Zertifikat.
+        endpoints.MapDelete("/agents/devices/{deviceId:guid}/certificate", async (Guid deviceId, AgentsDbContext db, CancellationToken ct) =>
+            {
+                var updated = await db.Credentials
+                    .Where(c => c.DeviceId == deviceId && c.RevokedAt == null)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(c => c.CertThumbprint, (string?)null)
+                        .SetProperty(c => c.CertNotAfter, (DateTimeOffset?)null), ct);
+                return updated == 0 ? Results.NotFound() : Results.NoContent();
+            })
+            .WithTags("Agents")
+            .RequireAuthorization(Policies.Admin);
+
         var jobs = endpoints.MapGroup("/agents/jobs").WithTags("Agents")
             .RequireAuthorization(Policies.Operator);
 

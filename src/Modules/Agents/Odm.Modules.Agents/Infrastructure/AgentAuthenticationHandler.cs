@@ -2,10 +2,12 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Odm.Modules.Agents.Application;
 using Odm.Modules.Agents.Domain;
 
 namespace Odm.Modules.Agents.Infrastructure;
@@ -21,6 +23,17 @@ public sealed class AgentAuthenticationHandler(
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "Agent";
+
+    public const string MtlsClaim = "mtls";
+    public const string CertExpiryClaim = "cert_expiry";
+    public const string MtlsOff = "off";
+    public const string MtlsUnenrolled = "unenrolled";
+    public const string MtlsVerified = "verified";
+
+    private static bool IsBootstrapPath(PathString path) =>
+        path.Value is { } value &&
+        (value.EndsWith("/agent/v1/heartbeat", StringComparison.OrdinalIgnoreCase) ||
+         value.EndsWith("/agent/v1/certificate", StringComparison.OrdinalIgnoreCase));
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -52,13 +65,46 @@ public sealed class AgentAuthenticationHandler(
             return AuthenticateResult.Fail("Ungültige Agent-Zugangsdaten.");
         }
 
-        var identity = new ClaimsIdentity(
-            new[]
+        var claims = new List<Claim>
+        {
+            new("agent_id", credential.Id.ToString()),
+            new("device_id", credential.DeviceId.ToString())
+        };
+
+        var authority = Context.RequestServices.GetRequiredService<AgentCertificateAuthority>();
+        if (!authority.Enabled)
+        {
+            claims.Add(new Claim(MtlsClaim, MtlsOff));
+        }
+        else if (credential.CertThumbprint is null)
+        {
+            // Noch kein Zertifikat ausgestellt: nur das Secret zählt. Im Modus "Erforderlich" darf der Agent dann
+            // lediglich Heartbeat und Zertifikatsanforderung aufrufen (kein Zugriff auf Aufträge, Pakete, Secrets).
+            if (authority.Mode == AgentMtlsMode.Required && !IsBootstrapPath(Request.Path))
             {
-                new Claim("agent_id", credential.Id.ToString()),
-                new Claim("device_id", credential.DeviceId.ToString())
-            },
-            SchemeName);
+                return AuthenticateResult.Fail("Client-Zertifikat erforderlich.");
+            }
+
+            claims.Add(new Claim(MtlsClaim, MtlsUnenrolled));
+        }
+        else
+        {
+            // Wer ein Zertifikat hat, muss es immer vorweisen; ein gestohlenes Secret allein genügt dann nicht mehr.
+            var certificate = await Context.Connection.GetClientCertificateAsync(Context.RequestAborted);
+            if (certificate is null ||
+                !authority.IsValid(certificate, credential.Id, credential.CertThumbprint, DateTimeOffset.UtcNow))
+            {
+                return AuthenticateResult.Fail("Gültiges Client-Zertifikat erforderlich.");
+            }
+
+            claims.Add(new Claim(MtlsClaim, MtlsVerified));
+            if (credential.CertNotAfter is { } notAfter)
+            {
+                claims.Add(new Claim(CertExpiryClaim, notAfter.ToUnixTimeSeconds().ToString()));
+            }
+        }
+
+        var identity = new ClaimsIdentity(claims, SchemeName);
 
         return AuthenticateResult.Success(
             new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));

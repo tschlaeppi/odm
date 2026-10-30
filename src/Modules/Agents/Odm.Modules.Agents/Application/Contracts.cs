@@ -18,6 +18,35 @@ public sealed class AgentsOptions
 
     /// <summary>Selbstaktualisierung der Agents (standardmäßig aus).</summary>
     public AgentUpdateOptions Update { get; set; } = new();
+
+    /// <summary>Authentisierung der Agents per Client-Zertifikat.</summary>
+    public AgentMtlsOptions Mtls { get; set; } = new();
+}
+
+public enum AgentMtlsMode
+{
+    /// <summary>Keine Zertifikate (nur Agent-Secret).</summary>
+    Off,
+
+    /// <summary>Zertifikate werden ausgestellt und geprüft; Agents ohne Zertifikat funktionieren weiter, bis sie eines haben.</summary>
+    Optional,
+
+    /// <summary>Wie Optional, aber Agents ohne Zertifikat erhalten nur ein Zertifikat, keine Aufträge oder Pakete.</summary>
+    Required
+}
+
+public sealed class AgentMtlsOptions
+{
+    public AgentMtlsMode Mode { get; set; } = AgentMtlsMode.Off;
+
+    /// <summary>Verzeichnis der Agent-CA (ca.crt, ca.key); wird beim ersten Start angelegt. Der Schlüssel liegt dort unverschlüsselt (0600).</summary>
+    public string CaDirectory { get; set; } = "pki";
+
+    /// <summary>Gültigkeit ausgestellter Agent-Zertifikate.</summary>
+    public int CertificateValidityDays { get; set; } = 365;
+
+    /// <summary>So viele Tage vor Ablauf fordert der Server den Agent zur Erneuerung auf.</summary>
+    public int RenewBeforeDays { get; set; } = 30;
 }
 
 public enum AgentUpdateMode
@@ -46,9 +75,15 @@ public sealed class AgentUpdateOptions
 // ---- Agent-Protokoll (/api/agent/v1) ----
 
 public sealed record RegisterRequest(
-    string Token, string Hostname, string OsFamily, string OsName, string OsVersion, string AgentVersion);
+    string Token, string Hostname, string OsFamily, string OsName, string OsVersion, string AgentVersion, string? Csr = null);
 
-public sealed record RegisterResponse(Guid AgentId, string Secret, Guid DeviceId, int HeartbeatSeconds);
+public sealed record RegisterResponse(
+    Guid AgentId, string Secret, Guid DeviceId, int HeartbeatSeconds,
+    string? Certificate = null, string? CaCertificate = null);
+
+public sealed record CertificateRequestDto(string Csr);
+
+public sealed record CertificateResponse(string Certificate, string CaCertificate);
 
 public sealed record JobResultDto(Guid JobId, bool Success, string? Output);
 
@@ -62,7 +97,8 @@ public sealed record AgentJobDto(Guid Id, string Type, string? Payload);
 public sealed record AgentUpdateOfferDto(string Version, string Sha256, long Size, string Url);
 
 public sealed record HeartbeatResponse(
-    IReadOnlyList<AgentJobDto> Jobs, int NextHeartbeatSeconds, AgentUpdateOfferDto? Update = null);
+    IReadOnlyList<AgentJobDto> Jobs, int NextHeartbeatSeconds, AgentUpdateOfferDto? Update = null,
+    bool CertificateRequested = false);
 
 // ---- Verwaltung (Web-UI) ----
 

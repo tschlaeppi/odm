@@ -11,6 +11,17 @@ public sealed class AgentCredential : Entity
     public DateTimeOffset? LastSeenAt { get; private set; }
     public DateTimeOffset? RevokedAt { get; private set; }
 
+    /// <summary>SHA-256-Fingerabdruck (hex) des ausgestellten Client-Zertifikats; null = noch keines ausgestellt.</summary>
+    public string? CertThumbprint { get; private set; }
+
+    public DateTimeOffset? CertNotAfter { get; private set; }
+
+    public void SetCertificate(string thumbprint, DateTimeOffset notAfter)
+    {
+        CertThumbprint = thumbprint;
+        CertNotAfter = notAfter;
+    }
+
     private AgentCredential() { }
 
     public static (AgentCredential Credential, string Secret) Issue(Guid deviceId)

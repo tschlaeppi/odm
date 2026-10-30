@@ -31,6 +31,7 @@ public sealed class AgentsDbContext(DbContextOptions<AgentsDbContext> options) :
             b.ToTable("agent_credentials");
             b.HasKey(c => c.Id);
             b.Property(c => c.SecretHash).HasMaxLength(32).IsRequired();
+            b.Property(c => c.CertThumbprint).HasMaxLength(64);
             b.HasIndex(c => c.DeviceId);
         });
 

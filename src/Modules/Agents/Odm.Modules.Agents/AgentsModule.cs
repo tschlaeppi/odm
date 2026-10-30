@@ -29,6 +29,7 @@ public sealed class AgentsModule : IModule
             o.UseOdmDatabase(sp.GetRequiredService<IOptions<DatabaseOptions>>().Value, AgentsDbContext.Schema));
 
         services.AddSingleton<AgentPackageCatalog>();
+        services.AddSingleton<AgentCertificateAuthority>();
         services.AddScoped<AgentService>();
         services.AddScoped<IJobQueue, JobQueue>();
 

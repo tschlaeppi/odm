@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Odm.Modules.Agents;
 using Odm.Modules.Devices;
 using Odm.Modules.Identity;
@@ -23,6 +24,18 @@ builder.Services
     .Bind(builder.Configuration.GetSection(DatabaseOptions.SectionName))
     .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString), "Database:ConnectionString fehlt.")
     .ValidateOnStart();
+
+// mTLS für Agents: HTTPS-Endpunkte fordern ein Client-Zertifikat an, verlangen es aber nicht (Browser ohne Zertifikat
+// funktionieren weiter). Ob ein Zertifikat gültig und das richtige ist, prüft die Agent-Authentisierung (Agents-Modul).
+var mtlsMode = builder.Configuration["Agents:Mtls:Mode"];
+if (!string.IsNullOrWhiteSpace(mtlsMode) && !mtlsMode.Equals("Off", StringComparison.OrdinalIgnoreCase))
+{
+    builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureHttpsDefaults(https =>
+    {
+        https.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
+        https.ClientCertificateValidation = (_, _, _) => true;
+    }));
+}
 
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
