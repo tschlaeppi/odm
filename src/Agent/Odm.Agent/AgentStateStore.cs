@@ -1,6 +1,7 @@
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 
 namespace Odm.Agent;
@@ -74,10 +75,45 @@ public sealed class AgentStateStore
         return path;
     }
 
-    private static string DefaultDirectory() =>
+    /// <summary>Standard-Zustandsverzeichnis je Betriebssystem (vom Installationsskript angelegt und geschützt).</summary>
+    public static string DefaultDirectory() =>
         OperatingSystem.IsWindows()
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "OpenDeviceManager")
             : "/var/lib/odm-agent";
+
+    /// <summary>
+    /// Konfigurationsdatei des Installationsskripts (Agent:ServerUrl und das einmalige Agent:RegistrationToken).
+    /// Sie liegt im geschützten Zustandsverzeichnis, nicht neben dem Programm, damit normale Benutzer das Token nicht lesen können.
+    /// </summary>
+    public static string ConfigFile => Path.Combine(DefaultDirectory(), "agent.json");
+
+    /// <summary>
+    /// Entfernt das Registrierungs-Token aus der Konfigurationsdatei. Es ist nach der Registrierung wertlos
+    /// (Einmal-Token) und soll nicht länger auf dem Gerät liegen.
+    /// </summary>
+    public async Task ClearRegistrationTokenAsync(CancellationToken ct)
+    {
+        var path = ConfigFile;
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(path, ct)) as JsonObject;
+        if (root?["Agent"] is not JsonObject agent || !agent.Remove("RegistrationToken"))
+        {
+            return;
+        }
+
+        var temp = path + ".tmp";
+        await File.WriteAllTextAsync(temp, root.ToJsonString(Json), ct);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(temp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+
+        File.Move(temp, path, overwrite: true);
+    }
 
     private static void Restrict(string directory)
     {

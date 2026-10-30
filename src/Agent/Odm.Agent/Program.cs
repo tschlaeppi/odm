@@ -5,6 +5,10 @@ using Odm.Agent.Os;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+// Vom Installationsskript geschriebene Konfiguration (ServerUrl, einmaliges Token) im geschützten Zustandsverzeichnis.
+// Sie hat Vorrang vor appsettings.json und Umgebungsvariablen; fehlt sie, gilt die übliche Konfiguration.
+builder.Configuration.AddJsonFile(AgentStateStore.ConfigFile, optional: true, reloadOnChange: false);
+
 // Läuft als Windows-Dienst bzw. systemd-Dienst; beim Start aus der Konsole sind beide Aufrufe wirkungslos.
 builder.Services.AddWindowsService(o => o.ServiceName = "OpenDeviceManagerAgent");
 builder.Services.AddSystemd();

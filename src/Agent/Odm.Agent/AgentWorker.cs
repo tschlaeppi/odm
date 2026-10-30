@@ -65,6 +65,16 @@ public sealed class AgentWorker(
         var state = new AgentState(response.AgentId, response.Secret, response.DeviceId);
         await store.SaveAsync(state, ct);
         logger.LogInformation("Agent registriert (Gerät {DeviceId}).", state.DeviceId);
+
+        try
+        {
+            await store.ClearRegistrationTokenAsync(ct);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            logger.LogWarning(ex, "Das Registrierungs-Token konnte nicht aus der Konfigurationsdatei entfernt werden.");
+        }
+
         return state;
     }
 
