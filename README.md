@@ -134,23 +134,50 @@ aus der Konfiguration entfernt werden.
 
 ### Agent installieren
 
-```bash
-# Windows (PowerShell als Administrator)
-dotnet publish src/Agent/Odm.Agent -c Release -r win-x64 --self-contained -o "C:\Program Files\OpenDeviceManager"
-# appsettings.json im Installationsordner: Agent:ServerUrl und Agent:RegistrationToken setzen
-sc.exe create OpenDeviceManagerAgent binPath= "C:\Program Files\OpenDeviceManager\odm-agent.exe" start= auto
-sc.exe start OpenDeviceManagerAgent
+Der Server liefert vorgebaute, eigenständige Agent-Pakete (Windows/Linux, x64/arm64) und Installationsskripte aus –
+der Agent muss nicht selbst kompiliert werden. Unter **Registrierung** erzeugst du ein Einmal-Token; die Seite zeigt danach
+den fertigen Befehl zum Kopieren:
 
+```powershell
+# Windows (PowerShell als Administrator)
+& ([scriptblock]::Create((irm 'https://odm.example.org/api/agent/install.ps1'))) -Token '<token>'
+```
+
+```bash
 # Linux (root)
+curl -fsSL 'https://odm.example.org/api/agent/install.sh' | sudo sh -s -- --token '<token>'
+```
+
+Die Skripte erkennen die Architektur, prüfen die SHA-256-Prüfsumme des Downloads, installieren den Agent
+(`C:\Program Files\OpenDeviceManager` bzw. `/opt/odm-agent`), richten den Dienst ein (Neustart bei Fehlern) und starten ihn.
+Erneutes Ausführen aktualisiert den Agent; die Registrierung bleibt erhalten (dann ist kein Token nötig).
+Das Token steht nur kurz in `agent.json` im geschützten Zustandsverzeichnis und wird vom Agent nach der Registrierung entfernt.
+Ohne `https` verweigern Skripte und Agent die Verbindung (nur für Tests: `-AllowInsecureHttp` / `--allow-insecure-http`).
+Direkte Downloads samt Prüfsummen stehen ebenfalls auf der Registrierungsseite
+(`GET /api/agent/packages`, `GET /api/agent/download/{plattform}`).
+
+#### Agent-Pakete bereitstellen
+
+* **Docker-Image:** `docker build` baut die Pakete mit (Stage `agent`, alle vier Plattformen) nach `/app/agent-packages`.
+  Schneller ohne Pakete: `--build-arg AGENT_RIDS=""`.
+* **Ohne Docker:** `scripts/publish-agent.sh` (bzw. `.ps1`) erzeugt `odm-agent-<version>-<rid>.zip|tar.gz` in `agent-packages/`.
+  Alternativ die Pakete eines GitHub-Releases (Workflow `release-agent.yml`, ausgelöst durch Tags `v*`) in das Verzeichnis legen.
+* Konfiguration: `Agents:PackagesPath` (Standard `agent-packages`) und `Agents:PublicBaseUrl`
+  (öffentliche Adresse für die Skripte; hinter einem Reverse-Proxy setzen, sonst wird sie aus der Anfrage abgeleitet).
+  Je Plattform wird die höchste Version angeboten; ein Update des Servers genügt also, um neue Agents auszurollen.
+
+#### Manuell
+
+```bash
 dotnet publish src/Agent/Odm.Agent -c Release -r linux-x64 --self-contained -o /opt/odm-agent
-install -d -m 700 /etc/odm-agent
-printf 'Agent__ServerUrl=https://odm.example.org\nAgent__RegistrationToken=<token>\n' > /etc/odm-agent/agent.env
-chmod 600 /etc/odm-agent/agent.env
+install -d -m 700 /var/lib/odm-agent
+printf '{"Agent":{"ServerUrl":"https://odm.example.org","RegistrationToken":"<token>"}}' > /var/lib/odm-agent/agent.json
+chmod 600 /var/lib/odm-agent/agent.json
 cp deploy/odm-agent.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now odm-agent
 ```
 
 Die Zugangsdaten des Agents liegen unter `C:\ProgramData\OpenDeviceManager` (nur SYSTEM/Administratoren)
-bzw. `/var/lib/odm-agent` (0600).
+bzw. `/var/lib/odm-agent` (0700/0600).
 
 ## Software verteilen (PSADT)
 
