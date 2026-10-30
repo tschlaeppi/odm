@@ -91,13 +91,14 @@ chmod 0700 "$STATE_DIR"
 
 # agent.json liegt im geschützten Zustandsverzeichnis; der Agent entfernt das Token nach der Registrierung selbst.
 CONFIG="$STATE_DIR/agent.json"
+if [ "$ALLOW_HTTP" -eq 1 ]; then INSECURE=true; else INSECURE=false; fi
 if [ -n "$TOKEN" ]; then
   umask 077
-  printf '{\n  "Agent": {\n    "ServerUrl": "%s",\n    "RegistrationToken": "%s"\n  }\n}\n' "$SERVER" "$TOKEN" > "$CONFIG"
+  printf '{\n  "Agent": {\n    "ServerUrl": "%s",\n    "AllowInsecureHttp": %s,\n    "RegistrationToken": "%s"\n  }\n}\n' "$SERVER" "$INSECURE" "$TOKEN" > "$CONFIG"
 elif [ ! -f "$CONFIG" ]; then
   [ -f "$STATE_DIR/agent-state.json" ] || die "Erstinstallation: bitte --token angeben (Administration > Registrierung)."
   umask 077
-  printf '{\n  "Agent": {\n    "ServerUrl": "%s"\n  }\n}\n' "$SERVER" > "$CONFIG"
+  printf '{\n  "Agent": {\n    "ServerUrl": "%s",\n    "AllowInsecureHttp": %s\n  }\n}\n' "$SERVER" "$INSECURE" > "$CONFIG"
 fi
 chmod 0600 "$CONFIG"
 

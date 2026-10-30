@@ -86,7 +86,7 @@ try {
         if (-not $Token -and -not $statePresent) {
             throw 'Erstinstallation: bitte -Token angeben (Administration > Registrierung).'
         }
-        $agent = [ordered]@{ ServerUrl = $Server }
+        $agent = [ordered]@{ ServerUrl = $Server; AllowInsecureHttp = [bool]$AllowInsecureHttp }
         if ($Token) { $agent.RegistrationToken = $Token }
         $json = ([ordered]@{ Agent = $agent } | ConvertTo-Json -Depth 3)
         [IO.File]::WriteAllText($config, $json, (New-Object Text.UTF8Encoding($false)))
