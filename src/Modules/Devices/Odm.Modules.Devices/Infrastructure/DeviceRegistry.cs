@@ -33,6 +33,19 @@ internal sealed class DeviceRegistry(DevicesDbContext db) : IDeviceRegistry
             return;
         }
 
+        // Rechner umbenannt: Namen übernehmen, sofern kein anderes Gerät bereits so heisst
+        // (sonst bliebe die Zuordnung bei einer Neuregistrierung nach Name mehrdeutig).
+        var hostname = report.Hostname.Trim();
+        if (hostname.Length > 0 && hostname != device.Name)
+        {
+            var lowered = hostname.ToLower();
+            var taken = await db.Devices.AnyAsync(d => d.Id != deviceId && d.Name.ToLower() == lowered, ct);
+            if (!taken)
+            {
+                device.Rename(hostname);
+            }
+        }
+
         device.ApplyReport(ParseFamily(report.OsFamily), report.OsName, report.OsVersion, report.AgentVersion);
         await db.SaveChangesAsync(ct);
     }

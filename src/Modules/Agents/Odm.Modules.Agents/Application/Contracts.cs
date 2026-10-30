@@ -54,7 +54,7 @@ public sealed record JobResultDto(Guid JobId, bool Success, string? Output);
 
 public sealed record HeartbeatRequest(
     string OsFamily, string OsName, string OsVersion, string AgentVersion,
-    List<JobResultDto>? Results, List<Guid>? RunningJobs, string? Platform = null);
+    List<JobResultDto>? Results, List<Guid>? RunningJobs, string? Platform = null, string? Hostname = null);
 
 public sealed record AgentJobDto(Guid Id, string Type, string? Payload);
 

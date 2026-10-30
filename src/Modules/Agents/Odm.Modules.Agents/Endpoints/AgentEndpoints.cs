@@ -39,7 +39,8 @@ internal static class AgentEndpoints
         group.MapPost("/heartbeat", async (
                 ClaimsPrincipal principal, HeartbeatRequest request, AgentService service, CancellationToken ct) =>
             {
-                var errors = Validate("-", request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion);
+                // Rechnername ist optional (ältere Agents); wenn angegeben, gelten dieselben Regeln wie bei der Registrierung.
+                var errors = Validate(request.Hostname ?? "-", request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion);
                 if (errors.Count > 0)
                 {
                     return Results.ValidationProblem(errors);

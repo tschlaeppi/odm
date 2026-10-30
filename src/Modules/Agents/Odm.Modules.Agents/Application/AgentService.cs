@@ -85,7 +85,7 @@ public sealed class AgentService(
         // 3. Geräte-Informationen aktualisieren
         await devices.ReportAsync(
             deviceId,
-            new DeviceReport("", request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion),
+            new DeviceReport(request.Hostname ?? "", request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion),
             ct);
 
         await db.Credentials

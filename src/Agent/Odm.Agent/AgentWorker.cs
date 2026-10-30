@@ -90,7 +90,7 @@ public sealed class AgentWorker(
             state,
             new HeartbeatRequest(
                 info.OsFamily, info.OsName, info.OsVersion, SystemInfoProvider.AgentVersion,
-                results, executor.ActiveJobIds(), AgentUpdater.Platform),
+                results, executor.ActiveJobIds(), AgentUpdater.Platform, info.Hostname),
             ct);
 
         executor.Acknowledge(results);

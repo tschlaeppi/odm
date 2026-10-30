@@ -49,6 +49,13 @@ public sealed class Device : Entity
         CostCenter = Clean(costCenter);
     }
 
+    /// <summary>Übernimmt einen geänderten Rechnernamen (Gross-/Kleinschreibung zählt als Änderung).</summary>
+    public void Rename(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Name = name.Trim();
+    }
+
     public void MarkSeen() => LastSeenAt = DateTimeOffset.UtcNow;
 
     /// <summary>Übernimmt die vom Agent gemeldeten Werte.</summary>

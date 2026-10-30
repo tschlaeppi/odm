@@ -15,7 +15,7 @@ public sealed record JobResult(Guid JobId, bool Success, string? Output);
 
 public sealed record HeartbeatRequest(
     string OsFamily, string OsName, string OsVersion, string AgentVersion,
-    IReadOnlyList<JobResult> Results, IReadOnlyList<Guid> RunningJobs, string? Platform = null);
+    IReadOnlyList<JobResult> Results, IReadOnlyList<Guid> RunningJobs, string? Platform = null, string? Hostname = null);
 
 public sealed record ResolveSecretsRequest(Guid JobId);
 
