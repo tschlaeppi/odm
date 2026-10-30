@@ -1,0 +1,15 @@
+[Unit]
+Description=Open Device Manager Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/opt/odm-agent/odm-agent
+Restart=always
+RestartSec=10
+# Konfiguration (ServerUrl, einmaliges RegistrationToken) - Datei nur für root lesbar machen
+EnvironmentFile=-/etc/odm-agent/agent.env
+
+[Install]
+WantedBy=multi-user.target

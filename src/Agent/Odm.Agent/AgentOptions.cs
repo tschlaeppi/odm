@@ -1,0 +1,34 @@
+namespace Odm.Agent;
+
+public sealed class AgentOptions
+{
+    public const string SectionName = "Agent";
+
+    /// <summary>Basis-URL des ODM-Servers, z. B. https://odm.example.org</summary>
+    public string ServerUrl { get; set; } = "";
+
+    /// <summary>Einmal-Token aus der Web-Oberfläche; wird nur bei der ersten Registrierung benötigt.</summary>
+    public string RegistrationToken { get; set; } = "";
+
+    /// <summary>Nur für Tests: erlaubt http:// statt https://.</summary>
+    public bool AllowInsecureHttp { get; set; }
+
+    /// <summary>Ablageort der Zugangsdaten. Leer = Standard je Betriebssystem.</summary>
+    public string StateDirectory { get; set; } = "";
+
+    public string? Validate()
+    {
+        if (!Uri.TryCreate(ServerUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+        {
+            return "Agent:ServerUrl fehlt oder ist keine gültige http(s)-URL.";
+        }
+
+        if (uri.Scheme == Uri.UriSchemeHttp && !AllowInsecureHttp)
+        {
+            return "Agent:ServerUrl muss https verwenden (Agent:AllowInsecureHttp nur für Tests).";
+        }
+
+        return null;
+    }
+}
