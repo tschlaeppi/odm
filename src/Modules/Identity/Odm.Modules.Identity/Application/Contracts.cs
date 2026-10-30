@@ -15,11 +15,17 @@ public sealed record AuthenticatedUser(Guid Id, string UserName, string DisplayN
 }
 
 /// <summary>
-/// Erweiterungspunkt: lokale DB heute, LDAP und OData-Endpoint in einer späteren Etappe.
+/// Erweiterungspunkt für Anmeldeverfahren: lokale Datenbank, LDAP und weitere.
 /// </summary>
 public interface IAuthenticationProvider
 {
     string Name { get; }
+
+    /// <summary>
+    /// Ist der Benutzername bei diesem Verfahren vergeben? Dann entscheidet nur dieses Verfahren: ein lokales Konto
+    /// mit falschem Passwort darf nicht von einem gleichnamigen Konto im Verzeichnis "gerettet" werden.
+    /// </summary>
+    Task<bool> OwnsUserAsync(string userName, CancellationToken ct) => Task.FromResult(false);
 
     Task<AuthenticatedUser?> AuthenticateAsync(string userName, string password, CancellationToken ct);
 }

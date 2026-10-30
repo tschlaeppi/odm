@@ -12,6 +12,12 @@ public sealed class LocalAuthenticationProvider(IdentityDbContext db, IPasswordH
 
     public string Name => "local";
 
+    public Task<bool> OwnsUserAsync(string userName, CancellationToken ct)
+    {
+        var normalized = User.Normalize(userName);
+        return db.Users.AsNoTracking().AnyAsync(u => u.UserName == normalized, ct);
+    }
+
     public async Task<AuthenticatedUser?> AuthenticateAsync(string userName, string password, CancellationToken ct)
     {
         var normalized = User.Normalize(userName);

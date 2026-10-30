@@ -4,18 +4,39 @@ public sealed class AuthService(IEnumerable<IAuthenticationProvider> providers, 
 {
     public async Task<LoginResponse?> LoginAsync(string userName, string password, CancellationToken ct)
     {
-        foreach (var provider in providers)
-        {
-            var user = await provider.AuthenticateAsync(userName.Trim(), password, ct);
-            if (user is null)
-            {
-                continue;
-            }
+        var name = userName.Trim();
+        var list = providers.ToList();
 
-            var (token, expiresAt) = tokens.Create(user);
-            return new LoginResponse(token, expiresAt, user.ToDto());
+        // Gehört der Name einem Verfahren (z. B. einem lokalen Konto), entscheidet nur dieses.
+        foreach (var provider in list)
+        {
+            if (await provider.OwnsUserAsync(name, ct))
+            {
+                return await TryAsync(provider, name, password, ct);
+            }
+        }
+
+        foreach (var provider in list)
+        {
+            if (await TryAsync(provider, name, password, ct) is { } response)
+            {
+                return response;
+            }
         }
 
         return null;
+    }
+
+    private async Task<LoginResponse?> TryAsync(
+        IAuthenticationProvider provider, string name, string password, CancellationToken ct)
+    {
+        var user = await provider.AuthenticateAsync(name, password, ct);
+        if (user is null)
+        {
+            return null;
+        }
+
+        var (token, expiresAt) = tokens.Create(user);
+        return new LoginResponse(token, expiresAt, user.ToDto());
     }
 }

@@ -15,6 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 using Odm.Modules.Identity.Application;
 using Odm.Modules.Identity.Domain;
 using Odm.Modules.Identity.Infrastructure;
+using Odm.Modules.Identity.Infrastructure.Ldap;
 using Odm.SharedKernel;
 using Odm.SharedKernel.Persistence;
 
@@ -46,6 +47,19 @@ public sealed class IdentityModule : IModule
         services.AddSingleton<ITokenService, JwtTokenService>();
         services.AddScoped<IAuthenticationProvider, LocalAuthenticationProvider>();
         services.AddScoped<AuthService>();
+
+        // Optional: Anmeldung gegen ein Verzeichnis. Lokale Konten gehen vor (siehe IAuthenticationProvider.OwnsUserAsync).
+        services.AddOptions<LdapOptions>()
+            .Bind(configuration.GetSection(LdapOptions.SectionName))
+            .Validate(o => !o.Enabled || o.Problem() is null,
+                "Identity:Ldap ist unvollständig (Host, BaseDn, UserFilter mit Platzhalter, BindPassword, mindestens eine Gruppe).")
+            .ValidateOnStart();
+
+        if (configuration.GetValue<bool>($"{LdapOptions.SectionName}:Enabled"))
+        {
+            services.AddSingleton<ILdapDirectory, SystemLdapDirectory>();
+            services.AddScoped<IAuthenticationProvider, LdapAuthenticationProvider>();
+        }
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
