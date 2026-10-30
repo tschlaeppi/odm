@@ -29,6 +29,13 @@ namespace Odm.Migrations.SqlServer.Agents
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("CertNotAfter")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CertThumbprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 

@@ -29,6 +29,13 @@ namespace Odm.Modules.Agents.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("CertNotAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CertThumbprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
