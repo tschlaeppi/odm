@@ -330,6 +330,85 @@ Hinweise:
   abläuft (`Jwt:ExpiryMinutes`, Standard 60). Verzeichnisfehler führen immer zu "abgelehnt".
 - Verzeichnisbenutzer erscheinen nicht in einer Benutzerliste; ihre ID ist ein stabiler Hash aus Verfahren und Benutzername.
 
+## Anmeldung über OpenID Connect (Entra ID, authentik, Keycloak …)
+
+Für Single Sign-on mit einem Identitätsanbieter. Es sind mehrere Anbieter gleichzeitig möglich; auf der Anmeldeseite
+erscheint je Anbieter ein Knopf ("Anmelden mit …"). Ohne Konfiguration ist die Funktion aus. Lokale Konten (und LDAP)
+laufen unabhängig davon weiter.
+
+```json
+"Identity": {
+  "Oidc": {
+    "PublicBaseUrl": "https://odm.example.org",
+    "Providers": [
+      {
+        "Id": "entra",
+        "DisplayName": "Microsoft Entra ID",
+        "Authority": "https://login.microsoftonline.com/<Verzeichnis-ID>/v2.0",
+        "ClientId": "<Anwendungs-ID>",
+        "ClientSecret": "…",           // besser per Umgebungsvariable (siehe unten)
+        "GroupsClaim": "roles",
+        "AdminValues": [ "odm-admin" ],
+        "OperatorValues": [ "odm-operator" ],
+        "ReadOnlyValues": [ "odm-readonly" ]
+      },
+      {
+        "Id": "authentik",
+        "DisplayName": "authentik",
+        "Authority": "https://auth.example.org/application/o/odm/",
+        "ClientId": "…",
+        "ClientSecret": "…",
+        "GroupsClaim": "groups",
+        "AdminValues": [ "odm-admins" ],
+        "OperatorValues": [ "odm-operators" ]
+      }
+    ]
+  }
+}
+```
+
+Als Umgebungsvariablen (z. B. in `docker-compose.yml` beim Dienst `odm`):
+`Identity__Oidc__PublicBaseUrl`, `Identity__Oidc__Providers__0__Id`, `…__0__Authority`, `…__0__ClientId`,
+`…__0__ClientSecret`, `…__0__AdminValues__0` usw.
+
+**Rückleite-Adresse (Redirect URI)** beim Anbieter eintragen, genau so: `<PublicBaseUrl>/api/auth/oidc/callback`.
+Für die Entwicklung mit `npm run dev`: `PublicBaseUrl = http://localhost:5173` (http ist nur für localhost erlaubt).
+
+**Microsoft Entra ID**
+
+1. *App-Registrierungen → Neue Registrierung*; Plattform *Web*, Redirect URI wie oben.
+2. *Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel*; den **Wert** als `ClientSecret` übernehmen.
+3. *App-Rollen* anlegen (zulässige Mitgliedstypen: Benutzer/Gruppen), z. B. mit den Werten `odm-admin`, `odm-operator`, `odm-readonly`.
+4. In der *Unternehmensanwendung*: *Benutzer und Gruppen* → Gruppen den Rollen zuweisen; *Zuweisung erforderlich* auf *Ja* stellen.
+5. `Authority` mit der **Verzeichnis-ID** deines Mandanten (nicht `common` oder `organizations`), `GroupsClaim = "roles"`.
+   Gruppen-Objekt-IDs (`groups`) gehen auch, sind aber ab etwa 200 Gruppen im Token unvollständig; App-Rollen sind robuster.
+
+**authentik**
+
+1. *Anwendungen → Erstellen* mit Anbieter *OAuth2/OpenID*: Client-Typ *vertraulich*, Redirect URI wie oben (*strikt*),
+   Bereiche `openid`, `profile`, `email`.
+2. `Authority` ist die *OpenID-Konfigurations-Aussteller*-Adresse der Anwendung (`…/application/o/<slug>/`),
+   `ClientId` und `ClientSecret` aus dem Anbieter.
+3. authentik liefert die Gruppennamen im Anspruch `groups`; die Gruppen trägst du unter `AdminValues` usw. ein.
+   Wer keiner der Anwendung zugewiesenen Gruppe angehört, kommt per authentik-Richtlinie gar nicht erst durch.
+
+So läuft die Anmeldung:
+
+- Authorization-Code-Ablauf mit **PKCE**, `state` und `nonce`. Der Server tauscht den Code selbst gegen die Tokens (Rückkanal).
+- Das **ID-Token** wird geprüft: Signatur (Schlüssel aus der Discovery, nur asymmetrische Verfahren), Aussteller,
+  Empfänger (deine `ClientId`), Ablauf und `nonce`. Schlüsselwechsel beim Anbieter werden automatisch übernommen.
+- Die Rolle kommt aus dem `GroupsClaim`: *Admin* vor *Operator* vor *ReadOnly*. **Ohne passenden Wert keine Anmeldung.**
+- Die ODM-Benutzer-ID ist ein stabiler Hash aus Anbieter und `sub` (nicht aus dem Namen, der sich ändern kann).
+  Angezeigt wird `preferred_username` (sonst `email`, sonst `sub`).
+- Der Anmeldezustand liegt in einem kurzlebigen, signierten Cookie (10 Minuten, `HttpOnly`, `SameSite=Lax`). Der Server
+  braucht dafür keinen Zwischenspeicher, es funktioniert also auch mit mehreren Instanzen.
+- Zurück zur Oberfläche reist das ODM-Token im Fragment (`#…`) der Adresse; es wird nie an einen Server gesendet und von der
+  Oberfläche sofort aus der Adresse entfernt.
+
+Grenzen: Die Abmeldung beendet nur die ODM-Sitzung, nicht die beim Anbieter. Rolle und Name werden bei jeder Anmeldung neu
+gelesen; ein Entzug wirkt spätestens, wenn das ODM-Token abläuft (`Jwt:ExpiryMinutes`, Standard 60). Mandantenübergreifende
+Aussteller (Entra `common`) werden nicht unterstützt.
+
 ## Sicherheit (Stand jetzt)
 
 - Passwörter: PBKDF2-HMAC-SHA256, 600 000 Iterationen, zufälliges Salt
@@ -352,6 +431,6 @@ Hinweise:
 5. ~~OS-Updates und Wartungsfenster~~ erledigt
 6. Betrieb und Anbindung
    - ~~6a: Anmeldung gegen LDAP/Active Directory~~ erledigt
-   - 6b: Anmeldung gegen einen OData-Endpoint
+   - ~~6b: Anmeldung über OpenID Connect (Entra ID, authentik …), ersetzt den OData-Endpoint~~ erledigt
    - 6c: MSSQL als zweite Datenbank
    - 6d: Kubernetes (Helm)

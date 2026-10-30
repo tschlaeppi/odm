@@ -33,6 +33,7 @@ Kernpunkte:
 ### 3.1 Authentisierung
 
 - Lokale Datenbank und/oder Authentisierung gegen LDAP oder einen OData-Endpoint
+- Anmeldung über OpenID Connect (z. B. Microsoft Entra ID, authentik); in der Umsetzung anstelle des OData-Endpoints
 
 ### 3.2 Client-Verwaltung
 

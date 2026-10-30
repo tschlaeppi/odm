@@ -56,6 +56,14 @@ services:
       Identity__Ldap__AdminGroup: ${ODM_LDAP_ADMIN_GROUP:-}
       Identity__Ldap__OperatorGroup: ${ODM_LDAP_OPERATOR_GROUP:-}
       Identity__Ldap__ReadOnlyGroup: ${ODM_LDAP_READONLY_GROUP:-}
+      # Optional: Anmeldung über OpenID Connect (Entra ID, authentik ...), siehe README. Beispiel für einen Anbieter:
+      # Identity__Oidc__PublicBaseUrl: https://odm.example.org
+      # Identity__Oidc__Providers__0__Id: authentik
+      # Identity__Oidc__Providers__0__DisplayName: authentik
+      # Identity__Oidc__Providers__0__Authority: https://auth.example.org/application/o/odm/
+      # Identity__Oidc__Providers__0__ClientId: ${ODM_OIDC_CLIENT_ID}
+      # Identity__Oidc__Providers__0__ClientSecret: ${ODM_OIDC_CLIENT_SECRET}
+      # Identity__Oidc__Providers__0__AdminValues__0: odm-admins
 
 volumes:
   odm-db:
