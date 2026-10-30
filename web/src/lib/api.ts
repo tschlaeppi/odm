@@ -368,7 +368,22 @@ export function uploadVersion(
   })
 }
 
+export interface AgentPackageDto {
+  platform: string
+  version: string
+  fileName: string
+  size: number
+  sha256: string
+  url: string
+}
+
+export interface AgentPackagesDto {
+  serverUrl: string
+  packages: AgentPackageDto[]
+}
+
 export const api = {
+  agentPackages: () => request<AgentPackagesDto>('/agent/packages'),
   login: (userName: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ userName, password }) }),
   me: () => request<UserDto>('/auth/me'),
