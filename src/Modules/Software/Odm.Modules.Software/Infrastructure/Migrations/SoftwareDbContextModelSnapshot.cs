@@ -38,6 +38,10 @@ namespace Odm.Modules.Software.Infrastructure.Migrations
                     b.Property<Guid?>("PinnedVersionId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("RolloutJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("Target")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -155,6 +159,75 @@ namespace Odm.Modules.Software.Infrastructure.Migrations
                     b.ToTable("package_versions", "software");
                 });
 
+            modelBuilder.Entity("Odm.Modules.Software.Domain.ProfileAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RolloutJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("TargetKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProfileId", "TargetKind", "Target")
+                        .IsUnique();
+
+                    b.ToTable("profile_assignments", "software");
+                });
+
+            modelBuilder.Entity("Odm.Modules.Software.Domain.ProfileItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PinnedVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VersionPolicy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PackageId");
+
+                    b.HasIndex("ProfileId", "PackageId")
+                        .IsUnique();
+
+                    b.HasIndex("ProfileId", "Position");
+
+                    b.ToTable("profile_items", "software");
+                });
+
             modelBuilder.Entity("Odm.Modules.Software.Domain.SoftwarePackage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -188,6 +261,32 @@ namespace Odm.Modules.Software.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("packages", "software");
+                });
+
+            modelBuilder.Entity("Odm.Modules.Software.Domain.SoftwareProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("profiles", "software");
                 });
 
             modelBuilder.Entity("Odm.Modules.Software.Domain.SoftwareSecret", b =>
@@ -243,6 +342,30 @@ namespace Odm.Modules.Software.Infrastructure.Migrations
                     b.HasOne("Odm.Modules.Software.Domain.SoftwarePackage", null)
                         .WithMany()
                         .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Odm.Modules.Software.Domain.ProfileAssignment", b =>
+                {
+                    b.HasOne("Odm.Modules.Software.Domain.SoftwareProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Odm.Modules.Software.Domain.ProfileItem", b =>
+                {
+                    b.HasOne("Odm.Modules.Software.Domain.SoftwarePackage", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Odm.Modules.Software.Domain.SoftwareProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
