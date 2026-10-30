@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: odm
+      POSTGRES_USER: odm
+      POSTGRES_PASSWORD: ${ODM_DB_PASSWORD:?ODM_DB_PASSWORD in .env setzen}
+    volumes:
+      - odm-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odm -d odm"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # S3-kompatibler Paketspeicher (RustFS). Jeder andere S3-Dienst funktioniert ebenso: Storage__S3__* anpassen.
+  s3:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: odm
+      RUSTFS_SECRET_KEY: ${ODM_S3_PASSWORD:?ODM_S3_PASSWORD in .env setzen (mindestens 8 Zeichen)}
+    volumes:
+      - odm-packages:/data
+
+  odm:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      s3:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    environment:
+      Database__Provider: Postgres
+      Database__ConnectionString: Host=db;Database=odm;Username=odm;Password=${ODM_DB_PASSWORD}
+      Storage__S3__ServiceUrl: http://s3:9000
+      Storage__S3__Bucket: odm-packages
+      Storage__S3__AccessKey: odm
+      Storage__S3__SecretKey: ${ODM_S3_PASSWORD}
+      Secrets__MasterKey: ${ODM_SECRETS_KEY:?ODM_SECRETS_KEY in .env setzen (openssl rand -base64 32)}
+      Jwt__Secret: ${ODM_JWT_SECRET:?ODM_JWT_SECRET in .env setzen}
+      Identity__BootstrapAdmin__UserName: ${ODM_ADMIN_USER:-admin}
+      Identity__BootstrapAdmin__Password: ${ODM_ADMIN_PASSWORD:?ODM_ADMIN_PASSWORD in .env setzen}
+
+volumes:
+  odm-db:
+  odm-packages:
