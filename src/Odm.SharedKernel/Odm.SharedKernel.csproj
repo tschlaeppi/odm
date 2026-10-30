@@ -5,6 +5,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.*" />
+    <!-- Transitiv über Microsoft.Data.SqlClient mit bekannter Schwachstelle (NU1903): gepatchte Version erzwingen -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.*" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.*" />
   </ItemGroup>
 </Project>
