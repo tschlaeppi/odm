@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { ApiError } from './api'
+  import { onMount } from 'svelte'
+  import { api, ApiError, type OidcProviderDto } from './api'
   import { auth } from './auth.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
 
@@ -7,6 +8,19 @@
   let password = $state('')
   let busy = $state(false)
   let errorKey = $state<MessageKey | null>(null)
+  let providers = $state<OidcProviderDto[]>([])
+
+  const oidcErrorKey = $derived<MessageKey | null>(
+    auth.oidcError === 'denied' ? 'login.oidcDenied' : auth.oidcError ? 'login.oidcFailed' : null,
+  )
+
+  onMount(async () => {
+    try {
+      providers = await api.oidcProviders()
+    } catch {
+      providers = []
+    }
+  })
 
   async function submit(event: SubmitEvent) {
     event.preventDefault()
@@ -46,7 +60,19 @@
       <p class="error" role="alert">{i18n.t(errorKey)}</p>
     {/if}
 
+    {#if oidcErrorKey}
+      <p class="error" role="alert">{i18n.t(oidcErrorKey)}</p>
+    {/if}
+
     <button class="primary" type="submit" disabled={busy}>{i18n.t('login.submit')}</button>
+
+    {#if providers.length > 0}
+      <div class="divider"><span>{i18n.t('login.or')}</span></div>
+      {#each providers as p (p.id)}
+        <!-- Volle Seitennavigation: der Browser wird zum Anbieter geleitet -->
+        <a class="provider" href={`/api/auth/oidc/${p.id}/login`}>{i18n.t('login.oidc', { name: p.displayName })}</a>
+      {/each}
+    {/if}
   </form>
 </main>
 
@@ -77,6 +103,32 @@
     gap: 0.35rem;
     font-size: 0.85rem;
     color: var(--muted);
+  }
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--border);
+  }
+  .provider {
+    display: block;
+    text-align: center;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .provider:hover {
+    background: var(--hover);
   }
   .error {
     margin: 0;

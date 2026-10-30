@@ -5,6 +5,11 @@ export interface UserDto {
   role: string
 }
 
+export interface OidcProviderDto {
+  id: string
+  displayName: string
+}
+
 export interface LoginResponse {
   token: string
   expiresAt: string
@@ -367,6 +372,15 @@ export const api = {
   login: (userName: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ userName, password }) }),
   me: () => request<UserDto>('/auth/me'),
+  oidcProviders: () => request<OidcProviderDto[]>('/auth/oidc/providers'),
+  /** Benutzer zu einem frisch erhaltenen Token (die Sitzung ist zu diesem Zeitpunkt noch nicht gesetzt). */
+  meWithToken: async (token: string): Promise<UserDto> => {
+    const response = await fetch('/api/auth/me', {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) throw new ApiError(response.status)
+    return (await response.json()) as UserDto
+  },
   devices: (options: { search?: string; groupId?: string; skip?: number; take?: number } = {}) => {
     const query = new URLSearchParams()
     if (options.search) query.set('search', options.search)

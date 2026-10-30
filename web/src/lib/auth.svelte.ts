@@ -1,4 +1,5 @@
 import { api, configureApi, type UserDto } from './api'
+import { router } from './router.svelte'
 
 const STORAGE_KEY = 'odm.session'
 
@@ -19,8 +20,13 @@ function loadSession(): Session | null {
   }
 }
 
+export type OidcError = 'failed' | 'denied'
+
 class AuthStore {
   session = $state<Session | null>(loadSession())
+
+  /** Fehler der letzten Anmeldung über einen externen Anbieter (für die Anmeldeseite). */
+  oidcError = $state<OidcError | null>(null)
 
   get isAuthenticated() {
     return this.session !== null
@@ -43,6 +49,40 @@ class AuthStore {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(response))
   }
 
+  /**
+   * Rückkehr von der Anmeldung über einen externen Anbieter: Der Server leitet mit "#/oidc?token=…" bzw.
+   * "#/login?oidc=…" zurück. Das Token wird sofort aus der Adresse entfernt, damit es nicht im Verlauf bleibt.
+   */
+  async handleOidcReturn() {
+    const hash = location.hash
+    if (hash.startsWith('#/login?')) {
+      const error = new URLSearchParams(hash.slice('#/login?'.length)).get('oidc')
+      this.oidcError = error === 'denied' ? 'denied' : 'failed'
+      router.replace('/login')
+      return
+    }
+    if (!hash.startsWith('#/oidc?')) return
+
+    const params = new URLSearchParams(hash.slice('#/oidc?'.length))
+    const token = params.get('token')
+    const expiresAt = params.get('expires')
+    router.replace('/devices')
+    if (!token || !expiresAt) {
+      this.oidcError = 'failed'
+      return
+    }
+
+    try {
+      const user = await api.meWithToken(token)
+      const session: Session = { token, expiresAt, user }
+      this.session = session
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+      this.oidcError = null
+    } catch {
+      this.oidcError = 'failed'
+    }
+  }
+
   logout() {
     this.session = null
     sessionStorage.removeItem(STORAGE_KEY)
@@ -55,3 +95,5 @@ configureApi({
   token: () => auth.session?.token ?? null,
   onUnauthorized: () => auth.logout(),
 })
+
+void auth.handleOidcReturn()
