@@ -56,7 +56,7 @@ Regeln für Module:
 
 ## Einmalig: EF-Migrationen erzeugen
 
-Die Migrationen sind noch nicht eingecheckt und müssen einmal erzeugt werden:
+Die `Initial`-Migrationen aller Module sind eingecheckt. Für eine frische Kopie ohne Migrationen so erzeugen:
 
 ```bash
 dotnet ef migrations add Initial -p src/Modules/Identity/Odm.Modules.Identity -o Infrastructure/Migrations
@@ -75,6 +75,13 @@ dotnet ef migrations add RepoPackages -p src/Modules/Software/Odm.Modules.Softwa
 
 Ausserdem braucht der Server jetzt einen Schlüssel für die Secrets (`Secrets:MasterKey`, Entwicklung: steht in
 `appsettings.Development.json`; Betrieb: `ODM_SECRETS_KEY` in `.env`, erzeugen mit `openssl rand -base64 32`).
+
+**Etappe 4c** erweitert das Software-Modul (Tabellen `profiles`, `profile_items`, `profile_assignments`, Spalte
+`RolloutJson` an `assignments`). Dafür eine neue Migration anlegen:
+
+```bash
+dotnet ef migrations add SoftwareProfileTranchen -p src/Modules/Software/Odm.Modules.Software -o Infrastructure/Migrations
+```
 
 Der Host wendet Migrationen beim Start automatisch an.
 
@@ -203,6 +210,30 @@ Bekannte Einschränkungen:
   umgesetzt; bei Winget/Snap/Flatpak muss vorher deinstalliert werden (Deinstallation ist noch nicht Teil von ODM).
 - Winget-Rückgabecodes für "schon aktuell" werden als Erfolg gewertet; die genauen Codes hängen von der Winget-Version ab.
 
+## Softwareprofile und Tranchen
+
+**Profile** (Menü *Profile*): eine geordnete Liste von Paketen (PSADT und Repo-Pakete gemischt).
+
+- Ein Profil wird einem Gerät, Benutzer oder einer Gruppe zugewiesen. Auf jedem Gerät startet ein Paket erst, wenn
+  alle Pakete davor installiert sind. Schlägt ein Paket endgültig fehl (3 Versuche), warten die folgenden, bis es
+  über *Erneut versuchen* beim Paket gelingt.
+- Pakete, die für ein Gerät nicht passen (z. B. Winget auf Linux), werden übersprungen und blockieren die Reihenfolge nicht.
+- Wird dasselbe Paket mehrfach zugewiesen, gewinnt die spezifischere Quelle: Gerät vor Benutzer vor Gruppe, bei gleichem
+  Ziel die einzelne Paketzuweisung vor dem Profil. Die Reihenfolge gilt nur für die gewinnende Quelle.
+- Pro Eintrag kann bei PSADT-Paketen eine feste Version gewählt werden (wie bei Einzelzuweisungen).
+
+**Tranchen** (bei Paket- und Profilzuweisungen, Feld *Verteilung in Tranchen*): Zeitpunkt der Zuweisung ist der Start.
+
+- *Nach Prozent*, z. B. 20 % nach 5 Tagen, 40 % nach 10, 100 % nach 15. Welche Geräte dazugehören, ist je Zuweisung
+  und Gerät fest (stabiler Hash), die Auswahl wächst also nur. Die letzte Stufe muss 100 % sein. Vor der ersten Stufe
+  erhält kein Gerät das Paket.
+- *Nach Untergruppen*: jede gewählte Gruppe wird nach ihrer Wartezeit freigegeben. Geräte der Zielgruppe, die in keiner
+  Untergruppe sind, folgen nach der letzten Stufe. Eine Untergruppe wird als Gruppe angelegt (z. B. Pilotgeräte).
+- Tranchen gelten nur für **neue** Installationen. Geräte, die das Paket schon haben, werden weiter aktualisiert,
+  und neue Paketversionen werden nicht erneut gestaffelt.
+- Pro Zuweisung ist der Stand sichtbar ("Stufe 2/3 · 40 % freigegeben"). Den Plan ändert man, indem man die Zuweisung
+  neu anlegt (die API kann ihn auch per `PUT` ersetzen).
+
 ## OS-Updates
 
 1. Menü **OS-Updates** → **Richtlinie** anlegen (*Nur Sicherheitsupdates* oder *Alle*; Neustart *nie* oder *bei Bedarf*)
@@ -273,6 +304,6 @@ Die Anwendung läuft dann auf http://localhost:8080. Der Admin wird beim ersten 
 4. Softwareverteilung
    - ~~4a: PSADT-Pakete, S3, Zuweisung, Installation~~ erledigt
    - ~~4b: Repo-Pakete (Winget, Chocolatey, APT, RPM, Flatpak, Snap) mit Zusatzargumenten und Secrets~~ erledigt
-   - 4c: Softwareprofile (Installationsreihenfolge) und Tranchenverteilung
+   - ~~4c: Softwareprofile (Installationsreihenfolge) und Tranchenverteilung~~ erledigt
 5. ~~OS-Updates und Wartungsfenster~~ erledigt
 6. LDAP/OData-Auth, MSSQL, Kubernetes (Helm)
