@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\Odm.SharedKernel\Odm.SharedKernel.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Odm.Modules.Identity\Odm.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Devices\Odm.Modules.Devices\Odm.Modules.Devices.csproj" />
+    <ProjectReference Include="..\Modules\Agents\Odm.Modules.Agents\Odm.Modules.Agents.csproj" />
+    <ProjectReference Include="..\Modules\Software\Odm.Modules.Software\Odm.Modules.Software.csproj" />
+    <ProjectReference Include="..\Modules\OsUpdates\Odm.Modules.OsUpdates\Odm.Modules.OsUpdates.csproj" />
+  </ItemGroup>
+</Project>

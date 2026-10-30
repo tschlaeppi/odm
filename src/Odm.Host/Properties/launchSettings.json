@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Odm.Host": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:8080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
