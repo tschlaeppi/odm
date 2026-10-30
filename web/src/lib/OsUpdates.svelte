@@ -12,6 +12,7 @@
     type WeekDay,
   } from './api'
   import { auth } from './auth.svelte'
+  import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
   import TargetPicker from './TargetPicker.svelte'
 
@@ -197,7 +198,24 @@
     else if (r.rebootRequired) parts.push(i18n.t('os.rebootRequired'))
     return parts.join(' · ')
   }
+
+  const runColumns = $derived<Column<UpdateRunDto>[]>([
+    { key: 'when', label: i18n.t('os.when'), value: (r) => r.createdAt, cell: runWhen, filter: 'none' },
+    { key: 'device', label: i18n.t('devices.name'), value: (r) => r.deviceName ?? r.deviceId, cell: runDevice, strong: true },
+    { key: 'window', label: i18n.t('os.window'), value: (r) => r.windowName ?? i18n.t('os.manual'), filter: 'select' },
+    { key: 'status', label: i18n.t('sw.status'), value: (r) => i18n.t(`os.status.${r.status}` as MessageKey), cell: runStatus, filter: 'select' },
+    { key: 'result', label: i18n.t('dev.detail.message'), value: (r) => runSummary(r), cell: runResult, muted: true },
+  ])
 </script>
+
+{#snippet runWhen(r: UpdateRunDto)}{i18n.formatDate(r.createdAt)}{/snippet}
+{#snippet runDevice(r: UpdateRunDto)}<a href={`#/devices/${r.deviceId}`}>{r.deviceName ?? r.deviceId}</a>{/snippet}
+{#snippet runStatus(r: UpdateRunDto)}
+  <span class="badge {statusClass[r.status]}">{i18n.t(`os.status.${r.status}` as MessageKey)}</span>
+{/snippet}
+{#snippet runResult(r: UpdateRunDto)}
+  <span class="msg" title={r.message ?? ''}>{runSummary(r) || '–'}</span>
+{/snippet}
 
 <section>
   <h1>{i18n.t('os.title')}</h1>
@@ -357,33 +375,7 @@
     {#if runs.length === 0}
       <p class="muted">{i18n.t('os.noRuns')}</p>
     {:else}
-      <div class="card list">
-        <table>
-          <thead>
-            <tr>
-              <th>{i18n.t('os.when')}</th>
-              <th>{i18n.t('devices.name')}</th>
-              <th>{i18n.t('os.window')}</th>
-              <th>{i18n.t('sw.status')}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each runs as r (r.id)}
-              <tr>
-                <td>{i18n.formatDate(r.createdAt)}</td>
-                <td class="strong">{r.deviceName ?? r.deviceId}</td>
-                <td>{r.windowName ?? i18n.t('os.manual')}</td>
-                <td><span class="badge {statusClass[r.status]}">{i18n.t(`os.status.${r.status}` as MessageKey)}</span></td>
-                <td class="muted">{runSummary(r)}</td>
-              </tr>
-              {#if r.status === 'Failed' && r.message}
-                <tr class="detail"><td colspan="5"><pre>{r.message}</pre></td></tr>
-              {/if}
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      <DataTable rows={runs} columns={runColumns} rowKey={(r) => r.id} pageSize={25} />
     {/if}
   {/if}
 </section>
@@ -490,44 +482,18 @@
     padding: 0;
     overflow-x: auto;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.92rem;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.6rem 1rem;
-    white-space: nowrap;
-  }
-  th {
-    font-weight: 500;
-    font-size: 0.8rem;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  tbody tr + tr td {
-    border-top: 1px solid var(--border);
-  }
-  tr.detail td {
-    white-space: normal;
-    padding-top: 0;
-    border-top: none;
-  }
-  pre {
-    margin: 0;
-    max-height: 8rem;
-    overflow: auto;
-    font-size: 0.8rem;
-    color: var(--muted);
-    white-space: pre-wrap;
-  }
   .strong {
     font-weight: 600;
   }
   .error {
     color: var(--danger);
     margin: 0 0 0.75rem;
+  }
+  .msg {
+    display: inline-block;
+    max-width: 28rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
   }
 </style>

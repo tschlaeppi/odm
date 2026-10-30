@@ -11,9 +11,11 @@
     type PackageDetailDto,
     type Rollout,
     type TargetKind,
+    type VersionDto,
     type VersionPolicy,
   } from './api'
   import { auth } from './auth.svelte'
+  import DataTable, { type Column } from './DataTable.svelte'
   import { formatSize } from './format'
   import { i18n, type MessageKey } from './i18n.svelte'
   import PackageSpecForm from './PackageSpecForm.svelte'
@@ -221,7 +223,81 @@
     if (a.targetKind === 'Device') return a.targetName ?? a.target
     return a.target
   }
+  const versionColumns = $derived<Column<VersionDto>[]>([
+    { key: 'version', label: i18n.t('sw.version'), value: (v) => v.version, strong: true },
+    ...(pkg?.kind === 'Psadt'
+      ? [{ key: 'size', label: i18n.t('sw.size'), value: (v: VersionDto) => v.sizeBytes, cell: versionSize, align: 'right' as const, filter: 'none' as const }]
+      : []),
+    { key: 'uploaded', label: i18n.t('sw.uploadedAt'), value: (v) => v.uploadedAt, cell: versionDate, filter: 'none' },
+    ...(pkg?.kind === 'Psadt'
+      ? [{ key: 'sha', label: 'SHA-256', value: (v: VersionDto) => v.sha256, cell: versionSha }]
+      : []),
+    { key: 'notes', label: i18n.t('sw.notes'), value: (v) => v.notes, muted: true },
+  ])
+
+  const assignmentColumns = $derived<Column<AssignmentDto>[]>([
+    { key: 'kind', label: i18n.t('sw.targetKind'), value: (a) => i18n.t(`sw.targetKind.${a.targetKind}` as MessageKey), filter: 'select' },
+    { key: 'target', label: i18n.t('sw.name'), value: (a) => targetLabel(a), strong: true },
+    { key: 'policy', label: i18n.t('sw.policy'), value: (a) => i18n.t(`sw.policy.${a.versionPolicy}` as MessageKey), cell: policyCell, filter: 'select' },
+    { key: 'rollout', label: i18n.t('rollout.column'), value: (a) => rolloutText(a) },
+  ])
+
+  const installationColumns = $derived<Column<InstallationDto>[]>([
+    { key: 'device', label: i18n.t('devices.name'), value: (i) => i.deviceName ?? i.deviceId, cell: installationDevice, strong: true },
+    { key: 'target', label: i18n.t('sw.targetVersion'), value: (i) => i.targetVersion },
+    { key: 'installed', label: i18n.t('sw.installedVersion'), value: (i) => i.installedVersion },
+    { key: 'status', label: i18n.t('sw.status'), value: (i) => i18n.t(`sw.status.${i.status}` as MessageKey), cell: installationStatus, filter: 'select' },
+    { key: 'attempts', label: i18n.t('sw.attempts'), value: (i) => i.attempts, align: 'right', filter: 'none' },
+    { key: 'message', label: i18n.t('dev.detail.message'), value: (i) => i.message, cell: installationMessage, muted: true },
+  ])
 </script>
+
+{#snippet versionSize(v: VersionDto)}{formatSize(v.sizeBytes)}{/snippet}
+{#snippet versionDate(v: VersionDto)}{i18n.formatDate(v.uploadedAt)}{/snippet}
+{#snippet versionSha(v: VersionDto)}<code title={v.sha256 ?? ''}>{(v.sha256 ?? '').slice(0, 12)}…</code>{/snippet}
+
+{#snippet policyCell(a: AssignmentDto)}
+  {#if auth.canEdit && pkg?.kind === 'Psadt'}
+    <select
+      value={a.versionPolicy}
+      onchange={(e) => changePolicy(a, e.currentTarget.value as VersionPolicy, a.pinnedVersionId)}
+    >
+      <option value="Latest">{i18n.t('sw.policy.Latest')}</option>
+      <option value="Pinned">{i18n.t('sw.policy.Pinned')}</option>
+    </select>
+    {#if a.versionPolicy === 'Pinned'}
+      <select value={a.pinnedVersionId} onchange={(e) => changePolicy(a, 'Pinned', e.currentTarget.value)}>
+        {#each pkg.versions as v (v.id)}
+          <option value={v.id}>{v.version}</option>
+        {/each}
+      </select>
+    {/if}
+  {:else}
+    {i18n.t(`sw.policy.${a.versionPolicy}` as MessageKey)}
+  {/if}
+{/snippet}
+
+{#snippet assignmentActions(a: AssignmentDto)}
+  <button class="ghost" onclick={() => removeAssignment(a)}>{i18n.t('sw.removeAssignment')}</button>
+{/snippet}
+
+{#snippet installationDevice(i: InstallationDto)}
+  <a href={`#/devices/${i.deviceId}`}>{i.deviceName ?? i.deviceId}</a>
+{/snippet}
+
+{#snippet installationStatus(i: InstallationDto)}
+  <span class="badge {statusClass[i.status]}">{i18n.t(`sw.status.${i.status}` as MessageKey)}</span>
+{/snippet}
+
+{#snippet installationMessage(i: InstallationDto)}
+  <span class="msg" title={i.message ?? ''}>{i.message ?? '–'}</span>
+{/snippet}
+
+{#snippet installationActions(i: InstallationDto)}
+  {#if i.status === 'Failed'}
+    <button class="ghost" onclick={() => retry(i)}>{i18n.t('sw.retry')}</button>
+  {/if}
+{/snippet}
 
 <section>
   <a class="back" href="#/software">← {i18n.t('common.back')}</a>
@@ -292,32 +368,7 @@
     {#if pkg.versions.length === 0}
       <p class="muted">{i18n.t('sw.noVersions')}</p>
     {:else}
-      <div class="card list">
-        <table>
-          <thead>
-            <tr>
-              <th>{i18n.t('sw.version')}</th>
-              {#if pkg.kind === 'Psadt'}<th>{i18n.t('sw.size')}</th>{/if}
-              <th>{i18n.t('sw.uploadedAt')}</th>
-              {#if pkg.kind === 'Psadt'}<th>SHA-256</th>{/if}
-              <th>{i18n.t('sw.notes')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each pkg.versions as v (v.id)}
-              <tr>
-                <td class="strong">{v.version}</td>
-                {#if pkg.kind === 'Psadt'}<td>{formatSize(v.sizeBytes)}</td>{/if}
-                <td>{i18n.formatDate(v.uploadedAt)}</td>
-                {#if pkg.kind === 'Psadt'}
-                  <td><code title={v.sha256 ?? ''}>{(v.sha256 ?? '').slice(0, 12)}…</code></td>
-                {/if}
-                <td class="muted">{v.notes ?? ''}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      <DataTable rows={pkg.versions} columns={versionColumns} rowKey={(v) => v.id} pageSize={25} />
     {/if}
 
     <!-- Zuweisungen -->
@@ -400,56 +451,13 @@
     {#if assignments.length === 0}
       <p class="muted">{i18n.t('sw.noAssignments')}</p>
     {:else}
-      <div class="card list">
-        <table>
-          <thead>
-            <tr>
-              <th>{i18n.t('sw.targetKind')}</th>
-              <th>{i18n.t('sw.name')}</th>
-              <th>{i18n.t('sw.policy')}</th>
-              <th>{i18n.t('rollout.column')}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each assignments as a (a.id)}
-              <tr>
-                <td>{i18n.t(`sw.targetKind.${a.targetKind}` as MessageKey)}</td>
-                <td class="strong">{targetLabel(a)}</td>
-                <td>
-                  {#if auth.canEdit && pkg.kind === 'Psadt'}
-                    <select
-                      value={a.versionPolicy}
-                      onchange={(e) => changePolicy(a, e.currentTarget.value as VersionPolicy, a.pinnedVersionId)}
-                    >
-                      <option value="Latest">{i18n.t('sw.policy.Latest')}</option>
-                      <option value="Pinned">{i18n.t('sw.policy.Pinned')}</option>
-                    </select>
-                    {#if a.versionPolicy === 'Pinned'}
-                      <select
-                        value={a.pinnedVersionId}
-                        onchange={(e) => changePolicy(a, 'Pinned', e.currentTarget.value)}
-                      >
-                        {#each pkg.versions as v (v.id)}
-                          <option value={v.id}>{v.version}</option>
-                        {/each}
-                      </select>
-                    {/if}
-                  {:else}
-                    {i18n.t(`sw.policy.${a.versionPolicy}` as MessageKey)}
-                  {/if}
-                </td>
-                <td>{rolloutText(a)}</td>
-                <td class="actions">
-                  {#if auth.canEdit}
-                    <button class="ghost" onclick={() => removeAssignment(a)}>{i18n.t('sw.removeAssignment')}</button>
-                  {/if}
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        rows={assignments}
+        columns={assignmentColumns}
+        rowKey={(a) => a.id}
+        actions={auth.canEdit ? assignmentActions : undefined}
+        pageSize={25}
+      />
     {/if}
 
     <!-- Installationen -->
@@ -458,43 +466,12 @@
     {#if installations.length === 0}
       <p class="muted">{i18n.t('sw.noInstallations')}</p>
     {:else}
-      <div class="card list">
-        <table>
-          <thead>
-            <tr>
-              <th>{i18n.t('devices.name')}</th>
-              <th>{i18n.t('sw.targetVersion')}</th>
-              <th>{i18n.t('sw.installedVersion')}</th>
-              <th>{i18n.t('sw.status')}</th>
-              <th>{i18n.t('sw.attempts')}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each installations as i (i.id)}
-              <tr>
-                <td class="strong">{i.deviceName ?? i.deviceId}</td>
-                <td>{i.targetVersion ?? '–'}</td>
-                <td>{i.installedVersion ?? '–'}</td>
-                <td>
-                  <span class="badge {statusClass[i.status]}" title={i.message ?? ''}>
-                    {i18n.t(`sw.status.${i.status}` as MessageKey)}
-                  </span>
-                </td>
-                <td>{i.attempts}</td>
-                <td class="actions">
-                  {#if auth.canEdit && i.status === 'Failed'}
-                    <button class="ghost" onclick={() => retry(i)}>{i18n.t('sw.retry')}</button>
-                  {/if}
-                </td>
-              </tr>
-              {#if i.status === 'Failed' && i.message}
-                <tr class="detail"><td colspan="6"><pre>{i.message}</pre></td></tr>
-              {/if}
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        rows={installations}
+        columns={installationColumns}
+        rowKey={(i) => i.id}
+        actions={auth.canEdit ? installationActions : undefined}
+      />
     {/if}
   {/if}
 </section>
@@ -552,39 +529,6 @@
     overflow-x: auto;
     margin-bottom: 0.5rem;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.92rem;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.6rem 1rem;
-    white-space: nowrap;
-  }
-  th {
-    font-weight: 500;
-    font-size: 0.8rem;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  tbody tr + tr td {
-    border-top: 1px solid var(--border);
-  }
-  tr.detail td {
-    white-space: normal;
-    padding-top: 0;
-    border-top: none;
-  }
-  pre {
-    margin: 0;
-    max-height: 10rem;
-    overflow: auto;
-    font-size: 0.8rem;
-    color: var(--muted);
-    white-space: pre-wrap;
-  }
   .strong {
     font-weight: 600;
   }
@@ -604,5 +548,12 @@
   .error {
     color: var(--danger);
     margin: 0;
+  }
+  .msg {
+    display: inline-block;
+    max-width: 24rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
   }
 </style>

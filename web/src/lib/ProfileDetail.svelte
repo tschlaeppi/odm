@@ -14,6 +14,7 @@
     type VersionPolicy,
   } from './api'
   import { auth } from './auth.svelte'
+  import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
   import RolloutEditor from './RolloutEditor.svelte'
   import { router } from './router.svelte'
@@ -207,7 +208,17 @@
           percent: status.releasedPercent,
         })
   }
+
+  const assignmentColumns = $derived<Column<(typeof assignments)[number]>[]>([
+    { key: 'kind', label: i18n.t('sw.targetKind'), value: (a) => i18n.t(`sw.targetKind.${a.targetKind}` as MessageKey), filter: 'select' },
+    { key: 'target', label: i18n.t('sw.name'), value: (a) => targetLabel(a), strong: true },
+    { key: 'rollout', label: i18n.t('rollout.column'), value: (a) => rolloutText(a) },
+  ])
 </script>
+
+{#snippet assignmentActions(a: (typeof assignments)[number])}
+  <button class="ghost" onclick={() => removeAssignment(a)}>{i18n.t('sw.removeAssignment')}</button>
+{/snippet}
 
 <section>
   <a class="back" href="#/profiles">← {i18n.t('common.back')}</a>
@@ -345,32 +356,13 @@
     {#if assignments.length === 0}
       <p class="muted">{i18n.t('prof.noAssignments')}</p>
     {:else}
-      <div class="card list">
-        <table>
-          <thead>
-            <tr>
-              <th>{i18n.t('sw.targetKind')}</th>
-              <th>{i18n.t('sw.name')}</th>
-              <th>{i18n.t('rollout.column')}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each assignments as a (a.id)}
-              <tr>
-                <td>{i18n.t(`sw.targetKind.${a.targetKind}` as MessageKey)}</td>
-                <td class="strong">{targetLabel(a)}</td>
-                <td>{rolloutText(a)}</td>
-                <td class="actions">
-                  {#if auth.canEdit}
-                    <button class="ghost" onclick={() => removeAssignment(a)}>{i18n.t('sw.removeAssignment')}</button>
-                  {/if}
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        rows={assignments}
+        columns={assignmentColumns}
+        rowKey={(a) => a.id}
+        actions={auth.canEdit ? assignmentActions : undefined}
+        pageSize={25}
+      />
     {/if}
   {/if}
 </section>
@@ -439,35 +431,8 @@
     font-size: 0.8rem;
     color: var(--muted);
   }
-  .list {
-    padding: 0;
-    overflow-x: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.92rem;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.6rem 1rem;
-    white-space: nowrap;
-  }
-  th {
-    font-weight: 500;
-    font-size: 0.8rem;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  tbody tr + tr td {
-    border-top: 1px solid var(--border);
-  }
   .strong {
     font-weight: 600;
-  }
-  .actions {
-    text-align: right;
   }
   .error {
     color: var(--danger);
