@@ -32,6 +32,13 @@ namespace Odm.Migrations.SqlServer.Software
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Intent")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasDefaultValue("Install");
+
                     b.Property<Guid>("PackageId")
                         .HasColumnType("uniqueidentifier");
 
@@ -87,11 +94,16 @@ namespace Odm.Migrations.SqlServer.Software
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Message")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasMaxLength(64000)
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("PackageId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Removal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Status")
                         .IsRequired()

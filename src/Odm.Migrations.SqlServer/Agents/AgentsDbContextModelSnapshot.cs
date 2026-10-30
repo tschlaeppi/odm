@@ -79,7 +79,7 @@ namespace Odm.Migrations.SqlServer.Agents
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Output")
-                        .HasMaxLength(8000)
+                        .HasMaxLength(64000)
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Payload")

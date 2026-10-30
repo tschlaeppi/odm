@@ -32,6 +32,13 @@ namespace Odm.Modules.Software.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Intent")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Install");
+
                     b.Property<Guid>("PackageId")
                         .HasColumnType("uuid");
 
@@ -87,11 +94,16 @@ namespace Odm.Modules.Software.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Message")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(64000)
+                        .HasColumnType("character varying(64000)");
 
                     b.Property<Guid>("PackageId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("Removal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Status")
                         .IsRequired()

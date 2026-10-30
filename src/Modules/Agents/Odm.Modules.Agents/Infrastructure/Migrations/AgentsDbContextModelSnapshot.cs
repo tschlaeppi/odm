@@ -79,8 +79,8 @@ namespace Odm.Modules.Agents.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Output")
-                        .HasMaxLength(8000)
-                        .HasColumnType("character varying(8000)");
+                        .HasMaxLength(64000)
+                        .HasColumnType("character varying(64000)");
 
                     b.Property<string>("Payload")
                         .HasMaxLength(4000)
