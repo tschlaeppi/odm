@@ -160,6 +160,11 @@ public sealed class AgentWorker(
             return;
         }
 
+        if (!options.Value.ServerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return; // über http lässt sich kein Client-Zertifikat vorzeigen
+        }
+
         _lastCertificateAttempt = DateTimeOffset.UtcNow;
         try
         {

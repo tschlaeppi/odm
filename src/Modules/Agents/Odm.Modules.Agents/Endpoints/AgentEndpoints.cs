@@ -40,7 +40,7 @@ internal static class AgentEndpoints
             .RequireRateLimiting("agent-register");
 
         group.MapPost("/heartbeat", async (
-                ClaimsPrincipal principal, HeartbeatRequest request, AgentService service,
+                HttpContext http, ClaimsPrincipal principal, HeartbeatRequest request, AgentService service,
                 AgentCertificateAuthority authority, IOptions<AgentsOptions> options, CancellationToken ct) =>
             {
                 // Rechnername ist optional (ältere Agents); wenn angegeben, gelten dieselben Regeln wie bei der Registrierung.
@@ -61,18 +61,24 @@ internal static class AgentEndpoints
                 }
 
                 var response = await service.HeartbeatAsync(agentId, deviceId, request, ct);
-                return Results.Ok(response with { CertificateRequested = CertificateWanted(principal, authority, options.Value.Mtls) });
+                return Results.Ok(response with { CertificateRequested = CertificateWanted(http, principal, authority, options.Value.Mtls) });
             })
             .RequireAuthorization(Policies.Agent);
 
         // Zertifikat anfordern bzw. erneuern. Ohne bisheriges Zertifikat genügt das Secret (einmalig), danach nur noch mit Zertifikat.
         group.MapPost("/certificate", async (
-                ClaimsPrincipal principal, CertificateRequestDto request, AgentService service,
+                HttpContext http, ClaimsPrincipal principal, CertificateRequestDto request, AgentService service,
                 AgentCertificateAuthority authority, CancellationToken ct) =>
             {
                 if (!authority.Enabled)
                 {
                     return Results.Problem("Zertifikate sind auf diesem Server nicht aktiviert.", statusCode: 404);
+                }
+
+                if (!IsDirectTls(http))
+                {
+                    // Ein Zertifikat, das über diese Verbindung nicht vorgezeigt werden kann, würde das Gerät aussperren.
+                    return Results.Problem("Zertifikate werden nur über eine direkte TLS-Verbindung zu ODM ausgestellt.", statusCode: 400);
                 }
 
                 if (string.IsNullOrWhiteSpace(request.Csr) || request.Csr.Length > 4000)
@@ -94,10 +100,14 @@ internal static class AgentEndpoints
             .RequireAuthorization(Policies.Agent);
     }
 
+    /// <summary>TLS wird von ODM selbst beendet (nur dann kann ein Client-Zertifikat ankommen).</summary>
+    private static bool IsDirectTls(HttpContext http) =>
+        http.Features.Get<Microsoft.AspNetCore.Http.Features.ITlsConnectionFeature>() is not null;
+
     /// <summary>Soll der Agent ein (neues) Zertifikat anfordern? Wenn er keines hat oder es bald abläuft.</summary>
-    private static bool CertificateWanted(ClaimsPrincipal principal, AgentCertificateAuthority authority, AgentMtlsOptions options)
+    private static bool CertificateWanted(HttpContext http, ClaimsPrincipal principal, AgentCertificateAuthority authority, AgentMtlsOptions options)
     {
-        if (!authority.Enabled)
+        if (!authority.Enabled || !IsDirectTls(http))
         {
             return false;
         }
