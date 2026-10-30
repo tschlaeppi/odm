@@ -1,6 +1,7 @@
 <script lang="ts">
   import DeviceDetail from './lib/DeviceDetail.svelte'
   import Devices from './lib/Devices.svelte'
+  import Dashboard from './lib/Dashboard.svelte'
   import Enrollment from './lib/Enrollment.svelte'
   import GroupEditor from './lib/GroupEditor.svelte'
   import Groups from './lib/Groups.svelte'
@@ -36,7 +37,9 @@
   const packageId = $derived(router.path.startsWith('/software/') ? router.path.slice('/software/'.length) : null)
   const profileId = $derived(router.path.startsWith('/profiles/') ? router.path.slice('/profiles/'.length) : null)
   const section = $derived(
-    router.path.startsWith('/groups')
+    router.path.startsWith('/dashboard')
+      ? 'dashboard'
+      : router.path.startsWith('/groups')
       ? 'groups'
       : router.path.startsWith('/software')
         ? 'software'
@@ -68,6 +71,10 @@
 
   {#if auth.isAuthenticated}
     <nav class="side" aria-label="Navigation">
+      <a href="#/dashboard" title={collapsed ? i18n.t('nav.dashboard') : undefined} class:active={section === 'dashboard'}>
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="9" rx="1" /><rect x="13" y="3" width="8" height="5" rx="1" /><rect x="13" y="10" width="8" height="11" rx="1" /><rect x="3" y="14" width="8" height="7" rx="1" /></svg>
+        <span class="label">{i18n.t('nav.dashboard')}</span>
+      </a>
       <div class="group">{i18n.t('nav.group.manage')}</div>
       <a href="#/devices" title={collapsed ? i18n.t('nav.devices') : undefined} class:active={section === 'devices'}>
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg>
@@ -120,6 +127,8 @@
         {#key editorId}
           <GroupEditor id={editorId} />
         {/key}
+      {:else if section === 'dashboard'}
+        <Dashboard />
       {:else if section === 'groups'}
         <Groups />
       {:else if section === 'software' && packageId}

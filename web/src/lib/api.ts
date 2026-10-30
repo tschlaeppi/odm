@@ -224,6 +224,64 @@ export interface SoftwareAssignmentInput {
   intent: AssignmentIntent
 }
 
+export interface CountDto {
+  name: string
+  count: number
+}
+
+export interface SilentDeviceDto {
+  id: string
+  name: string
+  osName: string
+  lastSeenAt: string | null
+  registeredAt: string
+}
+
+export interface DeviceStatsDto {
+  total: number
+  online: number
+  silent: number
+  neverSeen: number
+  byOs: CountDto[]
+  byAgentVersion: CountDto[]
+  silentDevices: SilentDeviceDto[]
+}
+
+export interface PackageStatsDto {
+  packageId: string
+  name: string
+  installed: number
+  inProgress: number
+  failed: number
+}
+
+export interface FailureDto {
+  installationId: string
+  deviceId: string
+  deviceName: string | null
+  packageId: string
+  packageName: string
+  removal: boolean
+  attempts: number
+  message: string | null
+  updatedAt: string
+}
+
+export interface SoftwareStatsDto {
+  packages: number
+  assignments: number
+  installations: {
+    installed: number
+    pending: number
+    running: number
+    failed: number
+    removing: number
+    removalFailed: number
+  }
+  perPackage: PackageStatsDto[]
+  failures: FailureDto[]
+}
+
 export interface InstallationDto {
   id: string
   deviceId: string
@@ -420,6 +478,9 @@ export const api = {
   },
   updateAssignment: (id: string, input: AssignmentInput) =>
     request<DeviceDto>(`/devices/${id}/assignment`, { method: 'PUT', body: JSON.stringify(input) }),
+
+  deviceStats: (silentHours: number) => request<DeviceStatsDto>(`/devices/stats?silentHours=${silentHours}`),
+  softwareStats: () => request<SoftwareStatsDto>('/software/stats'),
 
   registrationTokens: () => request<TokenDto[]>('/agents/tokens'),
   createRegistrationToken: (label: string, validHours: number) =>

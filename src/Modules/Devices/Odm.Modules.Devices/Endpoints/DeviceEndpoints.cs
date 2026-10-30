@@ -39,6 +39,42 @@ internal static class DeviceEndpoints
             return Results.Ok(await DeviceQueries.PageAsync(query, skip, take, ct));
         });
 
+        // Kennzahlen für das Dashboard. "Ohne Meldung" = seit silentHours Stunden kein Heartbeat (oder nie einer).
+        group.MapGet("/stats", async (DevicesDbContext db, int? silentHours, CancellationToken ct) =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var silentBefore = now.AddHours(-Math.Clamp(silentHours ?? 24, 1, 24 * 365));
+            var onlineAfter = now.AddMinutes(-3);
+
+            var devices = db.Devices.AsNoTracking();
+            var total = await devices.CountAsync(ct);
+            var online = await devices.CountAsync(d => d.LastSeenAt != null && d.LastSeenAt > onlineAfter, ct);
+            var neverSeen = await devices.CountAsync(d => d.LastSeenAt == null, ct);
+            var silent = await devices.CountAsync(d => d.LastSeenAt == null || d.LastSeenAt < silentBefore, ct);
+
+            var byOs = (await devices.GroupBy(d => d.OsName)
+                    .OrderByDescending(g => g.Count())
+                    .Take(20)
+                    .Select(g => new { g.Key, Count = g.Count() })
+                    .ToListAsync(ct))
+                .Select(g => new CountDto(g.Key, g.Count)).ToList();
+            var byAgent = (await devices.GroupBy(d => d.AgentVersion)
+                    .OrderByDescending(g => g.Count())
+                    .Take(20)
+                    .Select(g => new { g.Key, Count = g.Count() })
+                    .ToListAsync(ct))
+                .Select(g => new CountDto(g.Key ?? "", g.Count)).ToList();
+
+            var silentDevices = await devices
+                .Where(d => d.LastSeenAt == null || d.LastSeenAt < silentBefore)
+                .OrderBy(d => d.LastSeenAt)
+                .Take(50)
+                .Select(d => new SilentDeviceDto(d.Id, d.Name, d.OsName, d.LastSeenAt, d.RegisteredAt))
+                .ToListAsync(ct);
+
+            return Results.Ok(new DeviceStatsDto(total, online, silent, neverSeen, byOs, byAgent, silentDevices));
+        });
+
         group.MapGet("/{id:guid}", async (Guid id, DevicesDbContext db, CancellationToken ct) =>
         {
             var device = await db.Devices.AsNoTracking().SingleOrDefaultAsync(d => d.Id == id, ct);

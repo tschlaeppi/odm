@@ -1,6 +1,6 @@
 // Minimaler Hash-Router: kein externes Paket nötig.
 function current(): string {
-  return location.hash.replace(/^#/, '') || '/devices'
+  return location.hash.replace(/^#/, '') || '/dashboard'
 }
 
 class Router {

@@ -66,6 +66,19 @@ public sealed record InstallationDto(
     string? TargetVersion, string? InstalledVersion, string Status, int Attempts, string? Message,
     DateTimeOffset UpdatedAt, bool Removal = false);
 
+public sealed record InstallTotalsDto(
+    int Installed, int Pending, int Running, int Failed, int Removing, int RemovalFailed);
+
+public sealed record PackageStatsDto(Guid PackageId, string Name, int Installed, int InProgress, int Failed);
+
+public sealed record FailureDto(
+    Guid InstallationId, Guid DeviceId, string? DeviceName, Guid PackageId, string PackageName,
+    bool Removal, int Attempts, string? Message, DateTimeOffset UpdatedAt);
+
+public sealed record SoftwareStatsDto(
+    int Packages, int Assignments, InstallTotalsDto Installations,
+    IReadOnlyList<PackageStatsDto> PerPackage, IReadOnlyList<FailureDto> Failures);
+
 public sealed record SecretDto(string Name, DateTimeOffset UpdatedAt);
 
 public sealed record SetSecretRequest(string? Value);
