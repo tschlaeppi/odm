@@ -89,6 +89,21 @@ Wird ein neues Paket einem Client oder einer Gruppe zugewiesen, ist eine Tranche
 - OS-Updates können konfiguriert werden
 - Wartungsfenster können für Clients oder Gruppen definiert werden
 
+### 3.5 Agent-Installation
+
+Als Systemadministrator möchte ich eine einfache Prozedur zur Agenteninstallation (Download-Link oder Convenience-Script),
+damit ich den Agent nicht in jeder Version selbst kompilieren muss.
+
+Umsetzung / Akzeptanzkriterien:
+
+- Fertige, selbstenthaltene Agent-Pakete (Windows x64/ARM64, Linux x64/ARM64) werden vom ODM-Server selbst zum Download
+  angeboten (auch ohne Internetzugang der Clients) und lassen sich zusätzlich als Release-Artefakte beziehen
+- Je ein Convenience-Script für Windows (PowerShell) und Linux (sh), das Paket lädt, die Prüfsumme kontrolliert, den Dienst
+  einrichtet und den Agent mit einem Registrierungs-Token anmeldet
+- Die Web-Oberfläche zeigt nach dem Erstellen eines Tokens den fertigen Installationsbefehl je Betriebssystem
+- Erneutes Ausführen des Scripts aktualisiert den Agent auf die Version des Servers (Registrierung bleibt erhalten)
+- Das Registrierungs-Token wird nach erfolgreicher Registrierung nicht mehr auf dem Gerät gespeichert
+
 ## 4. Nichtfunktionale Anforderungen
 
 - **Design:** Clean, minimalistisch, Dark-Mode-Unterstützung
