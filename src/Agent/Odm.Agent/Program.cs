@@ -42,7 +42,13 @@ builder.Services.AddOptions<AgentOptions>()
 builder.Services.AddSingleton(sp =>
 {
     var options = sp.GetRequiredService<IOptions<AgentOptions>>().Value;
-    return new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
+    var certificates = sp.GetRequiredService<ClientCertificateStore>();
+    var handler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) };
+
+    // Client-Zertifikat (mTLS) wird erst beim Verbindungsaufbau gewählt, damit ein später ausgestelltes oder erneuertes
+    // Zertifikat ohne Neustart gilt. Ohne Zertifikat verbindet sich der Agent wie bisher nur mit seinem Secret.
+    handler.SslOptions.LocalCertificateSelectionCallback = (_, _, _, _, _) => certificates.Current!;
+    return new HttpClient(handler)
     {
         BaseAddress = new Uri(options.ServerUrl.TrimEnd('/') + "/"),
         Timeout = TimeSpan.FromSeconds(30)
@@ -52,6 +58,7 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton<ServerClient>();
 builder.Services.AddSingleton<Odm.Agent.Update.AgentUpdater>();
 builder.Services.AddSingleton<AgentStateStore>();
+builder.Services.AddSingleton<ClientCertificateStore>();
 builder.Services.AddSingleton<SystemInfoProvider>();
 builder.Services.AddSingleton<IJobHandler, PingJobHandler>();
 builder.Services.AddSingleton<IJobHandler, InstallPsadtJobHandler>();

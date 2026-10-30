@@ -14,6 +14,7 @@ public sealed class AgentWorker(
     SystemInfoProvider systemInfo,
     JobExecutor executor,
     AgentUpdater updater,
+    ClientCertificateStore certificates,
     ILogger<AgentWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -60,12 +61,45 @@ public sealed class AgentWorker(
         }
 
         var info = systemInfo.Collect();
-        var response = await server.RegisterAsync(
-            new RegisterRequest(token, info.Hostname, info.OsFamily, info.OsName, info.OsVersion, SystemInfoProvider.AgentVersion),
-            ct);
+
+        // Bei https gleich ein Schlüsselpaar erzeugen und die Zertifikatsanforderung mitschicken (mTLS, falls der Server es verlangt).
+        System.Security.Cryptography.ECDsa? key = null;
+        string? csr = null;
+        if (options.Value.ServerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            (key, csr) = certificates.CreateRequest();
+        }
+
+        RegisterResponse response;
+        try
+        {
+            response = await server.RegisterAsync(
+                new RegisterRequest(token, info.Hostname, info.OsFamily, info.OsName, info.OsVersion, SystemInfoProvider.AgentVersion, csr),
+                ct);
+        }
+        catch
+        {
+            key?.Dispose();
+            throw;
+        }
 
         var state = new AgentState(response.AgentId, response.Secret, response.DeviceId);
         await store.SaveAsync(state, ct);
+        if (key is not null)
+        {
+            try
+            {
+                if (response.Certificate is not null)
+                {
+                    certificates.Save(key, response.Certificate);
+                }
+            }
+            finally
+            {
+                key.Dispose();
+            }
+        }
+
         logger.LogInformation("Agent registriert (Gerät {DeviceId}).", state.DeviceId);
 
         try
@@ -102,6 +136,11 @@ public sealed class AgentWorker(
 
         updater.ConfirmStartup();
 
+        if (response.CertificateRequested)
+        {
+            await RequestCertificateAsync(state, ct);
+        }
+
         // Update nur, wenn der Agent nichts zu tun hat (keine laufenden Aufträge, keine offenen Ergebnisse).
         if (response.Update is { } offer && executor.ActiveJobIds().Count == 0 && executor.PendingResults().Count == 0)
         {
@@ -109,6 +148,32 @@ public sealed class AgentWorker(
         }
 
         return TimeSpan.FromSeconds(Math.Max(10, response.NextHeartbeatSeconds));
+    }
+
+    private DateTimeOffset _lastCertificateAttempt = DateTimeOffset.MinValue;
+
+    /// <summary>Holt bzw. erneuert das Client-Zertifikat (neuer Schlüssel); höchstens alle 10 Minuten, Fehler stoppen den Agent nicht.</summary>
+    private async Task RequestCertificateAsync(AgentState state, CancellationToken ct)
+    {
+        if (DateTimeOffset.UtcNow - _lastCertificateAttempt < TimeSpan.FromMinutes(10))
+        {
+            return;
+        }
+
+        _lastCertificateAttempt = DateTimeOffset.UtcNow;
+        try
+        {
+            var (key, csr) = certificates.CreateRequest();
+            using (key)
+            {
+                var response = await server.RequestCertificateAsync(state, csr, ct);
+                certificates.Save(key, response.Certificate);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Das Client-Zertifikat konnte nicht angefordert werden.");
+        }
     }
 
     // 5 s, 10 s, 20 s ... maximal 5 Minuten, plus bis zu 20 % Zufall gegen gleichzeitige Wiederholungen.
