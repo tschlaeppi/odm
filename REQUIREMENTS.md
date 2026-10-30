@@ -104,7 +104,18 @@ Umsetzung / Akzeptanzkriterien:
 - Erneutes Ausführen des Scripts aktualisiert den Agent auf die Version des Servers (Registrierung bleibt erhalten)
 - Das Registrierungs-Token wird nach erfolgreicher Registrierung nicht mehr auf dem Gerät gespeichert
 
-## 4. Nichtfunktionale Anforderungen
+### 3.6 Agent-Selbstaktualisierung
+
+**Als Systemadministrator** möchte ich, dass sich die Agents selbst auf die vom Server bereitgestellte Version aktualisieren, damit ich nicht jedes Gerät von Hand nachziehen muss.
+
+Akzeptanzkriterien:
+- Der Server steuert die Soll-Version (Aus / neueste / feste Version) und kann die Verteilung stufenweise freigeben (Prozentsatz der Geräte, stabil je Gerät)
+- Standardmäßig ist die Selbstaktualisierung ausgeschaltet
+- Der Agent erhält das Angebot im Heartbeat, lädt das Paket und prüft die SHA-256-Prüfsumme
+- Aktualisiert wird nur, wenn der Agent keine Aufträge bearbeitet
+- Ein Hilfsprozess tauscht die Programmdatei aus und startet den Dienst neu; meldet sich der neue Agent nicht, wird die alte Version wiederhergestellt und die fehlgeschlagene Version nicht erneut versucht
+- Registrierung und Zugangsdaten bleiben erhalten; Ablauf und Fehler stehen in der Logdatei des Agents
+
 
 - **Design:** Clean, minimalistisch, Dark-Mode-Unterstützung
 - **Sicherheit:** Passwörter müssen gehasht werden
