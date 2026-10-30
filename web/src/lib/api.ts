@@ -156,6 +156,8 @@ export interface RolloutStatus {
   releasedPercent: number | null
 }
 
+export type AssignmentIntent = 'Install' | 'Uninstall'
+
 export interface AssignmentDto {
   id: string
   packageId: string
@@ -167,6 +169,7 @@ export interface AssignmentDto {
   createdAt: string
   rollout: Rollout | null
   rolloutStatus: RolloutStatus | null
+  intent: AssignmentIntent
 }
 
 export interface ProfileDto {
@@ -218,6 +221,7 @@ export interface SoftwareAssignmentInput {
   versionPolicy: VersionPolicy
   pinnedVersionId: string | null
   rollout: Rollout | null
+  intent: AssignmentIntent
 }
 
 export interface InstallationDto {
@@ -228,10 +232,11 @@ export interface InstallationDto {
   packageName: string
   targetVersion: string | null
   installedVersion: string | null
-  status: 'Pending' | 'Running' | 'Installed' | 'Failed'
+  status: 'Pending' | 'Running' | 'Installed' | 'Failed' | 'Removed'
   attempts: number
   message: string | null
   updatedAt: string
+  removal: boolean
 }
 
 export type UpdateMode = 'SecurityOnly' | 'All'
@@ -435,8 +440,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name, description, kind, spec }),
     }),
-  updatePackage: (id: string, description: string | null, spec: PackageSpec) =>
-    request<void>(`/software/packages/${id}`, { method: 'PUT', body: JSON.stringify({ description, spec }) }),
+  updatePackage: (id: string, description: string | null, spec: PackageSpec, name?: string) =>
+    request<void>(`/software/packages/${id}`, { method: 'PUT', body: JSON.stringify({ description, spec, name }) }),
 
   secrets: () => request<SecretDto[]>('/software/secrets'),
   setSecret: (name: string, value: string) =>
@@ -452,10 +457,11 @@ export const api = {
     versionPolicy: VersionPolicy,
     pinnedVersionId: string | null,
     rollout: Rollout | null,
+    intent: AssignmentIntent,
   ) =>
     request<void>(`/software/assignments/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ versionPolicy, pinnedVersionId, rollout }),
+      body: JSON.stringify({ versionPolicy, pinnedVersionId, rollout, intent }),
     }),
   deleteAssignment: (id: string) => request<void>(`/software/assignments/${id}`, { method: 'DELETE' }),
 

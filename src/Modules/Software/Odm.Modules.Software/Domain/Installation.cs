@@ -11,14 +11,17 @@ public enum InstallStatus
     Running = 1,
 
     Installed = 2,
-    Failed = 3
+    Failed = 3,
+
+    /// <summary>Deinstallation erfolgreich; der Eintrag wird beim nächsten Abgleich gelöscht.</summary>
+    Removed = 4
 }
 
 /// <summary>Ist-/Soll-Zustand eines Pakets auf einem Gerät (je Gerät und Paket genau ein Eintrag).</summary>
 public sealed class Installation : Entity
 {
     public const int MaxAttempts = 3;
-    public const int MaxMessageLength = 2000;
+    public const int MaxMessageLength = 64000;
 
     private static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan RunningTimeout = TimeSpan.FromHours(6);
@@ -33,6 +36,9 @@ public sealed class Installation : Entity
 
     public Guid? JobId { get; private set; }
     public InstallStatus Status { get; private set; }
+
+    /// <summary>Das Paket soll von diesem Gerät entfernt werden (Status beschreibt dann die Deinstallation).</summary>
+    public bool Removal { get; private set; }
     public int Attempts { get; private set; }
     public string? Message { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -53,6 +59,14 @@ public sealed class Installation : Entity
     public void Evaluate(Guid target, DateTimeOffset now, TimeSpan? refreshAfter = null)
     {
         TargetVersionId = target;
+
+        if (Removal)
+        {
+            // Die Absicht hat wieder auf "installieren" gewechselt.
+            Removal = false;
+            Requeue(now, resetAttempts: true);
+            return;
+        }
 
         if (Status == InstallStatus.Installed && InstalledVersionId != target)
         {
@@ -76,6 +90,35 @@ public sealed class Installation : Entity
         }
     }
 
+    /// <summary>
+    /// Gleicht mit der Absicht "deinstallieren" ab. Gibt false zurück, wenn es nichts zu entfernen gibt
+    /// (nie erfolgreich installiert): der Eintrag kann dann gelöscht werden.
+    /// </summary>
+    public bool EvaluateRemoval(DateTimeOffset now)
+    {
+        if (InstalledVersionId is not { } installed)
+        {
+            return Status == InstallStatus.Running; // laufende Installation abwarten
+        }
+
+        if (!Removal)
+        {
+            Removal = true;
+            TargetVersionId = installed; // mit der installierten Version entfernen (bei PSADT das passende ZIP)
+            Requeue(now, resetAttempts: true);
+        }
+        else if (Status == InstallStatus.Failed && Attempts < MaxAttempts && now - UpdatedAt >= RetryAfter)
+        {
+            Requeue(now, resetAttempts: false);
+        }
+        else if (Status == InstallStatus.Running && now - UpdatedAt >= RunningTimeout)
+        {
+            Requeue(now, resetAttempts: false);
+        }
+
+        return true;
+    }
+
     public void MarkQueued(Guid jobId, DateTimeOffset now)
     {
         Status = InstallStatus.Running;
@@ -89,7 +132,13 @@ public sealed class Installation : Entity
         UpdatedAt = now;
         Message = output is { Length: > MaxMessageLength } ? output[^MaxMessageLength..] : output;
 
-        if (success)
+        if (success && Removal)
+        {
+            Status = InstallStatus.Removed;
+            InstalledVersionId = null;
+            Attempts = 0;
+        }
+        else if (success)
         {
             Status = InstallStatus.Installed;
             InstalledVersionId = JobVersionId;

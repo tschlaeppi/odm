@@ -19,7 +19,16 @@ public enum VersionPolicy
     Pinned = 1
 }
 
-/// <summary>Soll-Zustand: "dieses Paket gehört auf diese Geräte".</summary>
+public enum AssignmentIntent
+{
+    /// <summary>Das Paket soll auf den Zielgeräten installiert sein.</summary>
+    Install = 0,
+
+    /// <summary>Das Paket soll von den Zielgeräten entfernt werden (nur wo es von ODM installiert wurde).</summary>
+    Uninstall = 1
+}
+
+/// <summary>Soll-Zustand: "dieses Paket gehört auf (bzw. weg von) diese(n) Geräte(n)".</summary>
 public sealed class Assignment : Entity
 {
     public Guid PackageId { get; private set; }
@@ -29,6 +38,7 @@ public sealed class Assignment : Entity
     public string Target { get; private set; } = "";
 
     public VersionPolicy VersionPolicy { get; private set; }
+    public AssignmentIntent Intent { get; private set; }
     public Guid? PinnedVersionId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -39,12 +49,13 @@ public sealed class Assignment : Entity
 
     public static Assignment Create(
         Guid packageId, TargetKind kind, string target, VersionPolicy policy, Guid? pinnedVersionId,
-        RolloutPlan? rollout = null) => new()
+        RolloutPlan? rollout = null, AssignmentIntent intent = AssignmentIntent.Install) => new()
     {
         PackageId = packageId,
         TargetKind = kind,
         Target = target.Trim().ToLowerInvariant(),
         VersionPolicy = policy,
+        Intent = intent,
         PinnedVersionId = policy == VersionPolicy.Pinned ? pinnedVersionId : null,
         RolloutJson = rollout?.ToJson(),
         CreatedAt = DateTimeOffset.UtcNow
@@ -55,6 +66,8 @@ public sealed class Assignment : Entity
         VersionPolicy = policy;
         PinnedVersionId = policy == VersionPolicy.Pinned ? pinnedVersionId : null;
     }
+
+    public void SetIntent(AssignmentIntent intent) => Intent = intent;
 
     public void SetRollout(RolloutPlan? rollout) => RolloutJson = rollout?.ToJson();
 }

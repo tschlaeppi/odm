@@ -35,7 +35,7 @@ internal static class AssignmentEndpoints
                     a.Id, a.PackageId, a.TargetKind.ToString(), a.Target,
                     a.TargetKind == TargetKind.Device && Guid.TryParse(a.Target, out var id) && devices.TryGetValue(id, out var d) ? d.Name : null,
                     a.VersionPolicy.ToString(), a.PinnedVersionId, a.CreatedAt,
-                    AssignmentTargets.ToDto(plan), AssignmentTargets.ToStatus(plan, a.CreatedAt, now));
+                    AssignmentTargets.ToDto(plan), AssignmentTargets.ToStatus(plan, a.CreatedAt, now), a.Intent.ToString());
             }));
         });
 
@@ -46,6 +46,11 @@ internal static class AssignmentEndpoints
                 if (!Enum.TryParse<VersionPolicy>(request.VersionPolicy, true, out var policy) || !Enum.IsDefined(policy))
                 {
                     return Invalid("versionPolicy", "Ungültige Versionsregel.");
+                }
+
+                if (!TryParseIntent(request.Intent, out var intent))
+                {
+                    return Invalid("intent", "Ungültige Absicht.");
                 }
 
                 var (kind, target, errorField, targetError) =
@@ -86,7 +91,7 @@ internal static class AssignmentEndpoints
                     return Results.Conflict();
                 }
 
-                var assignment = Assignment.Create(request.PackageId, kind, target, policy, request.PinnedVersionId, rollout);
+                var assignment = Assignment.Create(request.PackageId, kind, target, policy, request.PinnedVersionId, rollout, intent);
                 db.Assignments.Add(assignment);
                 await db.SaveChangesAsync(ct);
                 trigger.Request();
@@ -95,7 +100,7 @@ internal static class AssignmentEndpoints
                     new AssignmentDto(assignment.Id, assignment.PackageId, kind.ToString(), assignment.Target, null,
                         policy.ToString(), assignment.PinnedVersionId, assignment.CreatedAt,
                         AssignmentTargets.ToDto(rollout),
-                        AssignmentTargets.ToStatus(rollout, assignment.CreatedAt, DateTimeOffset.UtcNow)));
+                        AssignmentTargets.ToStatus(rollout, assignment.CreatedAt, DateTimeOffset.UtcNow), intent.ToString()));
             })
             .RequireAuthorization(Policies.Operator);
 
@@ -112,6 +117,11 @@ internal static class AssignmentEndpoints
                 if (assignment is null)
                 {
                     return Results.NotFound();
+                }
+
+                if (!TryParseIntent(request.Intent ?? assignment.Intent.ToString(), out var newIntent))
+                {
+                    return Invalid("intent", "Ungültige Absicht.");
                 }
 
                 var assignedPackage = await db.Packages.AsNoTracking().SingleAsync(p => p.Id == assignment.PackageId, ct);
@@ -133,6 +143,7 @@ internal static class AssignmentEndpoints
                 }
 
                 assignment.ChangePolicy(policy, request.PinnedVersionId);
+                assignment.SetIntent(newIntent);
                 assignment.SetRollout(rollout);
                 await db.SaveChangesAsync(ct);
                 trigger.Request();
@@ -175,7 +186,7 @@ internal static class AssignmentEndpoints
                 i.PackageId, package.Name,
                 versions.GetValueOrDefault(i.TargetVersionId),
                 i.InstalledVersionId is { } installed ? versions.GetValueOrDefault(installed) : null,
-                i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt)));
+                i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt, i.Removal)));
         });
 
         installations.MapGet("/by-device", async (Guid deviceId, SoftwareDbContext db, IDeviceDirectory directory, CancellationToken ct) =>
@@ -205,7 +216,7 @@ internal static class AssignmentEndpoints
                 i.PackageId, names.GetValueOrDefault(i.PackageId, "?"),
                 versions.GetValueOrDefault(i.TargetVersionId),
                 i.InstalledVersionId is { } installed ? versions.GetValueOrDefault(installed) : null,
-                i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt)));
+                i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt, i.Removal)));
         });
 
         installations.MapPost("/{id:guid}/retry", async (Guid id, SoftwareDbContext db, DeploymentTrigger trigger, CancellationToken ct) =>
@@ -222,6 +233,13 @@ internal static class AssignmentEndpoints
                 return Results.NoContent();
             })
             .RequireAuthorization(Policies.Operator);
+    }
+
+    private static bool TryParseIntent(string? value, out AssignmentIntent intent)
+    {
+        intent = AssignmentIntent.Install;
+        return value is null ||
+               (Enum.TryParse(value, true, out intent) && Enum.IsDefined(intent));
     }
 
     private static IResult Invalid(string field, string message) =>

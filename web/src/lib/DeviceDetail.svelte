@@ -4,6 +4,7 @@
   import { auth } from './auth.svelte'
   import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
+  import MessageDialog from './MessageDialog.svelte'
   import { isOnline } from './status'
 
   let { id }: { id: string } = $props()
@@ -15,6 +16,7 @@
   let notFound = $state(false)
   let failed = $state(false)
 
+  let messageDialog: MessageDialog
   let certMessage = $state('')
   let certBusy = $state(false)
 
@@ -32,7 +34,7 @@
     }
   }
 
-  const statusClass = { Pending: '', Running: 'run', Installed: 'ok', Failed: 'err' } as const
+  const statusClass = { Pending: '', Running: 'run', Installed: 'ok', Failed: 'err', Removed: '' } as const
 
   async function load() {
     try {
@@ -80,7 +82,7 @@
 {/snippet}
 
 {#snippet status(i: InstallationDto)}
-  <span class="badge {statusClass[i.status]}">{i18n.t(`sw.status.${i.status}` as MessageKey)}</span>
+  <span class="badge {statusClass[i.status]}">{i.removal && (i.status === 'Pending' || i.status === 'Running' || i.status === 'Failed') ? i18n.t(`sw.removal.${i.status}` as MessageKey) : i18n.t(`sw.status.${i.status}` as MessageKey)}</span>
 {/snippet}
 
 {#snippet updated(i: InstallationDto)}
@@ -92,7 +94,12 @@
 {/snippet}
 
 {#snippet softwareActions(i: InstallationDto)}
-  {#if i.status === 'Failed'}
+  {#if i.message}
+    <button class="ghost" onclick={() => messageDialog.show(`${i.packageName} – ${i18n.t('msg.title')}`, i.message)}>
+      {i18n.t('msg.show')}
+    </button>
+  {/if}
+  {#if auth.canEdit && i.status === 'Failed'}
     <button class="ghost" onclick={() => retry(i)}>{i18n.t('sw.retry')}</button>
   {/if}
 {/snippet}
@@ -139,12 +146,14 @@
       rows={installations}
       columns={softwareColumns}
       rowKey={(i) => i.id}
-      actions={auth.canEdit ? softwareActions : undefined}
+      actions={softwareActions}
       emptyText={i18n.t('dev.detail.softwareEmpty')}
       pageSize={25}
     />
   {/if}
 </section>
+
+<MessageDialog bind:this={messageDialog} />
 
 <style>
   h2 {

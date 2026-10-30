@@ -5,6 +5,7 @@
     ApiError,
     uploadVersion,
     type AssignmentDto,
+    type AssignmentIntent,
     type DeviceDto,
     type GroupDto,
     type InstallationDto,
@@ -18,6 +19,7 @@
   import DataTable, { type Column } from './DataTable.svelte'
   import { formatSize } from './format'
   import { i18n, type MessageKey } from './i18n.svelte'
+  import MessageDialog from './MessageDialog.svelte'
   import PackageSpecForm from './PackageSpecForm.svelte'
   import RolloutEditor from './RolloutEditor.svelte'
   import { router } from './router.svelte'
@@ -25,6 +27,9 @@
 
   let { id }: { id: string } = $props()
 
+  let messageDialog: MessageDialog
+  let pkgName = $state('')
+  let intent = $state<AssignmentIntent>('Install')
   let pkg = $state<PackageDetailDto | null>(null)
   let assignments = $state<AssignmentDto[]>([])
   let installations = $state<InstallationDto[]>([])
@@ -58,12 +63,13 @@
   let rollout = $state<Rollout | null>(null)
   let assignErrorKey = $state<MessageKey | null>(null)
 
-  const statusClass = { Pending: '', Running: 'run', Installed: 'ok', Failed: 'err' } as const
+  const statusClass = { Pending: '', Running: 'run', Installed: 'ok', Failed: 'err', Removed: '' } as const
 
   async function loadPackage() {
     try {
       pkg = await api.package(id)
       spec = specFromDto(pkg.spec)
+      pkgName = pkg.name
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) notFound = true
     }
@@ -153,8 +159,9 @@
         targetKind,
         target,
         versionPolicy: policy,
-        pinnedVersionId: policy === 'Pinned' ? pinnedId || null : null,
-        rollout,
+        pinnedVersionId: intent === 'Install' && policy === 'Pinned' ? pinnedId || null : null,
+        rollout: intent === 'Install' ? rollout : null,
+        intent,
       })
       rollout = null
       userName = ''
@@ -169,7 +176,18 @@
   async function changePolicy(assignment: AssignmentDto, newPolicy: VersionPolicy, pinned: string | null) {
     const pin = newPolicy === 'Pinned' ? (pinned ?? pkg?.versions[0]?.id ?? null) : null
     try {
-      await api.updatePackageAssignment(assignment.id, newPolicy, pin, assignment.rollout)
+      await api.updatePackageAssignment(assignment.id, newPolicy, pin, assignment.rollout, assignment.intent)
+    } catch {
+      /* Anzeige wird unten neu geladen */
+    }
+    await loadAssignments()
+  }
+
+  async function changeIntent(assignment: AssignmentDto, newIntent: AssignmentIntent) {
+    try {
+      await api.updatePackageAssignment(
+        assignment.id, assignment.versionPolicy, assignment.pinnedVersionId, assignment.rollout, newIntent,
+      )
     } catch {
       /* Anzeige wird unten neu geladen */
     }
@@ -192,7 +210,7 @@
     configMessage = null
     configError = null
     try {
-      await api.updatePackage(id, pkg.description, specToDto(spec))
+      await api.updatePackage(id, pkg.description, specToDto(spec), pkgName.trim())
       configMessage = i18n.t('sw.configSaved')
       await Promise.all([loadPackage(), loadInstallations()])
     } catch (e) {
@@ -238,7 +256,8 @@
   const assignmentColumns = $derived<Column<AssignmentDto>[]>([
     { key: 'kind', label: i18n.t('sw.targetKind'), value: (a) => i18n.t(`sw.targetKind.${a.targetKind}` as MessageKey), filter: 'select' },
     { key: 'target', label: i18n.t('sw.name'), value: (a) => targetLabel(a), strong: true },
-    { key: 'policy', label: i18n.t('sw.policy'), value: (a) => i18n.t(`sw.policy.${a.versionPolicy}` as MessageKey), cell: policyCell, filter: 'select' },
+    { key: 'intent', label: i18n.t('sw.intent'), value: (a) => i18n.t(`sw.intent.${a.intent}` as MessageKey), cell: intentCell, filter: 'select' },
+    { key: 'policy', label: i18n.t('sw.policy'), value: (a) => (a.intent === 'Uninstall' ? '–' : i18n.t(`sw.policy.${a.versionPolicy}` as MessageKey)), cell: policyCell, filter: 'select' },
     { key: 'rollout', label: i18n.t('rollout.column'), value: (a) => rolloutText(a) },
   ])
 
@@ -256,8 +275,21 @@
 {#snippet versionDate(v: VersionDto)}{i18n.formatDate(v.uploadedAt)}{/snippet}
 {#snippet versionSha(v: VersionDto)}<code title={v.sha256 ?? ''}>{(v.sha256 ?? '').slice(0, 12)}…</code>{/snippet}
 
+{#snippet intentCell(a: AssignmentDto)}
+  {#if auth.canEdit}
+    <select value={a.intent} onchange={(e) => changeIntent(a, e.currentTarget.value as AssignmentIntent)}>
+      <option value="Install">{i18n.t('sw.intent.Install')}</option>
+      <option value="Uninstall">{i18n.t('sw.intent.Uninstall')}</option>
+    </select>
+  {:else}
+    {i18n.t(`sw.intent.${a.intent}` as MessageKey)}
+  {/if}
+{/snippet}
+
 {#snippet policyCell(a: AssignmentDto)}
-  {#if auth.canEdit && pkg?.kind === 'Psadt'}
+  {#if a.intent === 'Uninstall'}
+    –
+  {:else if auth.canEdit && pkg?.kind === 'Psadt'}
     <select
       value={a.versionPolicy}
       onchange={(e) => changePolicy(a, e.currentTarget.value as VersionPolicy, a.pinnedVersionId)}
@@ -286,7 +318,7 @@
 {/snippet}
 
 {#snippet installationStatus(i: InstallationDto)}
-  <span class="badge {statusClass[i.status]}">{i18n.t(`sw.status.${i.status}` as MessageKey)}</span>
+  <span class="badge {statusClass[i.status]}">{i.removal && (i.status === 'Pending' || i.status === 'Running' || i.status === 'Failed') ? i18n.t(`sw.removal.${i.status}` as MessageKey) : i18n.t(`sw.status.${i.status}` as MessageKey)}</span>
 {/snippet}
 
 {#snippet installationMessage(i: InstallationDto)}
@@ -294,7 +326,12 @@
 {/snippet}
 
 {#snippet installationActions(i: InstallationDto)}
-  {#if i.status === 'Failed'}
+  {#if i.message}
+    <button class="ghost" onclick={() => messageDialog.show(`${i.deviceName ?? i.deviceId} – ${i18n.t('msg.title')}`, i.message)}>
+      {i18n.t('msg.show')}
+    </button>
+  {/if}
+  {#if auth.canEdit && i.status === 'Failed'}
     <button class="ghost" onclick={() => retry(i)}>{i18n.t('sw.retry')}</button>
   {/if}
 {/snippet}
@@ -321,6 +358,10 @@
     <h2>{i18n.t('sw.config')}</h2>
     <form class="card form" onsubmit={saveConfig}>
       <fieldset disabled={!auth.canEdit}>
+        <label>
+          <span>{i18n.t('sw.name.label')}</span>
+          <input bind:value={pkgName} required maxlength="128" />
+        </label>
         {#key pkg.id}
           <PackageSpecForm kind={pkg.kind} bind:spec {secretNames} />
         {/key}
@@ -417,7 +458,15 @@
             </label>
           {/if}
 
-          {#if pkg.kind === 'Psadt'}
+          <label>
+            <span>{i18n.t('sw.intent')}</span>
+            <select bind:value={intent}>
+              <option value="Install">{i18n.t('sw.intent.Install')}</option>
+              <option value="Uninstall">{i18n.t('sw.intent.Uninstall')}</option>
+            </select>
+          </label>
+
+          {#if pkg.kind === 'Psadt' && intent === 'Install'}
           <label>
             <span>{i18n.t('sw.policy')}</span>
             <select bind:value={policy}>
@@ -442,8 +491,10 @@
 
           <button class="primary" type="submit">{i18n.t('sw.assign')}</button>
         </div>
-        <RolloutEditor bind:value={rollout} {groups} />
-        <p class="muted small">{i18n.t('sw.assignmentHint')}</p>
+        {#if intent === 'Install'}
+          <RolloutEditor bind:value={rollout} {groups} />
+        {/if}
+        <p class="muted small">{intent === 'Uninstall' ? i18n.t('sw.intentHint') : i18n.t('sw.assignmentHint')}</p>
         {#if assignErrorKey}<p class="error" role="alert">{i18n.t(assignErrorKey)}</p>{/if}
       </form>
     {/if}
@@ -470,11 +521,13 @@
         rows={installations}
         columns={installationColumns}
         rowKey={(i) => i.id}
-        actions={auth.canEdit ? installationActions : undefined}
+        actions={installationActions}
       />
     {/if}
   {/if}
 </section>
+
+<MessageDialog bind:this={messageDialog} />
 
 <style>
   .back {

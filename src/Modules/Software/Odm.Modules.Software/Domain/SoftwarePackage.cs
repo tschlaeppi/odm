@@ -93,6 +93,12 @@ public sealed class SoftwarePackage : Entity
 
     public PackageSpec Spec => PackageSpec.Parse(SpecJson);
 
+    public void Rename(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Name = name.Trim();
+    }
+
     public void Update(string? description, PackageSpec spec)
     {
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();

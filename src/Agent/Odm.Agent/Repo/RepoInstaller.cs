@@ -5,7 +5,7 @@ namespace Odm.Agent.Repo;
 /// <summary>Inhalt des Auftrags "install-repo" (Gegenstück zum Server).</summary>
 public sealed record InstallRepoPayload(
     string Manager, string Identifier, string? Version, string? Scope, string? Source, string? Remote,
-    string? Channel, bool Classic, string? Arguments, int TimeoutMinutes);
+    string? Channel, bool Classic, string? Arguments, int TimeoutMinutes, bool Uninstall = false);
 
 public sealed record RepoResult(bool Success, string Output);
 
@@ -26,7 +26,14 @@ public static class RepoInstaller
         ["LC_ALL"] = "C"
     };
 
+    // Winget: 0x8A150014 = kein installiertes Paket gefunden (schon entfernt).
+    private static readonly HashSet<int> WingetRemoveOk = [0, unchecked((int)0x8A150014), 1641, 3010];
+
     public static Task<RepoResult> RunAsync(
+        InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct) =>
+        p.Uninstall ? UninstallAsync(p, timeout, ct) : InstallOrUpdateAsync(p, extra, timeout, ct);
+
+    private static Task<RepoResult> InstallOrUpdateAsync(
         InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct) => p.Manager switch
     {
         "Winget" => WingetAsync(p, extra, timeout, ct),
@@ -110,6 +117,74 @@ public static class RepoInstaller
         if (p.Classic && !installed) args.Add("--classic");
         args.AddRange(extra);
         return args;
+    }
+
+    // ---- Deinstallation ----
+
+    public static List<string> WingetUninstallArguments(InstallRepoPayload p) =>
+        ["uninstall", "--id", p.Identifier, "--exact", "--silent", "--disable-interactivity", "--accept-source-agreements"];
+
+    public static List<string> ChocolateyUninstallArguments(InstallRepoPayload p) =>
+        ["uninstall", p.Identifier, "-y", "--no-progress"];
+
+    public static List<string> AptUninstallArguments(InstallRepoPayload p) => ["remove", "-y", "-q", p.Identifier];
+
+    public static List<string> RpmUninstallArguments(InstallRepoPayload p) => ["-y", "remove", p.Identifier];
+
+    public static List<string> FlatpakUninstallArguments(InstallRepoPayload p) =>
+        ["uninstall", "-y", "--noninteractive", ScopeFlag(p), p.Identifier];
+
+    public static List<string> SnapUninstallArguments(InstallRepoPayload p) => ["remove", p.Identifier];
+
+    private static async Task<RepoResult> UninstallAsync(InstallRepoPayload p, TimeSpan timeout, CancellationToken ct)
+    {
+        switch (p.Manager)
+        {
+            case "Winget":
+            {
+                var exe = ToolLocator.Winget();
+                return exe is null
+                    ? Fail("winget wurde nicht gefunden (App-Installer fehlt oder ist für das SYSTEM-Konto nicht verfügbar).")
+                    : Summarize(await ProcessRunner.RunAsync(exe, WingetUninstallArguments(p), timeout, ct), WingetRemoveOk);
+            }
+            case "Chocolatey":
+            {
+                var exe = ToolLocator.Chocolatey();
+                return exe is null
+                    ? Fail("Chocolatey ist auf diesem Gerät nicht installiert.")
+                    : Summarize(await ProcessRunner.RunAsync(exe, ChocolateyUninstallArguments(p), timeout, ct), ChocolateyOk);
+            }
+            case "Apt":
+            {
+                var apt = ToolLocator.Linux("apt-get");
+                return apt is null
+                    ? Fail("apt-get ist auf diesem Gerät nicht vorhanden (keine DEB-basierte Distribution).")
+                    : Summarize(await ProcessRunner.RunAsync(apt, AptUninstallArguments(p), timeout, ct, AptEnvironment), [0]);
+            }
+            case "Rpm":
+            {
+                var manager = ToolLocator.Linux("dnf") ?? ToolLocator.Linux("yum");
+                return manager is null
+                    ? Fail("dnf/yum ist auf diesem Gerät nicht vorhanden (keine RPM-basierte Distribution).")
+                    : Summarize(await ProcessRunner.RunAsync(manager, RpmUninstallArguments(p), timeout, ct), [0]);
+            }
+            case "Flatpak":
+            {
+                var flatpak = ToolLocator.Linux("flatpak");
+                return flatpak is null
+                    ? Fail("Flatpak ist auf diesem Gerät nicht installiert.")
+                    : Summarize(await ProcessRunner.RunAsync(flatpak, FlatpakUninstallArguments(p), timeout, ct), [0]);
+            }
+            case "Snap":
+            {
+                var snap = ToolLocator.Linux("snap");
+                return snap is null
+                    ? Fail("snap ist auf diesem Gerät nicht installiert.")
+                    : Summarize(await ProcessRunner.RunAsync(snap, SnapUninstallArguments(p), timeout, ct), [0]);
+            }
+            default:
+                return Fail($"Unbekannter Paketmanager '{p.Manager}'.");
+        }
     }
 
     private static string ScopeFlag(InstallRepoPayload p) => p.Scope == "user" ? "--user" : "--system";
@@ -216,7 +291,7 @@ public static class RepoInstaller
     private static string Tail(ProcessRunner.Result result)
     {
         var text = (result.Output + "\n" + result.Error).Trim();
-        return text.Length <= 4000 ? text : text[^4000..];
+        return text.Length <= 60000 ? text : text[^60000..];
     }
 
     private static RepoResult Fail(string message) => new(false, message);

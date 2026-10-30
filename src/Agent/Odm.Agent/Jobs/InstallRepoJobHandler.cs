@@ -37,7 +37,8 @@ public sealed class InstallRepoJobHandler(ILogger<InstallRepoJobHandler> logger)
         ResolvedArguments arguments;
         try
         {
-            arguments = await ResolvedArguments.ResolveAsync(payload.Arguments, job, context, ct);
+            // Zusatzargumente gelten für die Installation, nicht für die Deinstallation.
+            arguments = await ResolvedArguments.ResolveAsync(payload.Uninstall ? null : payload.Arguments, job, context, ct);
         }
         catch (Exception ex) when (ex is FormatException or InvalidOperationException)
         {
@@ -45,7 +46,7 @@ public sealed class InstallRepoJobHandler(ILogger<InstallRepoJobHandler> logger)
         }
 
         // Befehl und Argumente werden bewusst nicht protokolliert: sie können Secrets enthalten.
-        logger.LogInformation("Installiere {Identifier} mit {Manager}.", payload.Identifier, payload.Manager);
+        logger.LogInformation("{Action} {Identifier} mit {Manager}.", payload.Uninstall ? "Deinstalliere" : "Installiere", payload.Identifier, payload.Manager);
         var timeout = TimeSpan.FromMinutes(Math.Clamp(payload.TimeoutMinutes, 1, 24 * 60));
         var result = await RepoInstaller.RunAsync(payload, arguments.Tokens, timeout, ct);
 

@@ -29,7 +29,7 @@ public static class JobTypes
 /// <summary>Auftrag an einen Agent. Wird beim Heartbeat ausgeliefert, das Ergebnis beim nächsten gemeldet.</summary>
 public sealed class AgentJob : Entity
 {
-    public const int MaxOutputLength = 8000;
+    public const int MaxOutputLength = 64000;
 
     public Guid DeviceId { get; private set; }
     public string Type { get; private set; } = "";
@@ -67,7 +67,7 @@ public sealed class AgentJob : Entity
 
         Status = success ? JobStatus.Succeeded : JobStatus.Failed;
         CompletedAt = now;
-        Output = output is { Length: > MaxOutputLength } ? output[..MaxOutputLength] : output;
+        Output = output is { Length: > MaxOutputLength } ? output[^MaxOutputLength..] : output; // bei Protokollen steht das Wichtige am Ende
         return true;
     }
 }

@@ -27,9 +27,10 @@ public sealed class DeploymentService(
 
     private sealed record VersionInfo(Guid Id, Guid PackageId, DateTimeOffset UploadedAt);
 
-    private sealed record Desired(Guid Version, int Priority, IReadOnlyList<Guid> Prerequisites);
+    private sealed record Desired(Guid Version, int Priority, IReadOnlyList<Guid> Prerequisites, bool Uninstall = false);
 
-    private sealed record SourceItem(Guid PackageId, VersionPolicy Policy, Guid? PinnedVersionId);
+    private sealed record SourceItem(
+        Guid PackageId, VersionPolicy Policy, Guid? PinnedVersionId, AssignmentIntent Intent = AssignmentIntent.Install);
 
     /// <summary>Eine Zuweisung als Quelle des Soll-Zustands; bei Profilen mehrere Einträge in Installationsreihenfolge.</summary>
     private sealed record Source(
@@ -43,7 +44,7 @@ public sealed class DeploymentService(
         foreach (var a in await db.Assignments.AsNoTracking().OrderBy(o => o.CreatedAt).ToListAsync(ct))
         {
             sources.Add(new Source(a.Id, a.TargetKind, a.Target, a.CreatedAt, RolloutPlan.Parse(a.RolloutJson), false,
-                [new SourceItem(a.PackageId, a.VersionPolicy, a.PinnedVersionId)]));
+                [new SourceItem(a.PackageId, a.VersionPolicy, a.PinnedVersionId, a.Intent)]));
         }
 
         var profileItems = (await db.ProfileItems.AsNoTracking().OrderBy(i => i.Position).ToListAsync(ct))
@@ -94,7 +95,16 @@ public sealed class DeploymentService(
             .GroupBy(v => v.PackageId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.UploadedAt).First().Id);
 
-        var installations = await db.Installations.ToListAsync(ct);
+        // Erfolgreich deinstallierte Einträge zuerst löschen (und speichern), damit bei erneuter Zuweisung kein Schlüsselkonflikt entsteht.
+        var allInstallations = await db.Installations.ToListAsync(ct);
+        var removed = allInstallations.Where(i => i.Status == InstallStatus.Removed).ToList();
+        if (removed.Count > 0)
+        {
+            db.Installations.RemoveRange(removed);
+            await db.SaveChangesAsync(ct);
+        }
+
+        var installations = allInstallations.Except(removed).ToList();
         var byKey = installations.ToDictionary(i => (i.DeviceId, i.PackageId));
 
         // 1. Quellen des Soll-Zustands: einzelne Paketzuweisungen und Profilzuweisungen (mit Reihenfolge).
@@ -122,10 +132,19 @@ public sealed class DeploymentService(
 
             foreach (var item in source.Items)
             {
-                if (!packages.TryGetValue(item.PackageId, out var package) ||
-                    ResolveVersion(package, item.Policy, item.PinnedVersionId, versionsById, latestByPackage) is not { } versionId)
+                var uninstall = item.Intent == AssignmentIntent.Uninstall;
+                if (!packages.TryGetValue(item.PackageId, out var package))
                 {
-                    continue; // Paket gelöscht, ohne Version/Revision oder feste Version ungültig
+                    continue; // Paket gelöscht
+                }
+
+                // Beim Deinstallieren zählt die installierte Version, nicht die gewünschte.
+                var resolved = uninstall
+                    ? Guid.Empty
+                    : ResolveVersion(package, item.Policy, item.PinnedVersionId, versionsById, latestByPackage);
+                if (resolved is not { } versionId)
+                {
+                    continue; // ohne Version/Revision oder feste Version ungültig
                 }
 
                 foreach (var device in devices)
@@ -136,6 +155,11 @@ public sealed class DeploymentService(
                     }
 
                     var key = (device.Id, item.PackageId);
+
+                    if (uninstall && !byKey.ContainsKey(key))
+                    {
+                        continue; // nichts von ODM Installiertes zu entfernen
+                    }
 
                     // Tranchen gelten nur für neue Installationen; wer das Paket schon hat, wird nicht ausgebremst.
                     var allowed = source.Rollout is null ||
@@ -150,9 +174,11 @@ public sealed class DeploymentService(
                         ? before.ToList()
                         : [];
 
-                    if (!desired.TryGetValue(key, out var current) || priority < current.Priority)
+                    // Bei gleichem Rang gewinnt "installieren" vor "deinstallieren".
+                    if (!desired.TryGetValue(key, out var current) || priority < current.Priority ||
+                        (priority == current.Priority && current.Uninstall && !uninstall))
                     {
-                        desired[key] = new Desired(versionId, priority, prerequisites);
+                        desired[key] = new Desired(versionId, priority, prerequisites, uninstall);
                     }
 
                     if (source.FromProfile)
@@ -173,6 +199,16 @@ public sealed class DeploymentService(
         {
             if (byKey.TryGetValue(key, out var installation))
             {
+                if (want.Uninstall)
+                {
+                    if (!installation.EvaluateRemoval(now))
+                    {
+                        db.Installations.Remove(installation); // war nie installiert: nichts zu entfernen
+                    }
+
+                    continue;
+                }
+
                 // Repo-Pakete ohne feste Version regelmässig vom Paketmanager aktualisieren lassen.
                 var refresh = packages[key.Package].Kind.IsRepo() && specs[key.Package].AutoUpdate ? repoRefresh : null;
                 installation.Evaluate(want.Version, now, refresh);
@@ -206,9 +242,13 @@ public sealed class DeploymentService(
 
         foreach (var installation in pending)
         {
-            var version = versionEntities[installation.TargetVersionId];
+            if (!versionEntities.TryGetValue(installation.TargetVersionId, out var version))
+            {
+                continue; // Version wurde gelöscht
+            }
+
             var package = packages[installation.PackageId];
-            var (jobType, payload) = BuildJob(package, specs[package.Id], version);
+            var (jobType, payload) = BuildJob(package, specs[package.Id], version, installation.Removal);
 
             var jobId = await jobs.EnqueueAsync(installation.DeviceId, jobType, payload, ct);
             if (jobId is null)
@@ -227,14 +267,15 @@ public sealed class DeploymentService(
     /// Baut den Auftrag. Argumente enthalten nur Verweise {{secret:NAME}}; die Werte holt der Agent erst bei der
     /// Ausführung ab, damit sie nie in der Auftragstabelle landen.
     /// </summary>
-    private static (string Type, string Payload) BuildJob(SoftwarePackage package, PackageSpec current, PackageVersion version)
+    private static (string Type, string Payload) BuildJob(
+        SoftwarePackage package, PackageSpec current, PackageVersion version, bool uninstall)
     {
         if (package.Kind == PackageKind.Psadt)
         {
             return (AgentJobTypes.InstallPsadt, JsonSerializer.Serialize(
                 new InstallPsadtPayload(
                     version.Id, package.Name, version.Version, version.Sha256 ?? "", version.SizeBytes,
-                    InstallTimeoutMinutes, current.Arguments),
+                    InstallTimeoutMinutes, current.Arguments, uninstall),
                 Json));
         }
 
@@ -243,7 +284,7 @@ public sealed class DeploymentService(
         return (AgentJobTypes.InstallRepo, JsonSerializer.Serialize(
             new InstallRepoPayload(
                 package.Kind.ToString(), spec.Identifier ?? "", spec.Version, spec.Scope, spec.Source, spec.Remote,
-                spec.Channel, spec.Classic, spec.Arguments, InstallTimeoutMinutes),
+                spec.Channel, spec.Classic, spec.Arguments, InstallTimeoutMinutes, uninstall),
             Json));
     }
 

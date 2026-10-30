@@ -54,6 +54,7 @@ public sealed class SoftwareDbContext(DbContextOptions<SoftwareDbContext> option
             b.Property(a => a.TargetKind).HasConversion<string>().HasMaxLength(16);
             b.Property(a => a.Target).HasMaxLength(256).IsRequired();
             b.Property(a => a.VersionPolicy).HasConversion<string>().HasMaxLength(16);
+            b.Property(a => a.Intent).HasConversion<string>().HasMaxLength(16).HasDefaultValue(AssignmentIntent.Install);
             b.Property(a => a.RolloutJson).HasMaxLength(2000);
             b.HasIndex(a => new { a.PackageId, a.TargetKind, a.Target }).IsUnique();
             b.HasOne<SoftwarePackage>().WithMany().HasForeignKey(a => a.PackageId).OnDelete(DeleteBehavior.Cascade);
@@ -104,6 +105,7 @@ public sealed class SoftwareDbContext(DbContextOptions<SoftwareDbContext> option
             b.ToTable("installations");
             b.HasKey(i => i.Id);
             b.Property(i => i.Status).HasConversion<string>().HasMaxLength(16);
+            b.Property(i => i.Removal).HasDefaultValue(false);
             b.Property(i => i.Message).HasMaxLength(Installation.MaxMessageLength);
             b.HasIndex(i => new { i.DeviceId, i.PackageId }).IsUnique();
             b.HasIndex(i => i.JobId);

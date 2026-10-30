@@ -114,6 +114,23 @@ internal static partial class PackageEndpoints
                     return Results.NotFound();
                 }
 
+                var newName = request.Name?.Trim();
+                if (newName is not null && newName != package.Name)
+                {
+                    if (newName.Length is 0 or > 128)
+                    {
+                        return Invalid("name", "Name ist erforderlich (höchstens 128 Zeichen).");
+                    }
+
+                    var lowered = newName.ToLower();
+                    if (await db.Packages.AnyAsync(p => p.Id != id && p.Name.ToLower() == lowered, ct))
+                    {
+                        return Results.Conflict();
+                    }
+
+                    package.Rename(newName);
+                }
+
                 var secrets = await KnownSecretsAsync(db, ct);
                 if (!PackageSpecValidator.TryValidate(package.Kind, request.Spec, secrets, out var spec, out var errors))
                 {

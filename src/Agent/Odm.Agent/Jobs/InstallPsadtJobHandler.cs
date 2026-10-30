@@ -10,10 +10,10 @@ namespace Odm.Agent.Jobs;
 /// <summary>Inhalt des Auftrags (Gegenstück zum Server).</summary>
 public sealed record InstallPsadtPayload(
     Guid VersionId, string PackageName, string Version, string Sha256, long SizeBytes, int TimeoutMinutes,
-    string? Arguments = null);
+    string? Arguments = null, bool Uninstall = false);
 
 /// <summary>
-/// Installiert ein PSADT-Paket: herunterladen, Prüfsumme prüfen, entpacken, Skript still ausführen.
+/// Installiert (oder deinstalliert) ein PSADT-Paket: herunterladen, Prüfsumme prüfen, entpacken, Skript still ausführen.
 /// Unterstützt PSADT v4 (Invoke-AppDeployToolkit.ps1) und v3 (Deploy-Application.ps1).
 /// </summary>
 public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logger) : IJobHandler
@@ -83,8 +83,8 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
                 return Fail(ex.Message);
             }
 
-            logger.LogInformation("Installiere {Package} {Version}.", payload.PackageName, payload.Version);
-            return await RunAsync(script, payload.TimeoutMinutes, arguments, ct);
+            logger.LogInformation("{Action} {Package} {Version}.", payload.Uninstall ? "Deinstalliere" : "Installiere", payload.PackageName, payload.Version);
+            return await RunAsync(script, payload.TimeoutMinutes, arguments, payload.Uninstall ? "Uninstall" : "Install", ct);
         }
         finally
         {
@@ -111,7 +111,8 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
         return null;
     }
 
-    private static async Task<JobOutcome> RunAsync(string script, int timeoutMinutes, ResolvedArguments arguments, CancellationToken ct)
+    private static async Task<JobOutcome> RunAsync(
+        string script, int timeoutMinutes, ResolvedArguments arguments, string deploymentType, CancellationToken ct)
     {
         var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
         var startInfo = new ProcessStartInfo(powershell)
@@ -126,7 +127,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
         foreach (var argument in new[]
                  {
                      "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                     "-File", script, "-DeploymentType", "Install", "-DeployMode", "Silent"
+                     "-File", script, "-DeploymentType", deploymentType, "-DeployMode", "Silent"
                  })
         {
             startInfo.ArgumentList.Add(argument);
@@ -138,7 +139,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
             startInfo.ArgumentList.Add(argument);
         }
 
-        var tail = new TailBuffer(4000);
+        var tail = new TailBuffer(60000);
         using var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, e) => tail.Append(e.Data);
         process.ErrorDataReceived += (_, e) => tail.Append(e.Data);
