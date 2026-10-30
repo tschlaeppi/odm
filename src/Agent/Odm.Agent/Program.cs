@@ -7,7 +7,19 @@ var builder = Host.CreateApplicationBuilder(args);
 
 // Vom Installationsskript geschriebene Konfiguration (ServerUrl, einmaliges Token) im geschützten Zustandsverzeichnis.
 // Sie hat Vorrang vor appsettings.json und Umgebungsvariablen; fehlt sie, gilt die übliche Konfiguration.
-builder.Configuration.AddJsonFile(AgentStateStore.ConfigFile, optional: true, reloadOnChange: false);
+// Ist sie für den aktuellen Benutzer nicht lesbar (Agent von Hand ohne Administratorrechte gestartet), wird sie übersprungen.
+if (File.Exists(AgentStateStore.ConfigFile))
+{
+    try
+    {
+        using (File.OpenRead(AgentStateStore.ConfigFile)) { }
+        builder.Configuration.AddJsonFile(AgentStateStore.ConfigFile, optional: false, reloadOnChange: false);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        Console.Error.WriteLine($"Warnung: {AgentStateStore.ConfigFile} ist nicht lesbar - als Administrator/root starten.");
+    }
+}
 
 // Läuft als Windows-Dienst bzw. systemd-Dienst; beim Start aus der Konsole sind beide Aufrufe wirkungslos.
 builder.Services.AddWindowsService(o => o.ServiceName = "OpenDeviceManagerAgent");

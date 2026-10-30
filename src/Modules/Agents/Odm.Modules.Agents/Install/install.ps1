@@ -67,6 +67,14 @@ try {
     New-Item -ItemType Directory -Path $installDir -Force | Out-Null
     Copy-Item -Path (Join-Path $extracted '*') -Destination $installDir -Recurse -Force
 
+    # Die (nicht geheime) Server-Adresse steht zusätzlich in der mitgelieferten appsettings.json.
+    $settingsFile = Join-Path $installDir 'appsettings.json'
+    if (Test-Path $settingsFile) {
+        $settings = Get-Content -Raw -Path $settingsFile | ConvertFrom-Json
+        $settings.Agent.ServerUrl = $Server
+        [IO.File]::WriteAllText($settingsFile, ($settings | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
+    }
+
     # Zustandsverzeichnis nur für SYSTEM und Administratoren (enthält Agent-Geheimnis und Konfiguration)
     New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
     & icacls.exe $stateDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null

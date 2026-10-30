@@ -80,7 +80,11 @@ fi
 
 mkdir -p "$INSTALL_DIR"
 install -m 0755 "$TMP/x/odm-agent" "$INSTALL_DIR/odm-agent"
-[ -f "$TMP/x/appsettings.json" ] && install -m 0644 "$TMP/x/appsettings.json" "$INSTALL_DIR/appsettings.json"
+if [ -f "$TMP/x/appsettings.json" ]; then
+  # Die (nicht geheime) Server-Adresse steht zusätzlich in der mitgelieferten appsettings.json.
+  sed "s|\"ServerUrl\": \"\"|\"ServerUrl\": \"$SERVER\"|" "$TMP/x/appsettings.json" > "$INSTALL_DIR/appsettings.json"
+  chmod 0644 "$INSTALL_DIR/appsettings.json"
+fi
 
 mkdir -p "$STATE_DIR"
 chmod 0700 "$STATE_DIR"
