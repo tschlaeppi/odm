@@ -1,0 +1,29 @@
+name: Release agent
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build agent packages
+        run: scripts/publish-agent.sh agent-packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-packages
+          path: agent-packages/*
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" agent-packages/* --generate-notes
