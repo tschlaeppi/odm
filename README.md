@@ -166,6 +166,23 @@ Direkte Downloads samt Prüfsummen stehen ebenfalls auf der Registrierungsseite
   (öffentliche Adresse für die Skripte; hinter einem Reverse-Proxy setzen, sonst wird sie aus der Anfrage abgeleitet).
   Je Plattform wird die höchste Version angeboten; ein Update des Servers genügt also, um neue Agents auszurollen.
 
+#### Agents automatisch aktualisieren
+
+Die Selbstaktualisierung ist standardmäßig **aus**. Aktivierung über die Server-Konfiguration (Neustart nötig):
+
+```yaml
+Agents__Update__Mode: Latest       # Off | Latest | Pinned
+Agents__Update__TargetVersion: ""  # nur bei Pinned, z. B. 0.4.2 (auch Rückstufung)
+Agents__Update__RolloutPercent: 10 # Anteil der Geräte (stabil je Gerät); schrittweise auf 100 erhöhen
+```
+
+Der Agent erfährt die Soll-Version im Heartbeat, lädt das Paket aus `agent-packages/`, prüft die SHA-256-Prüfsumme und
+übergibt den Austausch an ein Hilfsskript (Linux: transiente systemd-Einheit `odm-agent-update`, Windows: PowerShell).
+Es stoppt den Dienst, tauscht die Programmdatei und startet ihn neu. Meldet sich der neue Agent nicht innerhalb weniger
+Minuten, wird die alte Version wiederhergestellt; die fehlgeschlagene Version wird auf diesem Gerät nicht erneut versucht
+(`update-failed` im Zustandsverzeichnis). Ablauf: `logs/update.log` und `logs/agent.log`. Aktualisiert wird nur ein
+untätiger Agent. Ein Agent, der nicht mehr startet, muss weiterhin von Hand per Installationsbefehl repariert werden.
+
 #### Manuell
 
 ```bash
