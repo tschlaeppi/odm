@@ -28,6 +28,7 @@ public sealed class AgentsModule : IModule
         services.AddDbContext<AgentsDbContext>((sp, o) =>
             o.UseOdmDatabase(sp.GetRequiredService<IOptions<DatabaseOptions>>().Value, AgentsDbContext.Schema));
 
+        services.AddSingleton<AgentPackageCatalog>();
         services.AddScoped<AgentService>();
         services.AddScoped<IJobQueue, JobQueue>();
 
@@ -41,6 +42,7 @@ public sealed class AgentsModule : IModule
                 .RequireClaim("device_id"));
 
         services.AddRateLimiter(limiter =>
+        {
             limiter.AddPolicy("agent-register", ctx => RateLimitPartition.GetFixedWindowLimiter(
                 ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions
@@ -48,12 +50,23 @@ public sealed class AgentsModule : IModule
                     PermitLimit = 10,
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0
-                })));
+                }));
+
+            limiter.AddPolicy(InstallEndpoints.RateLimitPolicy, ctx => RateLimitPartition.GetFixedWindowLimiter(
+                ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 120,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
+        });
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         AgentEndpoints.Map(endpoints);
+        InstallEndpoints.Map(endpoints);
         AdminEndpoints.Map(endpoints);
     }
 

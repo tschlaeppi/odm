@@ -3,6 +3,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Install\install.sh" LogicalName="Odm.Install.install.sh" />
+    <EmbeddedResource Include="Install\install.ps1" LogicalName="Odm.Install.install.ps1" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Odm.SharedKernel\Odm.SharedKernel.csproj" />
   </ItemGroup>
   <ItemGroup>

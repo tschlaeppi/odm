@@ -6,6 +6,15 @@ public sealed class AgentsOptions
 
     /// <summary>Intervall, in dem Agents sich melden.</summary>
     public int HeartbeatSeconds { get; set; } = 60;
+
+    /// <summary>Verzeichnis mit den vorgebauten Agent-Paketen (relativ zum Content-Root oder absolut).</summary>
+    public string PackagesPath { get; set; } = "agent-packages";
+
+    /// <summary>
+    /// Öffentliche Basisadresse des Servers für die Installationsskripte (z. B. https://odm.example.com).
+    /// Leer = aus der Anfrage abgeleitet. Hinter einem Proxy sollte sie gesetzt werden.
+    /// </summary>
+    public string PublicBaseUrl { get; set; } = "";
 }
 
 // ---- Agent-Protokoll (/api/agent/v1) ----
