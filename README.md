@@ -176,7 +176,7 @@ chmod 600 /var/lib/odm-agent/agent.json
 cp deploy/odm-agent.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now odm-agent
 ```
 
-Der Agent schreibt zusätzlich eine rotierende Logdatei `agent.log` (5 × 5 MB) nach `C:\\ProgramData\\OpenDeviceManager\\logs` bzw. `/var/lib/odm-agent/logs` (abschaltbar mit `Agent:LogToFile=false`); unter Linux außerdem `journalctl -u odm-agent`, unter Windows in der Ereignisanzeige (Quelle `OpenDeviceManagerAgent`, standardmäßig ab Warnung).
+Der Agent schreibt zusätzlich eine rotierende Logdatei `agent.log` (5 × 5 MB) nach `C:\ProgramData\OpenDeviceManager\logs` bzw. `/var/lib/odm-agent/logs` (abschaltbar mit `Agent:LogToFile=false`); unter Linux außerdem `journalctl -u odm-agent`, unter Windows in der Ereignisanzeige (Quelle `OpenDeviceManagerAgent`, standardmäßig ab Warnung).
 
 Die Zugangsdaten des Agents liegen unter `C:\ProgramData\OpenDeviceManager` (nur SYSTEM/Administratoren)
 bzw. `/var/lib/odm-agent` (0700/0600).
