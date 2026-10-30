@@ -286,6 +286,48 @@ docker compose up -d --build
 Die Anwendung läuft dann auf http://localhost:8080. Der Admin wird beim ersten Start aus
 `ODM_ADMIN_USER` / `ODM_ADMIN_PASSWORD` angelegt.
 
+## SQL Server statt Postgres
+
+ODM läuft wahlweise mit Postgres (Standard) oder Microsoft SQL Server (2019 oder neuer). Gewählt wird nur über die Konfiguration:
+
+```json
+"Database": {
+  "Provider": "SqlServer",
+  "ConnectionString": "Server=db.example.org;Database=odm;User Id=odm;Password=…;Encrypt=True"
+}
+```
+
+(Umgebungsvariablen: `Database__Provider`, `Database__ConnectionString`.)
+
+**Migrationen sind providerspezifisch** (Spaltentypen, Annotationen). Deshalb gibt es zwei getrennte Sätze:
+Postgres behält seine Migrationen in den Modulen, SQL Server hat das Projekt `src/Odm.Migrations.SqlServer`. Beim Start wird
+nur der Satz des gewählten Providers geladen. Den SQL-Server-Satz erzeugst du einmalig (ohne laufende Datenbank):
+
+```powershell
+.\scripts\ef-sqlserver.ps1 Initial        # Windows
+```
+```bash
+scripts/ef-sqlserver.sh Initial            # Linux / macOS
+```
+
+Das legt je Modul einen Ordner mit der Migration an; bitte einchecken. **Ab dann braucht jede Änderung am Datenmodell zwei
+Migrationen**: eine für Postgres (`dotnet ef migrations add … -p src/Modules/<Modul>/…`, siehe oben) und eine für SQL Server
+(`scripts/ef-sqlserver.* <Name>`). Fehlen die SQL-Server-Migrationen, bricht ODM beim Start mit einer entsprechenden Meldung ab.
+
+Hinweise:
+
+- ODM legt die Datenbank beim ersten Start selbst an, wenn das Konto das darf (z. B. `sa` oder `dbcreator`). Sonst die leere
+  Datenbank vorher anlegen; das Konto braucht dann `db_owner` auf dieser Datenbank (Schemas und Tabellen werden angelegt).
+- Verschlüsselung: Der Treiber verlangt TLS. Mit einem Zertifikat einer vertrauten CA reicht `Encrypt=True`; nur in der
+  Entwicklung mit selbstsigniertem Zertifikat `TrustServerCertificate=True` ergänzen.
+- Gross-/Kleinschreibung: SQL Server vergleicht in der Standardsortierung ohne Beachtung der Schreibweise, Postgres mit.
+  ODM speichert Benutzer- und Zielnamen kleingeschrieben, die Anwendung verhält sich auf beiden gleich.
+- Docker: `docker compose -f deploy/docker-compose.mssql.yml --env-file .env up -d --build` startet ODM mit SQL Server 2022
+  (Developer-Edition; für den Produktivbetrieb brauchst du eine passende Lizenz). `ODM_DB_PASSWORD` ist dort das `sa`-Passwort
+  und muss die SQL-Server-Regeln erfüllen (mindestens 8 Zeichen, Gross-/Kleinbuchstaben, Ziffern) und darf kein `;` enthalten.
+  Für den Betrieb ein eigenes Konto mit `db_owner` statt `sa` verwenden.
+- Ein Wechsel von Postgres auf SQL Server übernimmt keine Daten; ODM hat keinen Export/Import zwischen den Datenbanken.
+
 ## Anmeldung gegen LDAP / Active Directory
 
 Neben den lokalen Konten kann ODM Benutzer gegen ein Verzeichnis prüfen. Standardmässig ist das aus
@@ -432,5 +474,5 @@ Aussteller (Entra `common`) werden nicht unterstützt.
 6. Betrieb und Anbindung
    - ~~6a: Anmeldung gegen LDAP/Active Directory~~ erledigt
    - ~~6b: Anmeldung über OpenID Connect (Entra ID, authentik …), ersetzt den OData-Endpoint~~ erledigt
-   - 6c: MSSQL als zweite Datenbank
+   - ~~6c: MSSQL als zweite Datenbank~~ erledigt (SQL-Server-Migrationen musst du einmalig erzeugen)
    - 6d: Kubernetes (Helm)
