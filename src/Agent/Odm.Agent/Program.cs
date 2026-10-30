@@ -50,6 +50,7 @@ builder.Services.AddSingleton(sp =>
 });
 
 builder.Services.AddSingleton<ServerClient>();
+builder.Services.AddSingleton<Odm.Agent.Update.AgentUpdater>();
 builder.Services.AddSingleton<AgentStateStore>();
 builder.Services.AddSingleton<SystemInfoProvider>();
 builder.Services.AddSingleton<IJobHandler, PingJobHandler>();

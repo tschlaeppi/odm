@@ -18,6 +18,9 @@ public sealed class AgentStateStore
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     private readonly string _directory;
+
+    /// <summary>Zustandsverzeichnis (Zugangsdaten, Logs, Update-Dateien).</summary>
+    public string Directory => _directory;
     private readonly string _file;
 
     public AgentStateStore(IOptions<AgentOptions> options)

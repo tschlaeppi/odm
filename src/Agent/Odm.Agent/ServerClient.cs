@@ -15,7 +15,7 @@ public sealed record JobResult(Guid JobId, bool Success, string? Output);
 
 public sealed record HeartbeatRequest(
     string OsFamily, string OsName, string OsVersion, string AgentVersion,
-    IReadOnlyList<JobResult> Results, IReadOnlyList<Guid> RunningJobs);
+    IReadOnlyList<JobResult> Results, IReadOnlyList<Guid> RunningJobs, string? Platform = null);
 
 public sealed record ResolveSecretsRequest(Guid JobId);
 
@@ -23,7 +23,9 @@ public sealed record ResolveSecretsResponse(Dictionary<string, string> Secrets);
 
 public sealed record ServerJob(Guid Id, string Type, string? Payload);
 
-public sealed record HeartbeatResponse(IReadOnlyList<ServerJob> Jobs, int NextHeartbeatSeconds);
+public sealed record UpdateOffer(string Version, string Sha256, long Size, string Url);
+
+public sealed record HeartbeatResponse(IReadOnlyList<ServerJob> Jobs, int NextHeartbeatSeconds, UpdateOffer? Update = null);
 
 public sealed class ServerClient(HttpClient http)
 {

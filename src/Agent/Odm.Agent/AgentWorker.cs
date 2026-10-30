@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Odm.Agent.Update;
 
 namespace Odm.Agent;
 
@@ -12,6 +13,7 @@ public sealed class AgentWorker(
     ServerClient server,
     SystemInfoProvider systemInfo,
     JobExecutor executor,
+    AgentUpdater updater,
     ILogger<AgentWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -88,7 +90,7 @@ public sealed class AgentWorker(
             state,
             new HeartbeatRequest(
                 info.OsFamily, info.OsName, info.OsVersion, SystemInfoProvider.AgentVersion,
-                results, executor.ActiveJobIds()),
+                results, executor.ActiveJobIds(), AgentUpdater.Platform),
             ct);
 
         executor.Acknowledge(results);
@@ -96,6 +98,14 @@ public sealed class AgentWorker(
         foreach (var job in response.Jobs)
         {
             executor.Enqueue(job, state);
+        }
+
+        updater.ConfirmStartup();
+
+        // Update nur, wenn der Agent nichts zu tun hat (keine laufenden Aufträge, keine offenen Ergebnisse).
+        if (response.Update is { } offer && executor.ActiveJobIds().Count == 0 && executor.PendingResults().Count == 0)
+        {
+            await updater.TryUpdateAsync(offer, ct);
         }
 
         return TimeSpan.FromSeconds(Math.Max(10, response.NextHeartbeatSeconds));
