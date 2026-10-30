@@ -218,7 +218,7 @@ public sealed class IdentityModule : IModule
         var db = sp.GetRequiredService<IdentityDbContext>();
         var logger = sp.GetRequiredService<ILogger<IdentityModule>>();
 
-        await db.Database.MigrateAsync(ct);
+        await db.MigrateOdmAsync(ct);
 
         if (await db.Users.AnyAsync(ct))
         {

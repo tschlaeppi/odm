@@ -65,7 +65,7 @@ public sealed class SoftwareModule : IModule
     public async Task InitializeAsync(IServiceProvider services, CancellationToken ct)
     {
         await using var scope = services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<SoftwareDbContext>().Database.MigrateAsync(ct);
+        await scope.ServiceProvider.GetRequiredService<SoftwareDbContext>().MigrateOdmAsync(ct);
 
         // Ist der Speicher beim Start nicht erreichbar, soll ODM trotzdem starten; der Upload versucht es erneut.
         try

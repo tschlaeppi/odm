@@ -37,6 +37,6 @@ public sealed class OsUpdatesModule : IModule
     public async Task InitializeAsync(IServiceProvider services, CancellationToken ct)
     {
         await using var scope = services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<OsUpdatesDbContext>().Database.MigrateAsync(ct);
+        await scope.ServiceProvider.GetRequiredService<OsUpdatesDbContext>().MigrateOdmAsync(ct);
     }
 }

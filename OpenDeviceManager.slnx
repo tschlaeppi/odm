@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Odm.Host/Odm.Host.csproj" />
     <Project Path="src/Odm.SharedKernel/Odm.SharedKernel.csproj" />
+    <Project Path="src/Odm.Migrations.SqlServer/Odm.Migrations.SqlServer.csproj" />
   </Folder>
   <Folder Name="/src/Agent/">
     <Project Path="src/Agent/Odm.Agent/Odm.Agent.csproj" />

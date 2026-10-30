@@ -5,6 +5,12 @@ namespace Odm.SharedKernel.Persistence;
 public static class DatabaseExtensions
 {
     /// <summary>
+    /// Assembly mit den SQL-Server-Migrationen. Migrationen sind providerspezifisch (Spaltentypen, Annotationen);
+    /// Postgres behält seine Migrationen in den Modulen, SQL Server hat ein eigenes Projekt.
+    /// </summary>
+    public const string SqlServerMigrationsAssembly = "Odm.Migrations.SqlServer";
+
+    /// <summary>
     /// Konfiguriert den DB-Provider zentral. Jedes Modul besitzt ein eigenes Schema
     /// und eine eigene Migrations-Historie.
     /// </summary>
@@ -19,7 +25,14 @@ public static class DatabaseExtensions
                     npgsql => npgsql.MigrationsHistoryTable("__ef_migrations", schema));
                 break;
             case DatabaseProvider.SqlServer:
-                throw new NotSupportedException("SQL-Server-Unterstützung ist für eine spätere Etappe geplant.");
+                builder.UseSqlServer(
+                    options.ConnectionString,
+                    sql =>
+                    {
+                        sql.MigrationsHistoryTable("__ef_migrations", schema);
+                        sql.MigrationsAssembly(SqlServerMigrationsAssembly);
+                    });
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(options), options.Provider, null);
         }
@@ -27,19 +40,29 @@ public static class DatabaseExtensions
         return builder;
     }
 
-    /// <summary>Optionen für 'dotnet ef' (IDesignTimeDbContextFactory). Verbindung via ODM_DB.</summary>
-    public static DbContextOptions<TContext> CreateDesignTimeOptions<TContext>(string schema)
+    /// <summary>
+    /// Optionen für 'dotnet ef' (IDesignTimeDbContextFactory). Verbindung via ODM_DB, Provider via ODM_DB_PROVIDER
+    /// (Standard Postgres), sofern der Aufrufer ihn nicht vorgibt.
+    /// </summary>
+    public static DbContextOptions<TContext> CreateDesignTimeOptions<TContext>(
+        string schema, DatabaseProvider? provider = null)
         where TContext : DbContext
     {
-        var options = new DatabaseOptions
+        var effective = provider ??
+                        (Enum.TryParse<DatabaseProvider>(Environment.GetEnvironmentVariable("ODM_DB_PROVIDER"), true, out var fromEnv)
+                            ? fromEnv
+                            : DatabaseProvider.Postgres);
+
+        var connection = Environment.GetEnvironmentVariable("ODM_DB");
+        if (string.IsNullOrWhiteSpace(connection))
         {
-            Provider = DatabaseProvider.Postgres,
-            ConnectionString = Environment.GetEnvironmentVariable("ODM_DB")
-                               ?? "Host=localhost;Database=odm;Username=odm;Password=odm"
-        };
+            connection = effective == DatabaseProvider.Postgres
+                ? "Host=localhost;Database=odm;Username=odm;Password=odm"
+                : throw new InvalidOperationException("Für SQL Server die Umgebungsvariable ODM_DB setzen (Verbindungszeichenfolge).");
+        }
 
         var builder = new DbContextOptionsBuilder<TContext>();
-        builder.UseOdmDatabase(options, schema);
+        builder.UseOdmDatabase(new DatabaseOptions { Provider = effective, ConnectionString = connection }, schema);
         return builder.Options;
     }
 }

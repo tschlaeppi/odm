@@ -36,7 +36,7 @@ public sealed class DevicesModule : IModule
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<DevicesDbContext>();
-        await db.Database.MigrateAsync(ct);
+        await db.MigrateOdmAsync(ct);
 
         var seed = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetValue<bool>("Devices:SeedDemoData");
         if (!seed)

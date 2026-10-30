@@ -61,6 +61,6 @@ public sealed class AgentsModule : IModule
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AgentsDbContext>();
-        await db.Database.MigrateAsync(ct);
+        await db.MigrateOdmAsync(ct);
     }
 }
