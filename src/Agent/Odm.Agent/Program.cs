@@ -21,6 +21,15 @@ if (File.Exists(AgentStateStore.ConfigFile))
     }
 }
 
+// Logdatei im Zustandsverzeichnis (Windows: C:\ProgramData\OpenDeviceManager\logs, Linux: /var/lib/odm-agent/logs),
+// zusätzlich zu Konsole/journald bzw. Ereignisanzeige. Abschaltbar mit Agent:LogToFile=false.
+if (builder.Configuration.GetValue("Agent:LogToFile", true))
+{
+    var stateDirectory = builder.Configuration["Agent:StateDirectory"];
+    var logDirectory = Path.Combine(string.IsNullOrWhiteSpace(stateDirectory) ? AgentStateStore.DefaultDirectory() : stateDirectory, "logs");
+    builder.Logging.AddProvider(new FileLoggerProvider(logDirectory));
+}
+
 // Läuft als Windows-Dienst bzw. systemd-Dienst; beim Start aus der Konsole sind beide Aufrufe wirkungslos.
 builder.Services.AddWindowsService(o => o.ServiceName = "OpenDeviceManagerAgent");
 builder.Services.AddSystemd();
