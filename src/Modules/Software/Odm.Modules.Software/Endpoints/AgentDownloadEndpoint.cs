@@ -32,7 +32,7 @@ internal static class AgentDownloadEndpoint
                 }
 
                 var version = await db.Versions.AsNoTracking().SingleOrDefaultAsync(v => v.Id == versionId, ct);
-                if (version is null)
+                if (version?.ObjectKey is null)
                 {
                     return Results.NotFound();
                 }

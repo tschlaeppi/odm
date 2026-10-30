@@ -73,7 +73,7 @@ public sealed class ClientCertificateStore(AgentStateStore store, ILogger<Client
         {
             using var pem = X509Certificate2.CreateFromPem(File.ReadAllText(CertFile), File.ReadAllText(KeyFile));
             // Unter Windows kann SChannel kurzlebige Schlüssel nicht verwenden; der Umweg über PKCS#12 macht sie nutzbar.
-            return new X509Certificate2(pem.Export(X509ContentType.Pkcs12));
+            return X509CertificateLoader.LoadPkcs12(pem.Export(X509ContentType.Pkcs12), null);
         }
         catch (Exception ex) when (ex is CryptographicException or IOException or UnauthorizedAccessException)
         {
