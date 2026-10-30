@@ -9,6 +9,9 @@ export ODM_DB_PROVIDER=SqlServer
 # Zum Erzeugen von Migrationen wird keine Datenbank gebraucht; die Verbindung dient nur dem Modell.
 export ODM_DB="${ODM_DB:-Server=localhost;Database=odm_design;User Id=sa;Password=unused;TrustServerCertificate=True}"
 
+# Pakete wiederherstellen (das Migrationsprojekt ist neu und wurde noch nicht restauriert)
+dotnet restore src/Odm.Host
+
 for module in Identity Devices Agents Software OsUpdates; do
   echo "== $module"
   dotnet ef migrations add "$name" \

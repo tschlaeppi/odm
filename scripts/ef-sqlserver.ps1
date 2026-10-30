@@ -7,6 +7,10 @@ $env:ODM_DB_PROVIDER = 'SqlServer'
 # Zum Erzeugen von Migrationen wird keine Datenbank gebraucht; die Verbindung dient nur dem Modell.
 if (-not $env:ODM_DB) { $env:ODM_DB = 'Server=localhost;Database=odm_design;User Id=sa;Password=unused;TrustServerCertificate=True' }
 
+# Pakete wiederherstellen (das Migrationsprojekt ist neu und wurde noch nicht restauriert)
+dotnet restore src/Odm.Host
+if ($LASTEXITCODE -ne 0) { throw 'dotnet restore fehlgeschlagen.' }
+
 foreach ($module in 'Identity', 'Devices', 'Agents', 'Software', 'OsUpdates') {
     Write-Host "== $module"
     dotnet ef migrations add $Name `
