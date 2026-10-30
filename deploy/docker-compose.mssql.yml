@@ -39,6 +39,8 @@ services:
         condition: service_started
     ports:
       - "8080:8080"
+    volumes:
+      - odm-pki:/pki
     environment:
       Database__Provider: SqlServer
       # Das Passwort darf kein ';' enthalten. Für den Betrieb besser ein eigenes Konto statt 'sa' (siehe README).
@@ -67,6 +69,9 @@ services:
       Agents__Update__TargetVersion: ${ODM_AGENT_UPDATE_VERSION:-}
       Agents__Update__RolloutPercent: ${ODM_AGENT_UPDATE_PERCENT:-100}
       Agents__PublicBaseUrl: ${ODM_PUBLIC_URL:-}
+      # Agents: Client-Zertifikate (mTLS). Aus | Optional | Required; die CA liegt im Volume odm-pki. Erfordert HTTPS am Server (siehe README).
+      Agents__Mtls__Mode: ${ODM_MTLS_MODE:-Off}
+      Agents__Mtls__CaDirectory: /pki
       # Optional: Anmeldung über OpenID Connect (Entra ID, authentik ...), siehe README. Beispiel für einen Anbieter:
       # Identity__Oidc__PublicBaseUrl: https://odm.example.org
       # Identity__Oidc__Providers__0__Id: authentik
@@ -77,5 +82,6 @@ services:
       # Identity__Oidc__Providers__0__AdminValues__0: odm-admins
 
 volumes:
+  odm-pki:
   odm-db:
   odm-packages:

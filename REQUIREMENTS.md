@@ -116,6 +116,16 @@ Akzeptanzkriterien:
 - Ein Hilfsprozess tauscht die Programmdatei aus und startet den Dienst neu; meldet sich der neue Agent nicht, wird die alte Version wiederhergestellt und die fehlgeschlagene Version nicht erneut versucht
 - Registrierung und Zugangsdaten bleiben erhalten; Ablauf und Fehler stehen in der Logdatei des Agents
 
+### 3.7 Agent-Authentisierung per Client-Zertifikat (mTLS)
+
+**Als Systemadministrator** möchte ich, dass sich Agents zusätzlich mit einem Client-Zertifikat ausweisen, damit ein gestohlenes Agent-Secret allein nicht genügt.
+
+Akzeptanzkriterien:
+- ODM betreibt eine eigene CA; der private Schlüssel eines Agents verlässt das Gerät nie (der Agent sendet nur eine Zertifikatsanforderung)
+- Das Zertifikat wird bei der Registrierung ausgestellt und vor Ablauf automatisch erneuert
+- Das Zertifikat ist an die Zugangsdaten des Geräts gebunden (Agent-ID im Subject, Fingerabdruck serverseitig gespeichert)
+- Modi: Aus (Standard) / Optional (Geräte mit Zertifikat müssen es vorzeigen) / Erforderlich
+- Ein Administrator kann die Zertifikatsbindung eines Geräts zurücksetzen
 
 - **Design:** Clean, minimalistisch, Dark-Mode-Unterstützung
 - **Sicherheit:** Passwörter müssen gehasht werden

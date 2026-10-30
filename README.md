@@ -497,6 +497,37 @@ Grenzen: Die Abmeldung beendet nur die ODM-Sitzung, nicht die beim Anbieter. Rol
 gelesen; ein Entzug wirkt spätestens, wenn das ODM-Token abläuft (`Jwt:ExpiryMinutes`, Standard 60). Mandantenübergreifende
 Aussteller (Entra `common`) werden nicht unterstützt.
 
+## Agent-Authentisierung per Client-Zertifikat (mTLS)
+
+Zusätzlich zum Agent-Secret kann jeder Agent ein Client-Zertifikat vorzeigen. ODM betreibt dafür eine eigene CA (ECDSA P-256).
+Der Agent erzeugt seinen Schlüssel lokal und schickt nur eine Zertifikatsanforderung (CSR); ODM setzt Subject (`CN=<Agent-ID>`) und
+Verwendungszweck selbst. Das Zertifikat wird bei der Registrierung ausgestellt und über den Heartbeat erneuert
+(`RenewBeforeDays`, Standard 30 Tage vor Ablauf).
+
+| Einstellung | Bedeutung |
+|---|---|
+| `Agents:Mtls:Mode` (`ODM_MTLS_MODE`) | `Off` (Standard), `Optional`, `Required` |
+| `Agents:Mtls:CaDirectory` | Ordner für `ca.crt` / `ca.key` (Docker: Volume `/pki`) |
+| `Agents:Mtls:CertificateValidityDays` | Gültigkeit der Agent-Zertifikate, Standard 365 |
+| `Agents:Mtls:RenewBeforeDays` | Erneuerung ab dieser Restlaufzeit, Standard 30 |
+
+**Voraussetzungen**
+
+- Einmalig die EF-Migrationen für das Agents-Modul neu erzeugen (neue Spalten `CertThumbprint`, `CertNotAfter`).
+- ODM muss TLS **selbst** terminieren (`Kestrel__Endpoints__Https__Url` und Zertifikat setzen). Hinter einem Reverse Proxy kommt
+  das Client-Zertifikat nicht an; das Weiterreichen per Header wird noch nicht unterstützt.
+- Browser können auf einem Endpunkt mit Client-Zertifikatsabfrage nach einem Zertifikat fragen. Empfohlen ist ein eigener Endpunkt/Port für Agents.
+- Das CA-Volume (`odm-pki`) gehört ins Backup. Geht die CA verloren, müssen alle Agents neu registriert werden.
+
+**Einführung**
+
+1. `Off`: Agents laufen wie bisher (Agent ab 0.6.0 beantragt bei https-Servern bereits ein Zertifikat, sobald der Modus ≠ `Off` ist).
+2. `Optional`: Geräte mit Zertifikat müssen es vorzeigen, Geräte ohne Zertifikat werden aufgefordert, eines zu beantragen.
+3. `Required`: Geräte ohne Zertifikat erhalten nur noch Heartbeat und Zertifikatsausstellung, keine Aufträge.
+
+**Zurücksetzen:** `DELETE /api/agents/devices/{deviceId}/certificate` (Administrator) löscht die Bindung; der Agent beantragt beim
+nächsten Heartbeat ein neues Zertifikat.
+
 ## Sicherheit (Stand jetzt)
 
 - Passwörter: PBKDF2-HMAC-SHA256, 600 000 Iterationen, zufälliges Salt
@@ -511,7 +542,7 @@ Aussteller (Entra `common`) werden nicht unterstützt.
 ## Nächste Etappen
 
 2. ~~Clientverwaltung (Hauptbenutzer, Kostenstelle, dynamische Gruppen)~~ erledigt
-3. ~~Agent (Registrierung, Heartbeat, Aufträge) – Windows, danach Linux~~ erledigt (mTLS als Härtung folgt später)
+3. ~~Agent (Registrierung, Heartbeat, Aufträge) – Windows, danach Linux~~ erledigt (mTLS siehe oben)
 4. Softwareverteilung
    - ~~4a: PSADT-Pakete, S3, Zuweisung, Installation~~ erledigt
    - ~~4b: Repo-Pakete (Winget, Chocolatey, APT, RPM, Flatpak, Snap) mit Zusatzargumenten und Secrets~~ erledigt

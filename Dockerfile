@@ -28,6 +28,9 @@ RUN apt-get update \
 COPY --from=build /app .
 COPY --from=web /web/dist ./wwwroot
 COPY --from=agent /agent-packages ./agent-packages
+# Verzeichnis für die Agent-CA (mTLS); als Volume einbinden, damit sie Neustarts überlebt
+RUN mkdir -p /pki && chown $APP_UID /pki
+VOLUME /pki
 ENV ASPNETCORE_HTTP_PORTS=8080
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Odm.Host.dll"]
