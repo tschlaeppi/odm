@@ -12,6 +12,10 @@ RUN dotnet publish src/Odm.Host/Odm.Host.csproj -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+# libldap: nötig für die optionale Anmeldung gegen LDAP/Active Directory (System.DirectoryServices.Protocols)
+RUN apt-get update \
+    && (apt-get install -y --no-install-recommends libldap2 || apt-get install -y --no-install-recommends libldap-2.5-0) \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
 COPY --from=web /web/dist ./wwwroot
 ENV ASPNETCORE_HTTP_PORTS=8080

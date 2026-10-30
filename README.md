@@ -286,6 +286,50 @@ docker compose up -d --build
 Die Anwendung läuft dann auf http://localhost:8080. Der Admin wird beim ersten Start aus
 `ODM_ADMIN_USER` / `ODM_ADMIN_PASSWORD` angelegt.
 
+## Anmeldung gegen LDAP / Active Directory
+
+Neben den lokalen Konten kann ODM Benutzer gegen ein Verzeichnis prüfen. Standardmässig ist das aus
+(`Identity:Ldap:Enabled=false`); lokale Konten funktionieren immer weiter, auch der Bootstrap-Administrator als Notzugang.
+
+```json
+"Identity": {
+  "Ldap": {
+    "Enabled": true,
+    "Host": "dc01.example.org",
+    "Port": 636,
+    "Security": "Ldaps",            // oder "StartTls" (dann meist Port 389)
+    "BaseDn": "DC=example,DC=org",
+    "BindDn": "CN=svc-odm,OU=Service,DC=example,DC=org",
+    "BindPassword": "…",            // besser per Umgebungsvariable Identity__Ldap__BindPassword
+    "UserFilter": "(sAMAccountName={0})",   // OpenLDAP: "(uid={0})"
+    "AdminGroup": "CN=odm-admins,OU=Groups,DC=example,DC=org",
+    "OperatorGroup": "CN=odm-operators,OU=Groups,DC=example,DC=org",
+    "ReadOnlyGroup": "CN=odm-readers,OU=Groups,DC=example,DC=org"
+  }
+}
+```
+
+So läuft die Anmeldung:
+
+1. ODM sucht den Benutzer mit dem Dienstkonto (`BindDn`; leer = anonyme Suche, nur wenn das Verzeichnis sie erlaubt)
+   und dem `UserFilter`. Der eingegebene Name wird dabei maskiert (keine LDAP-Injection). Bei keinem oder mehreren Treffern: abgelehnt.
+2. Das Passwort wird durch eine Anmeldung **als dieser Benutzer** geprüft. Ein leeres Passwort wird nie zugelassen.
+3. Die Rolle kommt aus den Gruppen (Attribut `memberOf`): *Admin* vor *Operator* vor *ReadOnly*.
+   **Wer in keiner der drei Gruppen ist, kann sich nicht anmelden.** Verschachtelte Gruppen werden nicht aufgelöst;
+   der Benutzer muss direkt Mitglied sein (bei AD z. B. über eine eigene Gruppe je Rolle).
+4. Gibt es einen **lokalen** Benutzer mit demselben Namen, gilt nur das lokale Konto. Ein falsches Passwort wird also nicht
+   durch ein gleichnamiges Verzeichniskonto "gerettet".
+
+Hinweise:
+
+- Es gibt bewusst keine Verbindung ohne TLS. Das Serverzertifikat wird vom System geprüft; unter Linux gilt die
+  libldap-Konfiguration (z. B. `TLS_CACERT` in `/etc/ldap/ldap.conf`, bei einer eigenen CA das Zertifikat dort eintragen).
+- Das Docker-Image enthält `libldap`. Die Werte lassen sich in `docker-compose.yml` über `ODM_LDAP_*` in der `.env` setzen;
+  einen anderen `UserFilter` setzt du als Umgebungsvariable `Identity__Ldap__UserFilter`.
+- Rolle und Anzeigename werden bei jeder Anmeldung neu gelesen, ein Entzug der Gruppe wirkt also spätestens, wenn das Token
+  abläuft (`Jwt:ExpiryMinutes`, Standard 60). Verzeichnisfehler führen immer zu "abgelehnt".
+- Verzeichnisbenutzer erscheinen nicht in einer Benutzerliste; ihre ID ist ein stabiler Hash aus Verfahren und Benutzername.
+
 ## Sicherheit (Stand jetzt)
 
 - Passwörter: PBKDF2-HMAC-SHA256, 600 000 Iterationen, zufälliges Salt
@@ -306,4 +350,8 @@ Die Anwendung läuft dann auf http://localhost:8080. Der Admin wird beim ersten 
    - ~~4b: Repo-Pakete (Winget, Chocolatey, APT, RPM, Flatpak, Snap) mit Zusatzargumenten und Secrets~~ erledigt
    - ~~4c: Softwareprofile (Installationsreihenfolge) und Tranchenverteilung~~ erledigt
 5. ~~OS-Updates und Wartungsfenster~~ erledigt
-6. LDAP/OData-Auth, MSSQL, Kubernetes (Helm)
+6. Betrieb und Anbindung
+   - ~~6a: Anmeldung gegen LDAP/Active Directory~~ erledigt
+   - 6b: Anmeldung gegen einen OData-Endpoint
+   - 6c: MSSQL als zweite Datenbank
+   - 6d: Kubernetes (Helm)

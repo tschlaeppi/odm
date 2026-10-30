@@ -45,6 +45,17 @@ services:
       Jwt__Secret: ${ODM_JWT_SECRET:?ODM_JWT_SECRET in .env setzen}
       Identity__BootstrapAdmin__UserName: ${ODM_ADMIN_USER:-admin}
       Identity__BootstrapAdmin__Password: ${ODM_ADMIN_PASSWORD:?ODM_ADMIN_PASSWORD in .env setzen}
+      # Optional: Anmeldung gegen LDAP/Active Directory (siehe README)
+      Identity__Ldap__Enabled: ${ODM_LDAP_ENABLED:-false}
+      Identity__Ldap__Host: ${ODM_LDAP_HOST:-}
+      Identity__Ldap__Port: ${ODM_LDAP_PORT:-636}
+      Identity__Ldap__Security: ${ODM_LDAP_SECURITY:-Ldaps}
+      Identity__Ldap__BaseDn: ${ODM_LDAP_BASE_DN:-}
+      Identity__Ldap__BindDn: ${ODM_LDAP_BIND_DN:-}
+      Identity__Ldap__BindPassword: ${ODM_LDAP_BIND_PASSWORD:-}
+      Identity__Ldap__AdminGroup: ${ODM_LDAP_ADMIN_GROUP:-}
+      Identity__Ldap__OperatorGroup: ${ODM_LDAP_OPERATOR_GROUP:-}
+      Identity__Ldap__ReadOnlyGroup: ${ODM_LDAP_READONLY_GROUP:-}
 
 volumes:
   odm-db:
