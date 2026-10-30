@@ -42,7 +42,7 @@ internal static class InstallEndpoints
             var package = catalog.Find(platform);
             return package is null
                 ? Results.NotFound()
-                : Results.PhysicalFile(package.FullPath, MediaTypeNames.Application.Octet, package.FileName, enableRangeProcessing: true);
+                : Results.File(package.FullPath, MediaTypeNames.Application.Octet, package.FileName, enableRangeProcessing: true);
         });
     }
 
