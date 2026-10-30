@@ -56,6 +56,11 @@ services:
       Identity__Ldap__AdminGroup: ${ODM_LDAP_ADMIN_GROUP:-}
       Identity__Ldap__OperatorGroup: ${ODM_LDAP_OPERATOR_GROUP:-}
       Identity__Ldap__ReadOnlyGroup: ${ODM_LDAP_READONLY_GROUP:-}
+      # Agents: Selbstaktualisierung (Off | Latest | Pinned) und öffentliche Server-Adresse für die Installationsskripte
+      Agents__Update__Mode: ${ODM_AGENT_UPDATE_MODE:-Off}
+      Agents__Update__TargetVersion: ${ODM_AGENT_UPDATE_VERSION:-}
+      Agents__Update__RolloutPercent: ${ODM_AGENT_UPDATE_PERCENT:-100}
+      Agents__PublicBaseUrl: ${ODM_PUBLIC_URL:-}
       # Optional: Anmeldung über OpenID Connect (Entra ID, authentik ...), siehe README. Beispiel für einen Anbieter:
       # Identity__Oidc__PublicBaseUrl: https://odm.example.org
       # Identity__Oidc__Providers__0__Id: authentik
