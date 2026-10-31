@@ -253,6 +253,7 @@ flowchart LR
 | ADR-27 | English for documentation and log messages; UI localised (de/en) | consistent operations language; UI for end users in their language | accepted |
 | ADR-28 | Agent logs to a rotating file, journald / Event Log | troubleshooting without server access | accepted |
 | ADR-29 | Helm chart deploys exactly one ODM replica; database optionally bundled, S3 always external | background services and the agent CA volume are not multi-instance safe yet; a managed DB / object store is the better production choice | accepted |
+| ADR-30 | A trusted reverse proxy may forward the agent certificate in a header; trust is defined by `Proxy:TrustedProxies` and the original peer address, ODM still validates the certificate | mTLS works behind Caddy / ingress; ODM stays the only authority on validity; the proxy network must be isolated, otherwise the header could be forged | accepted |
 
 ## 10. Quality requirements
 
@@ -270,7 +271,6 @@ flowchart LR
 
 | Item | Impact | Mitigation / plan |
 |---|---|---|
-| mTLS needs TLS termination at ODM | cannot be combined with a TLS-terminating reverse proxy | optional support for a forwarded client certificate header |
 | No audit log | changes are not traceable | add an audit trail for assignments, deletions, resets |
 | No notifications | failures and silent devices are visible only in the dashboard | e-mail / webhook alerts |
 | No housekeeping | old jobs and results accumulate | retention settings and cleanup job |
@@ -279,6 +279,7 @@ flowchart LR
 | Pending EF model changes stop the server | forgotten migrations are noticed at start | documented in [development](../development.md) |
 | SQL Server provider not tested end to end | SQL Server migrations and queries are only covered by unit tests; provider differences may surface in operation | integration test run against SQL Server (Testcontainers or CI service) covering migrations, startup and the main flows |
 | Helm chart not tested on a cluster | template or configuration errors appear only at the first `helm install` | `helm lint` / `helm template` in CI, deployment test on a test cluster (e.g. kind) |
+| Forwarded client certificate not tested end to end | header formats and proxy settings (Caddy, ingress-nginx) are covered by unit tests only | integration test with Caddy and a real agent; verify the ingress-nginx settings on a cluster |
 | No load test | behaviour with thousands of agents (heartbeats, job delivery, reconciler, dashboard queries) is assumed, not measured | load test with simulated agents; derive sizing guidance and tune indexes / intervals |
 
 ## 12. Glossary

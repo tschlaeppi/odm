@@ -46,6 +46,8 @@ Settings come from `appsettings.json` and environment variables (`Section__Key`)
 | `Agents:PublicBaseUrl` | | public address for install scripts (set it behind a reverse proxy) |
 | `Agents:Update:*` | off | agent self-update policy, see [agent.md](agent.md) |
 | `Agents:Mtls:*` | off | agent client certificates, see [agent.md](agent.md) |
+| `Proxy:ForwardedHeaders` | `false` | take client address and scheme from `X-Forwarded-*` (reverse proxy) |
+| `Proxy:TrustedProxies` | empty | addresses / CIDR ranges of trusted proxies; empty = every peer for `X-Forwarded-*`, none for forwarded certificates |
 
 ## Kubernetes (Helm)
 
@@ -74,10 +76,12 @@ helm install odm deploy/helm/odm -n odm --create-namespace \
   `postgresql.password` for the bundled instance (evaluation and small setups only).
 - **Ingress:** the default annotations target ingress-nginx and raise the upload limit; adjust `proxy-body-size` to
   `software.maxPackageMegabytes`. With the ingress enabled the chart switches on ASP.NET Core forwarded headers
-  (`ASPNETCORE_FORWARDEDHEADERS_ENABLED`) so client address and scheme are taken from the proxy.
+  (`Proxy__ForwardedHeaders`) so client address and scheme are taken from the proxy; restrict it with `proxy.trustedProxies`.
 - **Other settings:** LDAP has its own values block; everything else (OIDC, Kestrel HTTPS, ...) goes through `extraEnv` using
   the keys of the [configuration reference](#configuration-reference).
-- **mTLS** needs TLS terminated by ODM itself, which an ingress does not do; keep `mtls.mode=Off` behind an ingress.
+- **mTLS** needs TLS terminated by ODM itself or an ingress that forwards the client certificate
+  (`mtls.forwardedCertificateHeader`, `proxy.trustedProxies`; see [agent.md](agent.md#mtls-behind-a-reverse-proxy), untested on Kubernetes).
+  Otherwise keep `mtls.mode=Off`.
 - **Upgrades:** `helm upgrade` replaces the pod (strategy `Recreate`); migrations run at startup.
 
 ## SQL Server instead of PostgreSQL
@@ -124,17 +128,20 @@ port 8080. It needs Docker Compose 2.24 or newer. Certificates (`ODM_CADDY_TLS`)
 | `internal` | Caddy's own CA for private networks; browsers and agents must trust its root certificate (`caddy-data` volume, `pki/authorities/local/root.crt`) |
 | `/certs/fullchain.pem /certs/key.pem` | your own certificate, placed in `./certs` |
 
-The variant sets the forwarded headers, `Agents__PublicBaseUrl` and the upload limit (4 GB, as `Software:MaxPackageMegabytes`;
-change both together). Agent client certificates (mTLS) are not available in this variant.
+The variant sets the forwarded headers (trusted: only the proxy network `ODM_PROXY_SUBNET`), `Agents__PublicBaseUrl` and the
+upload limit (4 GB, as `Software:MaxPackageMegabytes`; change both together). **Agent client certificates (mTLS):** set
+`ODM_PROXY_CADDYFILE=./deploy/Caddyfile.mtls` and `ODM_MTLS_MODE=Optional` (or `Required`); Caddy then forwards the agent
+certificate to ODM in the `X-Client-Cert` header, see [agent.md](agent.md#mtls-behind-a-reverse-proxy).
 
 ### General notes
 
 - Agents refuse plain HTTP by default. Terminate TLS either in front of ODM (reverse proxy) or in ODM itself
   (`Kestrel__Endpoints__Https__Url` plus certificate configuration).
-- **Behind a reverse proxy:** configure forwarded headers, otherwise rate limits apply per proxy instead of per client; set
-  `Agents:PublicBaseUrl`; raise the proxy upload limit to match `Software:MaxPackageMegabytes`.
-- **Agent client certificates (mTLS)** need TLS terminated by ODM itself, because a proxy does not hand the client
-  certificate on. See [agent.md](agent.md#client-certificates-mtls).
+- **Behind a reverse proxy:** set `Proxy:ForwardedHeaders=true` (and `Proxy:TrustedProxies` to the proxy addresses), otherwise
+  rate limits apply per proxy instead of per client; set `Agents:PublicBaseUrl`; raise the proxy upload limit to match
+  `Software:MaxPackageMegabytes`.
+- **Agent client certificates (mTLS)** need either TLS terminated by ODM itself or a trusted proxy that forwards the
+  certificate in a header. See [agent.md](agent.md#client-certificates-mtls).
 
 ## Backup and restore
 

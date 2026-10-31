@@ -1,14 +1,17 @@
 # HTTPS variant: Caddy terminates TLS in front of ODM.
 #   docker compose -f docker-compose.yml -f deploy/docker-compose.https.yml up -d --build
 # Requires Docker Compose 2.24 or newer (uses "!reset"). Set ODM_DOMAIN in .env (e.g. odm.example.org).
-# Agent client certificates (mTLS) are not possible in this variant yet: the proxy does not forward them.
+# Agent client certificates (mTLS): set ODM_PROXY_CADDYFILE=./deploy/Caddyfile.mtls and ODM_MTLS_MODE (see docs/agent.md).
 services:
   odm:
     # Only reachable through the proxy
     ports: !reset []
     environment:
-      # Take client address and scheme from the proxy's X-Forwarded-* headers
-      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      # Take client address and scheme from the proxy's X-Forwarded-* headers, believe only the proxy network
+      Proxy__ForwardedHeaders: "true"
+      Proxy__TrustedProxies__0: ${ODM_PROXY_SUBNET:-172.31.250.0/24}
+      # Client certificate handed on by the proxy (only used when ODM_MTLS_MODE is not Off)
+      Agents__Mtls__ForwardedCertificateHeader: X-Client-Cert
       Agents__PublicBaseUrl: https://${ODM_DOMAIN:?set ODM_DOMAIN in .env}
       Identity__Oidc__PublicBaseUrl: https://${ODM_DOMAIN}
 
@@ -25,10 +28,17 @@ services:
       ODM_DOMAIN: ${ODM_DOMAIN}
       ODM_CADDY_TLS: ${ODM_CADDY_TLS:-}
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${ODM_PROXY_CADDYFILE:-./deploy/Caddyfile}:/etc/caddy/Caddyfile:ro
       - ./certs:/certs:ro
       - caddy-data:/data
       - caddy-config:/config
+
+# Fixed network range so that ODM can tell the proxy apart from every other peer (Proxy__TrustedProxies)
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${ODM_PROXY_SUBNET:-172.31.250.0/24}
 
 volumes:
   caddy-data:

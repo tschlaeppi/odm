@@ -86,9 +86,9 @@ agent's credentials by its SHA-256 thumbprint.
 
 Requirements and behaviour:
 
-- ODM must terminate TLS itself (`Kestrel__Endpoints__Https__Url` and a server certificate). Behind a reverse proxy the client
-  certificate does not arrive; forwarding it in a header is not supported yet. Certificates are only issued over a direct
-  TLS connection, so an agent can never lock itself out by enrolling over plain HTTP or through a proxy.
+- Either ODM terminates TLS itself (`Kestrel__Endpoints__Https__Url` and a server certificate), or a trusted reverse proxy
+  forwards the certificate in a header (see below). Certificates are only issued over one of these two paths, so an agent can
+  never lock itself out by enrolling over plain HTTP or through a proxy that does not forward certificates.
 - Browsers may prompt for a client certificate on an endpoint that requests one; use a dedicated endpoint or port for agents.
 - `Optional`: agents with a certificate must present it; agents without one are asked to request one.
   `Required`: agents without a certificate only get heartbeat and certificate issuing, no jobs.
@@ -96,3 +96,31 @@ Requirements and behaviour:
 - **Reset:** the device page (administrators) has *Reset certificate*, or `DELETE /api/agents/devices/{deviceId}/certificate`.
   The agent requests a new certificate with its next heartbeat.
 - Back up the CA directory; if it is lost, all agents must be re-registered.
+
+### mTLS behind a reverse proxy
+
+The proxy terminates TLS, asks the agent for its certificate and passes it to ODM in a request header. ODM still validates the
+certificate itself (issuer = agent CA, validity, key usage, subject = agent ID, stored thumbprint), so the proxy does not need
+the CA. The agent's proof of key possession happens in the TLS handshake at the proxy.
+
+| Setting | Meaning |
+|---|---|
+| `Proxy:ForwardedHeaders` | `true` to take client address and scheme from `X-Forwarded-For` / `-Proto` |
+| `Proxy:TrustedProxies` | addresses or CIDR ranges of the proxies (`Proxy__TrustedProxies__0=172.31.250.0/24`). **Required** for forwarded certificates |
+| `Agents:Mtls:ForwardedCertificateHeader` | header name, e.g. `X-Client-Cert`; empty = off |
+
+Accepted header formats: URL-encoded PEM (nginx `$ssl_client_escaped_cert`, ingress-nginx `ssl-client-cert`), plain PEM, or
+Base64 DER (Caddy, Traefik).
+
+Security rules:
+
+- The header is honoured **only** when the TCP peer is in `Proxy:TrustedProxies`. Keep ODM reachable only through the proxy
+  (no published port, network policy), otherwise another host in the trusted range could forge the header.
+- The proxy must **overwrite** the header on every request (and delete it when the client sent no certificate). The Compose
+  variant does this with `header_up`.
+- Do not set `ASPNETCORE_FORWARDEDHEADERS_ENABLED`; use `Proxy:ForwardedHeaders`, which keeps the original peer address for this check.
+
+Docker Compose: `deploy/Caddyfile.mtls` (see [operations.md](operations.md#https-with-docker-compose)). Kubernetes with ingress-nginx:
+set `nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"`, `auth-tls-verify-client: "optional_no_ca"` and
+`auth-tls-secret` (any secret with a `ca.crt`), `mtls.forwardedCertificateHeader=ssl-client-cert` and `proxy.trustedProxies` with the
+ingress controller's pod range. This path is untested.

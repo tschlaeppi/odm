@@ -13,6 +13,7 @@ using Odm.Modules.Agents.Endpoints;
 using Odm.Modules.Agents.Infrastructure;
 using Odm.SharedKernel;
 using Odm.SharedKernel.Contracts;
+using Odm.SharedKernel.Net;
 using Odm.SharedKernel.Persistence;
 
 namespace Odm.Modules.Agents;
@@ -30,6 +31,8 @@ public sealed class AgentsModule : IModule
 
         services.AddSingleton<AgentPackageCatalog>();
         services.AddSingleton<AgentCertificateAuthority>();
+        services.AddSingleton(TrustedProxies.FromConfiguration(configuration));
+        services.AddSingleton<ClientCertificateProvider>();
         services.AddScoped<AgentService>();
         services.AddScoped<IJobQueue, JobQueue>();
 

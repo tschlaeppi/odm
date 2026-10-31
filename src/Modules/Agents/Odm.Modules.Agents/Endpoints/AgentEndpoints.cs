@@ -41,7 +41,7 @@ internal static class AgentEndpoints
 
         group.MapPost("/heartbeat", async (
                 HttpContext http, ClaimsPrincipal principal, HeartbeatRequest request, AgentService service,
-                AgentCertificateAuthority authority, IOptions<AgentsOptions> options, CancellationToken ct) =>
+                AgentCertificateAuthority authority, ClientCertificateProvider certificates, IOptions<AgentsOptions> options, CancellationToken ct) =>
             {
                 // Host name is optional (older agents); if given, the same rules apply as at registration.
                 var errors = Validate(request.Hostname ?? "-", request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion);
@@ -61,24 +61,24 @@ internal static class AgentEndpoints
                 }
 
                 var response = await service.HeartbeatAsync(agentId, deviceId, request, ct);
-                return Results.Ok(response with { CertificateRequested = CertificateWanted(http, principal, authority, options.Value.Mtls) });
+                return Results.Ok(response with { CertificateRequested = CertificateWanted(http, principal, authority, certificates, options.Value.Mtls) });
             })
             .RequireAuthorization(Policies.Agent);
 
         // Request or renew a certificate. Without a previous certificate the secret is enough (once), afterwards only with a certificate.
         group.MapPost("/certificate", async (
                 HttpContext http, ClaimsPrincipal principal, CertificateRequestDto request, AgentService service,
-                AgentCertificateAuthority authority, CancellationToken ct) =>
+                AgentCertificateAuthority authority, ClientCertificateProvider certificates, CancellationToken ct) =>
             {
                 if (!authority.Enabled)
                 {
                     return Results.Problem("Certificates are not enabled on this server.", statusCode: 404);
                 }
 
-                if (!IsDirectTls(http))
+                if (!certificates.CanPresentCertificate(http))
                 {
                     // A certificate that cannot be presented over this connection would lock the device out.
-                    return Results.Problem("Certificates are only issued over a direct TLS connection to ODM.", statusCode: 400);
+                    return Results.Problem("Certificates are only issued over a direct TLS connection to ODM or through a trusted proxy that forwards them.", statusCode: 400);
                 }
 
                 if (string.IsNullOrWhiteSpace(request.Csr) || request.Csr.Length > 4000)
@@ -100,14 +100,10 @@ internal static class AgentEndpoints
             .RequireAuthorization(Policies.Agent);
     }
 
-    /// <summary>TLS is terminated by ODM itself (only then can a client certificate arrive).</summary>
-    private static bool IsDirectTls(HttpContext http) =>
-        http.Features.Get<Microsoft.AspNetCore.Http.Features.ITlsConnectionFeature>() is not null;
-
     /// <summary>Should the agent request a (new) certificate? If it has none or it expires soon.</summary>
-    private static bool CertificateWanted(HttpContext http, ClaimsPrincipal principal, AgentCertificateAuthority authority, AgentMtlsOptions options)
+    private static bool CertificateWanted(HttpContext http, ClaimsPrincipal principal, AgentCertificateAuthority authority, ClientCertificateProvider certificates, AgentMtlsOptions options)
     {
-        if (!authority.Enabled || !IsDirectTls(http))
+        if (!authority.Enabled || !certificates.CanPresentCertificate(http))
         {
             return false;
         }

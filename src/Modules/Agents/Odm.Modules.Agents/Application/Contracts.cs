@@ -47,6 +47,13 @@ public sealed class AgentMtlsOptions
 
     /// <summary>The server asks the agent to renew this many days before expiry.</summary>
     public int RenewBeforeDays { get; set; } = 30;
+
+    /// <summary>
+    /// Name of the request header in which a trusted reverse proxy forwards the client certificate (URL-encoded PEM or Base64 DER),
+    /// e.g. <c>X-Client-Cert</c>. Empty = off. Only honoured for peers listed in <c>Proxy:TrustedProxies</c>; the proxy must
+    /// overwrite the header on every request and may also strip it from requests without a certificate.
+    /// </summary>
+    public string ForwardedCertificateHeader { get; set; } = "";
 }
 
 public enum AgentUpdateMode

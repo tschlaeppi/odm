@@ -12,6 +12,9 @@
 	}
 
 	reverse_proxy odm:8080 {
+		# Never let a client set the forwarded certificate header (see Caddyfile.mtls for agent client certificates)
+		header_up -X-Client-Cert
+
 		# Large package downloads/uploads must not time out
 		transport http {
 			read_timeout 30m

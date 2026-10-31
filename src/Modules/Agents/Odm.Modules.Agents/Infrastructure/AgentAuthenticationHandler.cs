@@ -90,7 +90,8 @@ public sealed class AgentAuthenticationHandler(
         else
         {
             // Whoever has a certificate must always present it; a stolen secret alone is no longer enough.
-            var certificate = await Context.Connection.GetClientCertificateAsync(Context.RequestAborted);
+            var provider = Context.RequestServices.GetRequiredService<ClientCertificateProvider>();
+            var certificate = await provider.GetAsync(Context, Context.RequestAborted);
             if (certificate is null ||
                 !authority.IsValid(certificate, credential.Id, credential.CertThumbprint, DateTimeOffset.UtcNow))
             {

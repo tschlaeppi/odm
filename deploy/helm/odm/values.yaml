@@ -63,11 +63,17 @@ agents:
     targetVersion: ""
     rolloutPercent: 100
 
-# Agent client certificates. A reverse proxy / ingress does not pass client certificates on,
-# so Optional / Required only work when ODM terminates TLS itself (service.type LoadBalancer or
-# a TLS passthrough ingress plus Kestrel HTTPS configuration via extraEnv). Default: Off.
+# Reverse proxy / ingress. With the ingress enabled, X-Forwarded-For / -Proto are honoured for the peers in
+# trustedProxies (addresses or CIDR ranges of the ingress controller pods); empty = every peer.
+proxy:
+  trustedProxies: []     # e.g. ["10.42.0.0/16"]
+
+# Agent client certificates. Either ODM terminates TLS itself (service.type LoadBalancer or a TLS passthrough
+# ingress plus Kestrel HTTPS configuration via extraEnv), or the ingress forwards the certificate in a header:
+# set forwardedCertificateHeader (ingress-nginx: "ssl-client-cert") AND proxy.trustedProxies. See docs/agent.md. Default: Off.
 mtls:
   mode: "Off"            # Off | Optional | Required
+  forwardedCertificateHeader: ""
 
 ldap:
   enabled: false

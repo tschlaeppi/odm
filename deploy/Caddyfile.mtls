@@ -1,0 +1,24 @@
+# Like Caddyfile, plus agent client certificates (mTLS) forwarded to ODM in the X-Client-Cert header.
+# Use it with ODM_PROXY_CADDYFILE=./deploy/Caddyfile.mtls and ODM_MTLS_MODE=Optional (or Required) in .env.
+# ODM validates the certificate itself (agent CA, thumbprint); Caddy only has to request and hand it on.
+# Note: browsers that own client certificates may show a selection dialog on first contact; just cancel it.
+{$ODM_DOMAIN} {
+	tls {$ODM_CADDY_TLS:} {
+		client_auth {
+			mode request
+		}
+	}
+
+	request_body {
+		max_size 4GB
+	}
+
+	reverse_proxy odm:8080 {
+		# Overwrites any value sent by the client; empty when the client presented no certificate
+		header_up X-Client-Cert {http.request.tls.client.certificate_der_base64}
+		transport http {
+			read_timeout 30m
+			write_timeout 30m
+		}
+	}
+}

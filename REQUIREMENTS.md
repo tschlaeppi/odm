@@ -153,7 +153,7 @@ Acceptance criteria:
 
 - The Docker Compose setup offers an HTTPS variant (reverse proxy with automatic or provided certificates, or TLS in ODM itself) *(implemented: Caddy)*
 - The documentation describes certificate handling and the required proxy settings (forwarded headers, upload limit) *(implemented)*
-- With a TLS-terminating reverse proxy, agent client certificates (mTLS) can still be used by forwarding the verified client certificate in a header from a trusted proxy *(open)*
+- With a TLS-terminating reverse proxy, agent client certificates (mTLS) can still be used by forwarding the client certificate in a header from a trusted proxy *(implemented)*
 
 ### 3.11 Audit log *(proposed)*
 
