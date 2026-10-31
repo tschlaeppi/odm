@@ -228,6 +228,9 @@
     grid-template-columns: 3.4rem minmax(0, 1fr);
   }
   .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
@@ -264,7 +267,7 @@
   }
   .side {
     position: sticky;
-    top: 0;
+    top: 3rem; /* below the sticky top bar */
     align-self: start;
     height: calc(100vh - 3rem);
     overflow-y: auto;
