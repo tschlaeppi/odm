@@ -27,7 +27,7 @@ public sealed class DeploymentReconciler(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Abgleich der Softwareverteilung ist fehlgeschlagen.");
+                logger.LogError(ex, "Software deployment reconciliation failed.");
             }
 
             try

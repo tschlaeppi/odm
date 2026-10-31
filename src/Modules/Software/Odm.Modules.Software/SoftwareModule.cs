@@ -76,7 +76,7 @@ public sealed class SoftwareModule : IModule
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             services.GetRequiredService<ILogger<SoftwareModule>>()
-                .LogWarning(ex, "S3-Speicher ist beim Start nicht erreichbar.");
+                .LogWarning(ex, "S3 storage is not reachable at startup.");
         }
     }
 }

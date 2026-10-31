@@ -29,7 +29,7 @@ public sealed class UpdateScheduler(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Planung der OS-Updates ist fehlgeschlagen.");
+                logger.LogError(ex, "OS update scheduling failed.");
             }
         }
         while (await WaitAsync(timer, stoppingToken));

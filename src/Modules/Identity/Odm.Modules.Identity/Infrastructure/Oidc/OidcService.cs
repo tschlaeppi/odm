@@ -69,7 +69,7 @@ public sealed class OidcService(
             if (saved is null || string.IsNullOrEmpty(stateParam) ||
                 !OidcIdTokenValidator.FixedTimeEquals(saved.State, stateParam) || string.IsNullOrEmpty(code))
             {
-                logger.LogWarning("OIDC-Rückkehr mit ungültigem oder fehlendem Anmeldezustand abgelehnt.");
+                logger.LogWarning("OIDC callback rejected: invalid or missing sign-in state.");
                 return new OidcResult(null, "failed");
             }
 
@@ -97,13 +97,13 @@ public sealed class OidcService(
 
             if (identity is null)
             {
-                logger.LogWarning("ID-Token von '{Provider}' ist ungültig.", provider.Id);
+                logger.LogWarning("ID token from '{Provider}' is invalid.", provider.Id);
                 return new OidcResult(null, "failed");
             }
 
             if (OidcRoleMapper.Map(identity.GroupValues, provider) is not { } role)
             {
-                logger.LogInformation("OIDC-Benutzer '{UserName}' ({Provider}) hat keine ODM-Rolle; abgelehnt.", identity.UserName, provider.Id);
+                logger.LogInformation("OIDC user '{UserName}' ({Provider}) has no ODM role; rejected.", identity.UserName, provider.Id);
                 return new OidcResult(null, "denied");
             }
 
@@ -114,7 +114,7 @@ public sealed class OidcService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "OIDC-Anmeldung fehlgeschlagen.");
+            logger.LogError(ex, "OIDC sign-in failed.");
             return new OidcResult(null, "failed");
         }
     }
@@ -155,7 +155,7 @@ public sealed class OidcService(
         if (!response.IsSuccessStatusCode)
         {
             // Nur den Fehlercode des Anbieters protokollieren, nie den ganzen Inhalt.
-            logger.LogWarning("Token-Endpoint von '{Provider}' antwortete {Status} ({Error}).",
+            logger.LogWarning("Token endpoint of '{Provider}' responded with {Status} ({Error}).",
                 provider.Id, (int)response.StatusCode, ErrorCode(body));
             return null;
         }

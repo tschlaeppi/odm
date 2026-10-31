@@ -66,7 +66,7 @@ public sealed class AgentService(
             }
             catch (CryptographicException ex)
             {
-                logger.LogWarning(ex, "Die Zertifikatsanforderung bei der Registrierung ist ungültig.");
+                logger.LogWarning(ex, "The certificate request sent during registration is invalid.");
             }
         }
 
@@ -161,7 +161,7 @@ public sealed class AgentService(
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    logger.LogError(ex, "Verarbeitung des Auftragsergebnisses {JobId} ist fehlgeschlagen.", job.Id);
+                    logger.LogError(ex, "Processing the result of job {JobId} failed.", job.Id);
                 }
             }
         }

@@ -17,7 +17,7 @@ if (File.Exists(AgentStateStore.ConfigFile))
     }
     catch (UnauthorizedAccessException)
     {
-        Console.Error.WriteLine($"Warnung: {AgentStateStore.ConfigFile} ist nicht lesbar - als Administrator/root starten.");
+        Console.Error.WriteLine($"Warning: {AgentStateStore.ConfigFile} is not readable - run as administrator/root.");
     }
 }
 

@@ -52,7 +52,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
         try
         {
             var zipPath = Path.Combine(workDirectory, "package.zip");
-            logger.LogInformation("Lade {Package} {Version} herunter.", payload.PackageName, payload.Version);
+            logger.LogInformation("Downloading {Package} {Version}.", payload.PackageName, payload.Version);
             await context.Server.DownloadPackageAsync(context.State, payload.VersionId, zipPath, ct);
 
             await using (var stream = File.OpenRead(zipPath))
@@ -83,7 +83,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
                 return Fail(ex.Message);
             }
 
-            logger.LogInformation("{Action} {Package} {Version}.", payload.Uninstall ? "Deinstalliere" : "Installiere", payload.PackageName, payload.Version);
+            logger.LogInformation("{Action} {Package} {Version}.", payload.Uninstall ? "Uninstalling" : "Installing", payload.PackageName, payload.Version);
             return await RunAsync(script, payload.TimeoutMinutes, arguments, payload.Uninstall ? "Uninstall" : "Install", ct);
         }
         finally

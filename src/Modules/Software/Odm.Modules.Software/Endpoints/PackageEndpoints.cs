@@ -178,7 +178,7 @@ internal static partial class PackageEndpoints
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        logger.LogWarning(ex, "Objekt {Key} konnte nicht aus dem Speicher gelöscht werden.", key);
+                        logger.LogWarning(ex, "Object {Key} could not be deleted from storage.", key);
                     }
                 }
 

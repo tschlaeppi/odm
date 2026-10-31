@@ -229,13 +229,13 @@ public sealed class IdentityModule : IModule
         if (string.IsNullOrWhiteSpace(bootstrap.UserName) || string.IsNullOrEmpty(bootstrap.Password))
         {
             logger.LogWarning(
-                "Keine Benutzer vorhanden und kein Identity:BootstrapAdmin konfiguriert - Anmeldung nicht möglich.");
+                "No users exist and Identity:BootstrapAdmin is not configured - sign-in is not possible.");
             return;
         }
 
         var hasher = sp.GetRequiredService<IPasswordHasher>();
         db.Users.Add(User.Create(bootstrap.UserName, "Administrator", hasher.Hash(bootstrap.Password), UserRole.Admin));
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Initialer Administrator '{UserName}' wurde angelegt.", bootstrap.UserName);
+        logger.LogInformation("Initial administrator '{UserName}' was created.", bootstrap.UserName);
     }
 }

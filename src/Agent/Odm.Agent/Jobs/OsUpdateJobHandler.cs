@@ -54,7 +54,7 @@ public sealed class OsUpdateJobHandler(
         var workDirectory = context.Store.CreateWorkDirectory(job.Id);
         try
         {
-            logger.LogInformation("Starte OS-Updates (Modus {Mode}).", payload.Mode);
+            logger.LogInformation("Starting OS updates (mode {Mode}).", payload.Mode);
             var result = await updater.RunAsync(payload, workDirectory, ct);
 
             var rebooting = false;
@@ -99,12 +99,12 @@ public sealed class OsUpdateJobHandler(
                     shutdown, ["-r", $"+{RebootDelaySeconds / 60}", reason], TimeSpan.FromMinutes(1), ct);
             }
 
-            logger.LogInformation("Neustart in {Seconds} s geplant (Exit-Code {Code}).", RebootDelaySeconds, result.ExitCode);
+            logger.LogInformation("Restart scheduled in {Seconds} s (exit code {Code}).", RebootDelaySeconds, result.ExitCode);
             return result.ExitCode == 0;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Neustart konnte nicht geplant werden.");
+            logger.LogWarning(ex, "Restart could not be scheduled.");
             return false;
         }
     }

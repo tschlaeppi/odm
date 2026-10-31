@@ -67,12 +67,12 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
             {
                 File.WriteAllText(OkFile, pending);
                 File.Delete(PendingFile);
-                logger.LogInformation("Update auf Version {Version} abgeschlossen.", pending);
+                logger.LogInformation("Update to version {Version} completed.", pending);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning(ex, "Der Update-Status konnte nicht gespeichert werden.");
+            logger.LogWarning(ex, "The update status could not be saved.");
         }
     }
 
@@ -93,7 +93,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
         var stage = Path.Combine(UpdatesDirectory, offer.Version);
         try
         {
-            logger.LogInformation("Update von {Old} auf {New} wird geladen.", SystemInfoProvider.AgentVersion, offer.Version);
+            logger.LogInformation("Downloading update from {Old} to {New}.", SystemInfoProvider.AgentVersion, offer.Version);
             Directory.CreateDirectory(UpdatesDirectory);
             if (Directory.Exists(stage))
             {
@@ -119,12 +119,12 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
 
             File.WriteAllText(PendingFile, offer.Version);
             Launch(stage, offer.Version);
-            logger.LogInformation("Update-Skript gestartet; der Agent wird neu gestartet.");
+            logger.LogInformation("Update script started; the agent is restarting.");
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Das Update auf {Version} ist fehlgeschlagen.", offer.Version);
+            logger.LogError(ex, "The update to {Version} failed.", offer.Version);
             TryDelete(PendingFile);
             TryDeleteDirectory(stage);
             return false;

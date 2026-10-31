@@ -59,7 +59,7 @@ public sealed class ClientCertificateStore(AgentStateStore store, ILogger<Client
             _loaded = true;
         }
 
-        logger.LogInformation("Client-Zertifikat gespeichert (gültig bis {NotAfter:u}).", parsed.NotAfter);
+        logger.LogInformation("Client certificate stored (valid until {NotAfter:u}).", parsed.NotAfter);
     }
 
     private X509Certificate2? Load()
@@ -77,7 +77,7 @@ public sealed class ClientCertificateStore(AgentStateStore store, ILogger<Client
         }
         catch (Exception ex) when (ex is CryptographicException or IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning(ex, "Das Client-Zertifikat konnte nicht geladen werden.");
+            logger.LogWarning(ex, "The client certificate could not be loaded.");
             return null;
         }
     }

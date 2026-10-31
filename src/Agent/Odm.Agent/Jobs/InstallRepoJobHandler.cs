@@ -46,7 +46,7 @@ public sealed class InstallRepoJobHandler(ILogger<InstallRepoJobHandler> logger)
         }
 
         // Befehl und Argumente werden bewusst nicht protokolliert: sie können Secrets enthalten.
-        logger.LogInformation("{Action} {Identifier} mit {Manager}.", payload.Uninstall ? "Deinstalliere" : "Installiere", payload.Identifier, payload.Manager);
+        logger.LogInformation("{Action} {Identifier} with {Manager}.", payload.Uninstall ? "Uninstalling" : "Installing", payload.Identifier, payload.Manager);
         var timeout = TimeSpan.FromMinutes(Math.Clamp(payload.TimeoutMinutes, 1, 24 * 60));
         var result = await RepoInstaller.RunAsync(payload, arguments.Tokens, timeout, ct);
 

@@ -45,7 +45,7 @@ public sealed class AgentWorker(
             {
                 failures++;
                 delay = Backoff(failures);
-                logger.LogWarning(ex, "Verbindung zum Server fehlgeschlagen (Versuch {Failures}). Nächster Versuch in {Delay:N0} s.",
+                logger.LogWarning(ex, "Connection to the server failed (attempt {Failures}). Next attempt in {Delay:N0} s.",
                     failures, delay.TotalSeconds);
             }
         }
@@ -100,7 +100,7 @@ public sealed class AgentWorker(
             }
         }
 
-        logger.LogInformation("Agent registriert (Gerät {DeviceId}).", state.DeviceId);
+        logger.LogInformation("Agent registered (device {DeviceId}).", state.DeviceId);
 
         try
         {
@@ -108,7 +108,7 @@ public sealed class AgentWorker(
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
-            logger.LogWarning(ex, "Das Registrierungs-Token konnte nicht aus der Konfigurationsdatei entfernt werden.");
+            logger.LogWarning(ex, "The registration token could not be removed from the configuration file.");
         }
 
         return state;
@@ -177,7 +177,7 @@ public sealed class AgentWorker(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Das Client-Zertifikat konnte nicht angefordert werden.");
+            logger.LogWarning(ex, "The client certificate could not be requested.");
         }
     }
 

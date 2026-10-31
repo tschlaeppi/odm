@@ -260,7 +260,7 @@ public sealed class DeploymentService(
             await db.SaveChangesAsync(ct); // sofort speichern: der Auftrag existiert bereits
         }
 
-        logger.LogInformation("Abgleich: {Count} Installationsaufträge eingereiht.", pending.Count(i => i.Status == InstallStatus.Running));
+        logger.LogInformation("Reconciliation: {Count} installation jobs queued.", pending.Count(i => i.Status == InstallStatus.Running));
     }
 
     /// <summary>

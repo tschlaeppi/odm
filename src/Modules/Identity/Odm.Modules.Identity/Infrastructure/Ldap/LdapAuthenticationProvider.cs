@@ -33,7 +33,7 @@ public sealed class LdapAuthenticationProvider(
 
             if (LdapRoleMapper.Map(user.Groups, options.Value) is not { } role)
             {
-                logger.LogInformation("LDAP-Benutzer '{UserName}' ist in keiner ODM-Gruppe; Anmeldung abgelehnt.", userName);
+                logger.LogInformation("LDAP user '{UserName}' is not in any ODM group; sign-in rejected.", userName);
                 return null;
             }
 
@@ -43,7 +43,7 @@ public sealed class LdapAuthenticationProvider(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "LDAP-Anmeldung für '{UserName}' fehlgeschlagen (Verzeichnis nicht erreichbar oder falsch konfiguriert).", userName);
+            logger.LogError(ex, "LDAP sign-in for '{UserName}' failed (directory unreachable or misconfigured).", userName);
             return null;
         }
     }

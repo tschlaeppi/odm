@@ -118,7 +118,7 @@ public sealed class UpdateSchedulingService(
 
         if (started > 0)
         {
-            logger.LogInformation("Wartungsfenster: {Count} Update-Läufe gestartet.", started);
+            logger.LogInformation("Maintenance windows: {Count} update runs started.", started);
         }
     }
 

@@ -99,20 +99,20 @@ public sealed class JobExecutor(
     {
         if (!_handlers.TryGetValue(job.Type, out var handler))
         {
-            logger.LogWarning("Unbekannter Auftragstyp '{Type}' (Auftrag {JobId}).", job.Type, job.Id);
+            logger.LogWarning("Unknown job type '{Type}' (job {JobId}).", job.Type, job.Id);
             return new JobResult(job.Id, false, $"Auftragstyp '{job.Type}' wird von diesem Agent nicht unterstützt.");
         }
 
         try
         {
-            logger.LogInformation("Führe Auftrag {JobId} ({Type}) aus.", job.Id, job.Type);
+            logger.LogInformation("Running job {JobId} ({Type}).", job.Id, job.Type);
             var outcome = await handler.HandleAsync(job, new JobContext(state, server, store), ct);
-            logger.LogInformation("Auftrag {JobId} beendet: {Result}.", job.Id, outcome.Success ? "erfolgreich" : "fehlgeschlagen");
+            logger.LogInformation("Job {JobId} finished: {Result}.", job.Id, outcome.Success ? "succeeded" : "failed");
             return new JobResult(job.Id, outcome.Success, outcome.Output);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Auftrag {JobId} ist fehlgeschlagen.", job.Id);
+            logger.LogError(ex, "Job {JobId} failed.", job.Id);
             return new JobResult(job.Id, false, ex.Message);
         }
     }
