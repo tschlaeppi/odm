@@ -1,60 +1,60 @@
 # Open Device Manager (ODM) – Requirements
 
-## 1. Ziel
+## 1. Goal
 
-Open Device Manager (ODM) soll eine freie Alternative zu Microsoft Configuration Manager oder Intune werden.
-Es unterstützt die IT bei der Verwaltung von Geräten.
+Open Device Manager (ODM) is to become a free alternative to Microsoft Configuration Manager or Intune.
+It supports IT in managing devices.
 
-Kernpunkte:
+Core areas:
 
-- Softwareverteilung und Lifecycle (Updates)
-- OS-Update-Management
+- Software distribution and lifecycle (updates)
+- OS update management
 
-## 2. Tech Stack
+## 2. Tech stack
 
 ### 2.1 Server
 
-| Bereich | Vorgabe |
+| Area | Requirement |
 |---|---|
-| Frontend | Webbasiert, TypeScript |
+| Frontend | Web based, TypeScript |
 | Backend | C# 10 |
-| Datenbank | PostgreSQL oder MSSQL Server |
-| Deployment | Docker oder Kubernetes |
+| Database | PostgreSQL or Microsoft SQL Server |
+| Deployment | Docker or Kubernetes |
 
-### 2.2 Client (Agent)
+### 2.2 Client (agent)
 
-- **Programmiersprache:** C# 10
-- **Unterstützte Betriebssysteme:**
-  - Windows (Server & Client)
-  - Linux (DEB- und RPM-basiert, Server & Client)
+- **Programming language:** C# 10
+- **Supported operating systems:**
+  - Windows (server and client)
+  - Linux (DEB and RPM based, server and client)
 
-## 3. Funktionale Anforderungen
+## 3. Functional requirements
 
-### 3.1 Authentisierung
+### 3.1 Authentication
 
-- Lokale Datenbank und/oder Authentisierung gegen LDAP oder einen OData-Endpoint
-- Anmeldung über OpenID Connect (z. B. Microsoft Entra ID, authentik); in der Umsetzung anstelle des OData-Endpoints
+- Local database and/or authentication against LDAP or an OData endpoint
+- Sign-in via OpenID Connect (e.g. Microsoft Entra ID, authentik); implemented instead of the OData endpoint
 
-### 3.2 Client-Verwaltung
+### 3.2 Device management
 
-- Clients können einem Hauptbenutzer zugeteilt werden
-- Clients können einer Kostenstelle zugeordnet werden
-- Clients können beliebig gruppiert werden:
-  - Nach Name (Filter: beginnt mit, endet mit, enthält)
-  - Nach OS und Version
-  - Nach Organisationseinheit des Hauptbenutzers
+- Devices can be assigned to a primary user
+- Devices can be assigned to a cost centre
+- Devices can be grouped freely:
+  - By name (filter: starts with, ends with, contains)
+  - By OS and version
+  - By organisational unit of the primary user
 
-### 3.3 Softwareverteilung
+### 3.3 Software distribution
 
-#### PSADT-Pakete
+#### PSADT packages
 
-- PSADT-Pakete (gezipptes PSADT) können ins System hochgeladen werden
-- PSADT-Pakete können einem Client oder einem User zugewiesen werden
-- Neue Versionen von PSADT-Paketen können automatisch oder manuell verteilt werden
+- PSADT packages (zipped PSADT) can be uploaded to the system
+- PSADT packages can be assigned to a device or a user
+- New versions of PSADT packages can be distributed automatically or manually
 
-#### Repo-Pakete
+#### Repository packages
 
-Repo-Pakete sind Pakete aus anderen Repositories und können im System definiert werden:
+Repository packages come from other repositories and can be defined in the system:
 
 - Winget
 - Chocolatey
@@ -63,88 +63,143 @@ Repo-Pakete sind Pakete aus anderen Repositories und können im System definiert
 - Snap
 - RPM
 
-Weitere Anforderungen:
+Further requirements:
 
-- Repo-Pakete können auf eine Version fixiert oder vom Paketmanager automatisch aktualisiert werden
-- Je nach Repo können Zusatzkommandos angegeben werden, z. B.:
-  - Winget-Pakete als System oder User verteilen
-  - Unattended-Installation zwingend
-  - Optionale Installationsargumente
-- Zusatzargumente (auch für PSADT) unterstützen Secrets
+- Repository packages can be pinned to a version or updated automatically by the package manager
+- Depending on the repository, additional options can be given, e.g.:
+  - Deploy Winget packages for the system or for the user
+  - Unattended installation is mandatory
+  - Optional installation arguments
+- Additional arguments (also for PSADT) support secrets
 
-#### Softwareprofile
+#### Software profiles
 
-- Ein Softwareprofil ist eine Anzahl von Softwarepaketen, die in einer definierten Reihenfolge installiert werden
-- Softwareprofile können einem Client oder einem User zugewiesen werden
+- A software profile is a number of software packages that are installed in a defined order
+- Software profiles can be assigned to a device or a user
 
-#### Verteilung in Tranchen
+#### Staged rollout
 
-Wird ein neues Paket einem Client oder einer Gruppe zugewiesen, ist eine Tranchenverteilung möglich:
+When a new package is assigned to a device or group, a staged rollout is possible:
 
-- Über Subgruppen, oder
-- Über Prozentwerte, z. B. 20 % nach 5 Tagen, 40 % nach 10 Tagen, 100 % nach 15 Tagen
+- Via subgroups, or
+- Via percentages, e.g. 20 % after 5 days, 40 % after 10 days, 100 % after 15 days
 
-### 3.4 OS-Updates
+### 3.4 OS updates
 
-- OS-Updates können konfiguriert werden
-- Wartungsfenster können für Clients oder Gruppen definiert werden
+- OS updates can be configured
+- Maintenance windows can be defined for devices or groups
 
-### 3.5 Agent-Installation
+### 3.5 Agent installation
 
-Als Systemadministrator möchte ich eine einfache Prozedur zur Agenteninstallation (Download-Link oder Convenience-Script),
-damit ich den Agent nicht in jeder Version selbst kompilieren muss.
+**As a system administrator** I want a simple agent installation procedure (download link or convenience script),
+so that I do not have to compile every agent version myself.
 
-Umsetzung / Akzeptanzkriterien:
+Acceptance criteria:
 
-- Fertige, selbstenthaltene Agent-Pakete (Windows x64/ARM64, Linux x64/ARM64) werden vom ODM-Server selbst zum Download
-  angeboten (auch ohne Internetzugang der Clients) und lassen sich zusätzlich als Release-Artefakte beziehen
-- Je ein Convenience-Script für Windows (PowerShell) und Linux (sh), das Paket lädt, die Prüfsumme kontrolliert, den Dienst
-  einrichtet und den Agent mit einem Registrierungs-Token anmeldet
-- Die Web-Oberfläche zeigt nach dem Erstellen eines Tokens den fertigen Installationsbefehl je Betriebssystem
-- Erneutes Ausführen des Scripts aktualisiert den Agent auf die Version des Servers (Registrierung bleibt erhalten)
-- Das Registrierungs-Token wird nach erfolgreicher Registrierung nicht mehr auf dem Gerät gespeichert
+- Ready-made, self-contained agent packages (Windows x64/ARM64, Linux x64/ARM64) are offered for download by the ODM server
+  itself (also without internet access for the clients) and are also available as release artefacts
+- One convenience script each for Windows (PowerShell) and Linux (sh) that downloads the package, verifies the checksum,
+  sets up the service and registers the agent with a registration token
+- After a token is created, the web UI shows the ready-made install command per operating system
+- Running the script again updates the agent to the server's version (the registration is kept)
+- The registration token is not kept on the device after successful registration
 
-### 3.6 Agent-Selbstaktualisierung
+### 3.6 Agent self-update
 
-**Als Systemadministrator** möchte ich, dass sich die Agents selbst auf die vom Server bereitgestellte Version aktualisieren, damit ich nicht jedes Gerät von Hand nachziehen muss.
+**As a system administrator** I want agents to update themselves to the version provided by the server,
+so that I do not have to update every device by hand.
 
-Akzeptanzkriterien:
-- Der Server steuert die Soll-Version (Aus / neueste / feste Version) und kann die Verteilung stufenweise freigeben (Prozentsatz der Geräte, stabil je Gerät)
-- Standardmäßig ist die Selbstaktualisierung ausgeschaltet
-- Der Agent erhält das Angebot im Heartbeat, lädt das Paket und prüft die SHA-256-Prüfsumme
-- Aktualisiert wird nur, wenn der Agent keine Aufträge bearbeitet
-- Ein Hilfsprozess tauscht die Programmdatei aus und startet den Dienst neu; meldet sich der neue Agent nicht, wird die alte Version wiederhergestellt und die fehlgeschlagene Version nicht erneut versucht
-- Registrierung und Zugangsdaten bleiben erhalten; Ablauf und Fehler stehen in der Logdatei des Agents
+Acceptance criteria:
 
-### 3.7 Agent-Authentisierung per Client-Zertifikat (mTLS)
+- The server controls the target version (off / latest / pinned) and can release it in stages (percentage of devices, stable per device)
+- Self-update is off by default
+- The agent receives the offer in the heartbeat, downloads the package and verifies the SHA-256 checksum
+- An update happens only when the agent is not processing jobs
+- A helper process replaces the program file and restarts the service; if the new agent does not report back, the old version is restored and the failed version is not tried again
+- Registration and credentials are kept; progress and errors are written to the agent's log file
 
-**Als Systemadministrator** möchte ich, dass sich Agents zusätzlich mit einem Client-Zertifikat ausweisen, damit ein gestohlenes Agent-Secret allein nicht genügt.
+### 3.7 Agent authentication with a client certificate (mTLS)
 
-Akzeptanzkriterien:
-- ODM betreibt eine eigene CA; der private Schlüssel eines Agents verlässt das Gerät nie (der Agent sendet nur eine Zertifikatsanforderung)
-- Das Zertifikat wird bei der Registrierung ausgestellt und vor Ablauf automatisch erneuert
-- Das Zertifikat ist an die Zugangsdaten des Geräts gebunden (Agent-ID im Subject, Fingerabdruck serverseitig gespeichert)
-- Modi: Aus (Standard) / Optional (Geräte mit Zertifikat müssen es vorzeigen) / Erforderlich
-- Ein Administrator kann die Zertifikatsbindung eines Geräts zurücksetzen
+**As a system administrator** I want agents to identify themselves additionally with a client certificate,
+so that a stolen agent secret alone is not enough.
 
-### 3.8 Deinstallation, Umbenennen, Meldungen
+Acceptance criteria:
 
-- Eine Paketzuweisung hat die Absicht „Installieren“ oder „Deinstallieren“; deinstalliert wird nur dort, wo ODM das Paket installiert hat
-- Deinstallation für PSADT (Uninstall-Modus des Pakets) und alle Repo-Paketmanager; fehlgeschlagene Läufe werden begrenzt wiederholt
-- Softwarepakete können umbenannt werden (Name bleibt eindeutig)
-- Die vollständige Meldung einer Installation ist auf der Geräte- und Paketseite lesbar (bis 64 000 Zeichen, z. B. PSADT-Protokolle)
+- ODM runs its own CA; the private key of an agent never leaves the device (the agent sends only a certificate request)
+- The certificate is issued at registration and renewed automatically before it expires
+- The certificate is bound to the device's credentials (agent ID in the subject, thumbprint stored on the server)
+- Modes: off (default) / optional (devices with a certificate must present it) / required
+- An administrator can reset the certificate binding of a device
+- A certificate is only issued over a connection on which it can later be presented (direct TLS), so enrolment cannot lock a device out
+
+### 3.8 Uninstall, renaming, messages
+
+- A package assignment has the action "install" or "uninstall"; uninstalling only happens where ODM installed the package
+- Uninstall for PSADT (uninstall mode of the package) and all repository package managers; failed runs are retried a limited number of times
+- Software packages can be renamed (the name stays unique)
+- The full message of an installation can be read on the device and package pages (up to 64,000 characters, e.g. PSADT logs)
 
 ### 3.9 Dashboard
 
-- Startseite mit Kennzahlen: Geräte, Online-Status, Geräte ohne Heartbeat (Schwelle wählbar), fehlgeschlagene Installationen
-- Verteilungen nach Betriebssystem und Agent-Version; Status der Softwareverteilung insgesamt und je Paket
-- Liste der letzten Fehler und der Geräte ohne Heartbeat mit Link zum Gerät
+- Start page with key figures: devices, online status, devices without heartbeat (selectable threshold), failed installations
+- Distributions by operating system and agent version; status of software distribution overall and per package
+- List of the latest failures and of devices without heartbeat, linking to the device
 
+### 3.10 HTTPS operation *(proposed)*
 
-- **Design:** Clean, minimalistisch, Dark-Mode-Unterstützung
-- **Sicherheit:** Passwörter müssen gehasht werden
-- **Performance:** Keine externen schweren Bibliotheken, wenn nicht nötig
-- **Mehrsprachigkeit (i18n):** Deutsch und Englisch zum Start
-- **Schnittstellen:** REST zwischen API und UI sowie zwischen API und Agent
-- **Datenablage:** PSADT-Pakete werden auf S3-Storage abgelegt
-- **Coding Conventions:** Sauber objektorientiert und modular; Start als modularer Monolith
+**As a system administrator** I want to run ODM securely over HTTPS with little effort.
+
+Acceptance criteria:
+
+- The Docker Compose setup offers an HTTPS variant (reverse proxy with automatic or provided certificates, or TLS in ODM itself)
+- The documentation describes certificate handling and the required proxy settings (forwarded headers, upload limit)
+- With a TLS-terminating reverse proxy, agent client certificates (mTLS) can still be used by forwarding the verified client certificate in a header from a trusted proxy
+
+### 3.11 Audit log *(proposed)*
+
+**As a security officer** I want to see who changed what and when.
+
+Acceptance criteria:
+
+- Security- and configuration-relevant actions are recorded: sign-in and failed sign-ins, creating / changing / deleting packages, assignments, profiles,
+  policies, windows, groups and secrets, token creation, certificate reset, role-relevant actions
+- Each entry contains time, user (or system), action, affected object and outcome; no secret values
+- Administrators can search and filter the log in the UI; entries cannot be changed through the application
+- Retention is configurable
+
+### 3.12 Notifications *(proposed)*
+
+- Alerts by e-mail and/or webhook for: failed installations after the last retry, devices without heartbeat beyond a threshold, failed OS update runs,
+  agent certificates about to expire
+- Recipients and events are configurable; alerts are sent once per event, not repeatedly
+
+### 3.13 Housekeeping and backup *(proposed)*
+
+- Configurable retention for finished jobs, update runs and audit entries; a background job removes old data
+- The documentation describes backup and restore of database, package storage, secrets key and agent CA
+
+### 3.14 Inventory and reporting *(proposed)*
+
+- Hardware and software inventory per device (installed programs and versions, not only packages distributed by ODM)
+- Reports and CSV export, e.g. devices per installed software and version, devices without a required package
+- Compliance view: devices that deviate from their assignments
+
+### 3.15 Kubernetes *(proposed)*
+
+- A Helm chart deploys ODM on Kubernetes with an external or bundled database and S3 store, ingress with TLS and secrets from the cluster
+- Health checks and several replicas are supported (stateless server; the agent CA is kept in shared storage or a secret)
+
+### 3.16 Operation as a user *(proposed)*
+
+- Package installation in the context of the signed-in user (e.g. Winget user scope), in addition to the system context
+
+## 4. Non-functional requirements
+
+- **Design:** clean, minimalist, dark mode support
+- **Security:** passwords must be hashed
+- **Performance:** no heavy external libraries unless necessary
+- **Multilingual (i18n):** German and English from the start; every UI text exists in both languages
+- **Interfaces:** REST between API and UI and between API and agent
+- **Data storage:** PSADT packages are stored on S3 storage
+- **Coding conventions:** cleanly object oriented and modular; start as a modular monolith
+- **Languages:** documentation, log messages, API messages and code comments are English; the UI is German and English
