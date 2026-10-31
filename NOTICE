@@ -2,5 +2,10 @@ Open Device Manager (ODM)
 Copyright 2026 The Open Device Manager authors
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+The agent packages (odm-agent-*.zip / *.tar.gz) additionally contain the .NET runtime,
+licensed under the MIT License; its licence and third-party notices are included as
+dotnet-LICENSE.txt and dotnet-THIRD-PARTY-NOTICES.txt. Other dependencies (NuGet and
+npm packages) keep their own licences.
+
 Parts of the source code were written with the help of an AI assistant
 (Claude, Anthropic); such commits are marked as AI-generated in the history.

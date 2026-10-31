@@ -47,6 +47,12 @@ cp deploy/odm-agent.service /etc/systemd/system/ && systemctl daemon-reload && s
 
 Credentials live in `C:\ProgramData\OpenDeviceManager` (SYSTEM / administrators only) or `/var/lib/odm-agent` (0700/0600).
 
+## Licences
+
+Every agent package contains `LICENSE` and `NOTICE` (Apache-2.0, ODM) plus `dotnet-LICENSE.txt` and `dotnet-THIRD-PARTY-NOTICES.txt` of the bundled
+.NET runtime. The installers and the self-update only use the program and `appsettings.json`; the other files stay in the package.
+If the runtime licence files cannot be found at build time, the script prints a warning and the package lacks them.
+
 ## Self-update
 
 Disabled by default. Enable it in the server configuration (restart required):

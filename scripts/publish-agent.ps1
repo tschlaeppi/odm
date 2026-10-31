@@ -21,12 +21,24 @@ try {
         & dotnet publish $project -c Release -r $rid --self-contained true `
             -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -o $dir
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish ($rid) fehlgeschlagen." }
+        # Licence texts travel with every package: ODM (Apache-2.0) and the bundled .NET runtime (MIT, third-party notices).
+        Copy-Item LICENSE, NOTICE -Destination $dir
+        $nugetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $HOME '.nuget/packages' }
+        $pack = Get-ChildItem (Join-Path $nugetRoot "microsoft.netcore.app.runtime.$rid") -Directory -ErrorAction SilentlyContinue |
+            Sort-Object { [version]($_.Name -replace '-.*$', '') } | Select-Object -Last 1
+        if ($pack -and (Test-Path (Join-Path $pack.FullName 'LICENSE.txt')) -and (Test-Path (Join-Path $pack.FullName 'THIRD-PARTY-NOTICES.TXT'))) {
+            Copy-Item (Join-Path $pack.FullName 'LICENSE.txt') (Join-Path $dir 'dotnet-LICENSE.txt')
+            Copy-Item (Join-Path $pack.FullName 'THIRD-PARTY-NOTICES.TXT') (Join-Path $dir 'dotnet-THIRD-PARTY-NOTICES.txt')
+        } else {
+            Write-Warning "Licence files of the .NET runtime pack not found for $rid; the package lacks dotnet-*.txt."
+        }
+        $extras = @('LICENSE', 'NOTICE') + @(Get-ChildItem $dir -Filter 'dotnet-*.txt' | ForEach-Object Name)
         if ($rid.StartsWith('win')) {
             $target = Join-Path $Out "odm-agent-$version-$rid.zip"
             Remove-Item $target -ErrorAction SilentlyContinue
-            Compress-Archive -Path (Join-Path $dir 'odm-agent.exe'), (Join-Path $dir 'appsettings.json') -DestinationPath $target
+            Compress-Archive -Path (@('odm-agent.exe', 'appsettings.json') + $extras | ForEach-Object { Join-Path $dir $_ }) -DestinationPath $target
         } else {
-            & tar.exe -czf (Join-Path $Out "odm-agent-$version-$rid.tar.gz") -C $dir odm-agent appsettings.json
+            & tar.exe -czf (Join-Path $Out "odm-agent-$version-$rid.tar.gz") -C $dir (@('odm-agent', 'appsettings.json') + $extras)
             if ($LASTEXITCODE -ne 0) { throw 'tar fehlgeschlagen.' }
         }
     }
