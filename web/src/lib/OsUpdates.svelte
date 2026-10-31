@@ -302,6 +302,7 @@
       </form>
     {/if}
 
+    <div class="aligned">
     <DataTable
       rows={policies}
       columns={policyColumns}
@@ -310,6 +311,7 @@
       emptyText={i18n.t('os.noPolicies')}
       pageSize={25}
     />
+    </div>
 
     <!-- Maintenance windows -->
     <h2>{i18n.t('os.windows')}</h2>
@@ -365,6 +367,7 @@
       </form>
     {/if}
 
+    <div class="aligned">
     <DataTable
       rows={windows}
       columns={windowColumns}
@@ -373,6 +376,7 @@
       emptyText={i18n.t('os.noWindows')}
       pageSize={25}
     />
+    </div>
 
     <!-- Runs -->
     <h2>{i18n.t('os.runs')}</h2>
@@ -385,23 +389,24 @@
 </section>
 
 {#snippet targets(scope: 'Policy' | 'Window', parentId: string)}
-  <div class="targets">
-    <span class="muted small">{i18n.t('os.targets')}:</span>
-    {#if (assignments[parentId] ?? []).length === 0}
-      <span class="muted small">{i18n.t('os.noTargets')}</span>
+  <div class="target-cell">
+    {#if auth.canEdit}
+      <TargetPicker label={i18n.t('os.addTarget')} onpick={(kind, target) => addTarget(scope, parentId, kind, target)} />
     {/if}
-    {#each assignments[parentId] ?? [] as a (a.id)}
-      <span class="chip">
-        {i18n.t(`target.kind.${a.targetKind}` as MessageKey)}: {a.targetName ?? a.target}
-        {#if auth.canEdit}
-          <button class="x" onclick={() => removeTarget(scope, parentId, a.id)} aria-label={i18n.t('os.removeTarget')}>✕</button>
-        {/if}
-      </span>
-    {/each}
+    <div class="targets">
+      {#if (assignments[parentId] ?? []).length === 0}
+        <span class="muted small">{i18n.t('os.noTargets')}</span>
+      {/if}
+      {#each assignments[parentId] ?? [] as a (a.id)}
+        <span class="chip">
+          {i18n.t(`target.kind.${a.targetKind}` as MessageKey)}: {a.targetName ?? a.target}
+          {#if auth.canEdit}
+            <button class="x" onclick={() => removeTarget(scope, parentId, a.id)} aria-label={i18n.t('os.removeTarget')}>✕</button>
+          {/if}
+        </span>
+      {/each}
+    </div>
   </div>
-  {#if auth.canEdit}
-    <TargetPicker label={i18n.t('os.addTarget')} onpick={(kind, target) => addTarget(scope, parentId, kind, target)} />
-  {/if}
 {/snippet}
 
 <style>
@@ -460,6 +465,17 @@
   .small {
     font-size: 0.85rem;
     margin: 0;
+  }
+  /* Controls of all columns start on the same line; plain text cells are nudged to the middle of that first line. */
+  .aligned :global(td) {
+    vertical-align: top;
+  }
+  .aligned :global(td:not(:has(select)):not(.actions)) {
+    padding-top: 0.8rem;
+  }
+  .target-cell {
+    display: grid;
+    gap: 0.5rem;
   }
   .targets {
     display: flex;
