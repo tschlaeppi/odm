@@ -6,8 +6,8 @@ using Odm.Modules.Identity.Domain;
 namespace Odm.Modules.Identity.Infrastructure.Ldap;
 
 /// <summary>
-/// Authentisierung gegen ein Verzeichnis: Benutzer suchen, Passwort per Anmeldung als dieser Benutzer prüfen,
-/// Rolle aus den Gruppen ableiten. Fehler im Verzeichnis führen immer zu "abgelehnt", nie zu "angemeldet".
+/// Authentication against a directory: find the user, verify the password by signing in as that user,
+/// derive the role from the groups. Errors in the directory always lead to "rejected", never to "signed in".
 /// </summary>
 public sealed class LdapAuthenticationProvider(
     ILdapDirectory directory, IOptions<LdapOptions> options, ILogger<LdapAuthenticationProvider> logger)
@@ -17,7 +17,7 @@ public sealed class LdapAuthenticationProvider(
 
     public async Task<AuthenticatedUser?> AuthenticateAsync(string userName, string password, CancellationToken ct)
     {
-        // Ein leeres Passwort würde bei vielen Servern als anonyme Anmeldung "gelingen".
+        // An empty password would "succeed" as an anonymous bind on many servers.
         if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrEmpty(password))
         {
             return null;

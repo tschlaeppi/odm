@@ -83,7 +83,7 @@ public class InstallationTests
         }
 
         Assert.Equal(Installation.MaxAttempts, installation.Attempts);
-        Assert.Equal(InstallStatus.Failed, installation.Status); // dauerhaft, bis jemand "Erneut versuchen" wählt
+        Assert.Equal(InstallStatus.Failed, installation.Status); // permanent until someone chooses "Retry"
 
         installation.Retry(now);
         Assert.Equal(InstallStatus.Pending, installation.Status);

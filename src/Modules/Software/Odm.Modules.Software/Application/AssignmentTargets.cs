@@ -3,10 +3,10 @@ using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.Software.Application;
 
-/// <summary>Gemeinsame Prüfung und Abbildung von Zielen und Tranchenplänen für Paket- und Profilzuweisungen.</summary>
+/// <summary>Shared validation and mapping of targets and tranche plans for package and profile assignments.</summary>
 public static class AssignmentTargets
 {
-    /// <summary>Prüft Zieltyp und Ziel (Gerät/Gruppe müssen existieren) und normalisiert die ID.</summary>
+    /// <summary>Validates target type and target (device/group must exist) and normalizes the ID.</summary>
     public static async Task<(TargetKind Kind, string Target, string? ErrorField, string? Error)> ParseAsync(
         string? kindText, string? targetText, IDeviceDirectory directory, CancellationToken ct)
     {
@@ -42,7 +42,7 @@ public static class AssignmentTargets
         return (kind, target, null, null);
     }
 
-    /// <summary>Wandelt die Eingabe in einen Plan um. Kein Plan (null) heisst: sofort an alle.</summary>
+    /// <summary>Converts the input into a plan. No plan (null) means: immediately to all.</summary>
     public static async Task<(RolloutPlan? Plan, string? Error)> ParseRolloutAsync(
         RolloutDto? dto, IDeviceDirectory directory, CancellationToken ct)
     {

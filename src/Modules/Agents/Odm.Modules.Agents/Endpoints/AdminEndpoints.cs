@@ -9,7 +9,7 @@ using Odm.SharedKernel;
 
 namespace Odm.Modules.Agents.Endpoints;
 
-/// <summary>Verwaltung von Registrierungs-Tokens und Agent-Aufträgen für die Web-Oberfläche.</summary>
+/// <summary>Management of registration tokens and agent jobs for the web UI.</summary>
 internal static class AdminEndpoints
 {
     public static void Map(IEndpointRouteBuilder endpoints)
@@ -51,8 +51,8 @@ internal static class AdminEndpoints
             return deleted == 0 ? Results.NotFound() : Results.NoContent();
         });
 
-        // Zertifikatsbindung eines Geräts aufheben (verlorener Schlüssel, abgelaufenes Zertifikat): der Agent holt sich
-        // danach mit seinem Secret ein neues Zertifikat.
+        // Remove a device's certificate binding (lost key, expired certificate): the agent then obtains
+        // a new certificate with its secret.
         endpoints.MapDelete("/agents/devices/{deviceId:guid}/certificate", async (Guid deviceId, AgentsDbContext db, CancellationToken ct) =>
             {
                 var updated = await db.Credentials
@@ -88,7 +88,7 @@ internal static class AdminEndpoints
                 return Results.ValidationProblem(errors);
             }
 
-            // Ohne registrierten Agent würde der Auftrag nie ausgeliefert.
+            // Without a registered agent the job would never be delivered.
             var hasAgent = await db.Credentials.AnyAsync(c => c.DeviceId == request.DeviceId && c.RevokedAt == null, ct);
             if (!hasAgent)
             {

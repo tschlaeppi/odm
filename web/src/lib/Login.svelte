@@ -69,7 +69,7 @@
     {#if providers.length > 0}
       <div class="divider"><span>{i18n.t('login.or')}</span></div>
       {#each providers as p (p.id)}
-        <!-- Volle Seitennavigation: der Browser wird zum Anbieter geleitet -->
+        <!-- Full page navigation: the browser is sent to the provider -->
         <a class="provider" href={`/api/auth/oidc/${p.id}/login`}>{i18n.t('login.oidc', { name: p.displayName })}</a>
       {/each}
     {/if}

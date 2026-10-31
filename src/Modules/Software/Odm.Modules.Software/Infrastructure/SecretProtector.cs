@@ -6,9 +6,9 @@ using Odm.Modules.Software.Application;
 namespace Odm.Modules.Software.Infrastructure;
 
 /// <summary>
-/// Verschlüsselt Secrets mit AES-256-GCM. Der Schlüssel kommt aus der Konfiguration (Secrets:MasterKey) und
-/// liegt nicht in der Datenbank. Der Name wird als zusätzliche authentisierte Information eingebunden,
-/// damit ein Wert nicht unter einem anderen Namen wiederverwendet werden kann.
+/// Encrypts secrets with AES-256-GCM. The key comes from the configuration (Secrets:MasterKey) and
+/// is not stored in the database. The name is included as additional authenticated data
+/// so that a value cannot be reused under a different name.
 /// Format: Nonce (12 Byte) | Tag (16 Byte) | Chiffretext.
 /// </summary>
 public sealed class SecretProtector

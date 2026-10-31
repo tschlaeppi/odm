@@ -68,7 +68,7 @@ public sealed class SoftwareModule : IModule
         await using var scope = services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<SoftwareDbContext>().MigrateOdmAsync(ct);
 
-        // Ist der Speicher beim Start nicht erreichbar, soll ODM trotzdem starten; der Upload versucht es erneut.
+        // If the storage is unreachable at startup, ODM should still start; the upload retries.
         try
         {
             await services.GetRequiredService<IPackageStorage>().EnsureBucketAsync(ct);

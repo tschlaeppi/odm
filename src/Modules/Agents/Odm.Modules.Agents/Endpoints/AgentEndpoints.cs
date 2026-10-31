@@ -11,7 +11,7 @@ using Odm.SharedKernel;
 
 namespace Odm.Modules.Agents.Endpoints;
 
-/// <summary>Protokoll zwischen Agent und Server (versioniert unter /api/agent/v1).</summary>
+/// <summary>Protocol between agent and server (versioned under /api/agent/v1).</summary>
 internal static class AgentEndpoints
 {
     private static readonly string[] OsFamilies = ["Windows", "Linux"];
@@ -43,7 +43,7 @@ internal static class AgentEndpoints
                 HttpContext http, ClaimsPrincipal principal, HeartbeatRequest request, AgentService service,
                 AgentCertificateAuthority authority, IOptions<AgentsOptions> options, CancellationToken ct) =>
             {
-                // Rechnername ist optional (ältere Agents); wenn angegeben, gelten dieselben Regeln wie bei der Registrierung.
+                // Host name is optional (older agents); if given, the same rules apply as at registration.
                 var errors = Validate(request.Hostname ?? "-", request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion);
                 if (errors.Count > 0)
                 {
@@ -56,7 +56,7 @@ internal static class AgentEndpoints
                 var mtls = principal.FindFirstValue(AgentAuthenticationHandler.MtlsClaim);
                 if (mtls == AgentAuthenticationHandler.MtlsUnenrolled && authority.Mode == AgentMtlsMode.Required)
                 {
-                    // Ohne Zertifikat gibt es im Modus "Erforderlich" weder Aufträge noch Ergebnisse, nur die Aufforderung dazu.
+                    // Without a certificate, "Required" mode delivers neither jobs nor results, only the request for one.
                     return Results.Ok(new HeartbeatResponse([], options.Value.HeartbeatSeconds, null, CertificateRequested: true));
                 }
 
@@ -65,7 +65,7 @@ internal static class AgentEndpoints
             })
             .RequireAuthorization(Policies.Agent);
 
-        // Zertifikat anfordern bzw. erneuern. Ohne bisheriges Zertifikat genügt das Secret (einmalig), danach nur noch mit Zertifikat.
+        // Request or renew a certificate. Without a previous certificate the secret is enough (once), afterwards only with a certificate.
         group.MapPost("/certificate", async (
                 HttpContext http, ClaimsPrincipal principal, CertificateRequestDto request, AgentService service,
                 AgentCertificateAuthority authority, CancellationToken ct) =>
@@ -77,13 +77,13 @@ internal static class AgentEndpoints
 
                 if (!IsDirectTls(http))
                 {
-                    // Ein Zertifikat, das über diese Verbindung nicht vorgezeigt werden kann, würde das Gerät aussperren.
+                    // A certificate that cannot be presented over this connection would lock the device out.
                     return Results.Problem("Certificates are only issued over a direct TLS connection to ODM.", statusCode: 400);
                 }
 
                 if (string.IsNullOrWhiteSpace(request.Csr) || request.Csr.Length > 4000)
                 {
-                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["csr"] = ["Ungültig."] });
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["csr"] = ["Invalid."] });
                 }
 
                 var agentId = Guid.Parse(principal.FindFirstValue("agent_id")!);
@@ -100,11 +100,11 @@ internal static class AgentEndpoints
             .RequireAuthorization(Policies.Agent);
     }
 
-    /// <summary>TLS wird von ODM selbst beendet (nur dann kann ein Client-Zertifikat ankommen).</summary>
+    /// <summary>TLS is terminated by ODM itself (only then can a client certificate arrive).</summary>
     private static bool IsDirectTls(HttpContext http) =>
         http.Features.Get<Microsoft.AspNetCore.Http.Features.ITlsConnectionFeature>() is not null;
 
-    /// <summary>Soll der Agent ein (neues) Zertifikat anfordern? Wenn er keines hat oder es bald abläuft.</summary>
+    /// <summary>Should the agent request a (new) certificate? If it has none or it expires soon.</summary>
     private static bool CertificateWanted(HttpContext http, ClaimsPrincipal principal, AgentCertificateAuthority authority, AgentMtlsOptions options)
     {
         if (!authority.Enabled || !IsDirectTls(http))
@@ -126,11 +126,11 @@ internal static class AgentEndpoints
         string? hostname, string? osFamily, string? osName, string? osVersion, string? agentVersion)
     {
         var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(hostname) || hostname.Length > 255) errors["hostname"] = ["Ungültig."];
+        if (string.IsNullOrWhiteSpace(hostname) || hostname.Length > 255) errors["hostname"] = ["Invalid."];
         if (osFamily is null || !OsFamilies.Contains(osFamily, StringComparer.OrdinalIgnoreCase)) errors["osFamily"] = ["Windows or Linux."];
-        if (string.IsNullOrWhiteSpace(osName) || osName.Length > 128) errors["osName"] = ["Ungültig."];
-        if (osVersion is null || osVersion.Length > 64) errors["osVersion"] = ["Ungültig."];
-        if (agentVersion is null || agentVersion.Length > 32) errors["agentVersion"] = ["Ungültig."];
+        if (string.IsNullOrWhiteSpace(osName) || osName.Length > 128) errors["osName"] = ["Invalid."];
+        if (osVersion is null || osVersion.Length > 64) errors["osVersion"] = ["Invalid."];
+        if (agentVersion is null || agentVersion.Length > 32) errors["agentVersion"] = ["Invalid."];
         return errors;
     }
 }

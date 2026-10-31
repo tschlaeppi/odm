@@ -4,8 +4,8 @@ using Odm.Agent.Update;
 namespace Odm.Agent;
 
 /// <summary>
-/// Hauptschleife: registriert den Agent (einmalig) und meldet sich regelmässig beim Server.
-/// Ausgelieferte Aufträge übergibt er dem <see cref="JobExecutor"/>. Fehler führen zu wachsender Wartezeit.
+/// Main loop: registers the agent (once) and reports to the server regularly.
+/// Delivered jobs are handed to the <see cref="JobExecutor"/>. Errors lead to growing wait times.
 /// </summary>
 public sealed class AgentWorker(
     IOptions<AgentOptions> options,
@@ -29,7 +29,7 @@ public sealed class AgentWorker(
             {
                 if (delay > TimeSpan.Zero)
                 {
-                    // Wacht vorzeitig auf, wenn ein Auftrag fertig ist, damit das Ergebnis sofort gemeldet wird.
+                    // Wakes up early when a job has finished so that the result is reported immediately.
                     await executor.WaitAsync(delay, stoppingToken);
                 }
 
@@ -62,7 +62,7 @@ public sealed class AgentWorker(
 
         var info = systemInfo.Collect();
 
-        // Bei https gleich ein Schlüsselpaar erzeugen und die Zertifikatsanforderung mitschicken (mTLS, falls der Server es verlangt).
+        // With https, create a key pair right away and send the certificate request along (mTLS, if the server requires it).
         System.Security.Cryptography.ECDsa? key = null;
         string? csr = null;
         if (options.Value.ServerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -114,7 +114,7 @@ public sealed class AgentWorker(
         return state;
     }
 
-    /// <summary>Sendet den Heartbeat und liefert die Wartezeit bis zum nächsten.</summary>
+    /// <summary>Sends the heartbeat and returns the wait time until the next one.</summary>
     private async Task<TimeSpan> HeartbeatAsync(AgentState state, CancellationToken ct)
     {
         var info = systemInfo.Collect();
@@ -141,7 +141,7 @@ public sealed class AgentWorker(
             await RequestCertificateAsync(state, ct);
         }
 
-        // Update nur, wenn der Agent nichts zu tun hat (keine laufenden Aufträge, keine offenen Ergebnisse).
+        // Update only when the agent has nothing to do (no running jobs, no pending results).
         if (response.Update is { } offer && executor.ActiveJobIds().Count == 0 && executor.PendingResults().Count == 0)
         {
             await updater.TryUpdateAsync(offer, ct);
@@ -152,7 +152,7 @@ public sealed class AgentWorker(
 
     private DateTimeOffset _lastCertificateAttempt = DateTimeOffset.MinValue;
 
-    /// <summary>Holt bzw. erneuert das Client-Zertifikat (neuer Schlüssel); höchstens alle 10 Minuten, Fehler stoppen den Agent nicht.</summary>
+    /// <summary>Fetches or renews the client certificate (new key); at most every 10 minutes, errors do not stop the agent.</summary>
     private async Task RequestCertificateAsync(AgentState state, CancellationToken ct)
     {
         if (DateTimeOffset.UtcNow - _lastCertificateAttempt < TimeSpan.FromMinutes(10))
@@ -162,7 +162,7 @@ public sealed class AgentWorker(
 
         if (!options.Value.ServerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            return; // über http lässt sich kein Client-Zertifikat vorzeigen
+            return; // a client certificate cannot be presented over http
         }
 
         _lastCertificateAttempt = DateTimeOffset.UtcNow;
@@ -181,7 +181,7 @@ public sealed class AgentWorker(
         }
     }
 
-    // 5 s, 10 s, 20 s ... maximal 5 Minuten, plus bis zu 20 % Zufall gegen gleichzeitige Wiederholungen.
+    // 5 s, 10 s, 20 s ... at most 5 minutes, plus up to 20 % random jitter against simultaneous retries.
     private static TimeSpan Backoff(int failures)
     {
         var seconds = Math.Min(300, 5 * Math.Pow(2, Math.Min(failures - 1, 6)));

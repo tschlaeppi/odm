@@ -86,7 +86,7 @@ public class OidcTests
         Assert.Matches("^[A-Za-z0-9_-]+$", Pkce.NewToken());
     }
 
-    // ---- Anmeldezustand im Cookie ----
+    // ---- Sign-in state in the cookie ----
 
     private static OidcStateProtector Protector(string secret = "a-long-test-secret-with-at-least-32-chars!") =>
         new(Microsoft.Extensions.Options.Options.Create(new JwtOptions { Secret = secret }));
@@ -107,7 +107,7 @@ public class OidcTests
         var cookie = protector.Protect(new OidcLoginState("authentik", "s", "n", "v"));
 
         var parts = cookie.Split('.');
-        parts[1] = (parts[1][0] == 'A' ? 'B' : 'A') + parts[1][1..]; // Inhalt verändert, Signatur bleibt
+        parts[1] = (parts[1][0] == 'A' ? 'B' : 'A') + parts[1][1..]; // content altered, signature stays
         Assert.Null(await protector.UnprotectAsync(string.Join('.', parts)));
         Assert.Null(await Protector("another-secret-another-secret-123456").UnprotectAsync(cookie));
         Assert.Null(await protector.UnprotectAsync(""));
@@ -118,7 +118,7 @@ public class OidcTests
     [Fact]
     public async Task State_cookie_is_not_a_valid_api_token()
     {
-        // Gleiches Secret, aber anderer abgeleiteter Schlüssel: das Cookie darf nie als API-Token durchgehen.
+        // Same secret, but a different derived key: the cookie must never pass as an API token.
         const string secret = "a-long-test-secret-with-at-least-32-chars!";
         var cookie = Protector(secret).Protect(new OidcLoginState("authentik", "s", "n", "v"));
 

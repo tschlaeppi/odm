@@ -6,12 +6,12 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Odm.Modules.Identity.Infrastructure.Oidc;
 
-/// <summary>Der geprüfte Benutzer aus einem ID-Token.</summary>
+/// <summary>The validated user from an ID token.</summary>
 public sealed record OidcIdentity(string Subject, string UserName, string DisplayName, IReadOnlyList<string> GroupValues);
 
 /// <summary>
-/// Prüft ein ID-Token: Signatur (Schlüssel des Anbieters), Aussteller, Empfänger (unsere Client-ID), Ablauf und nonce.
-/// Getrennt vom Netzwerk, damit es mit eigenen Schlüsseln testbar ist.
+/// Validates an ID token: signature (provider's key), issuer, audience (our client ID), expiry and nonce.
+/// Separate from the network so that it can be tested with own keys.
 /// </summary>
 public static class OidcIdTokenValidator
 {
@@ -30,7 +30,7 @@ public static class OidcIdTokenValidator
             ValidIssuer = discovery.Issuer,
             ValidAudience = provider.ClientId,
             IssuerSigningKeys = discovery.SigningKeys,
-            // Nur asymmetrische Verfahren: ein Token mit "HS256" oder "none" wird nie akzeptiert.
+            // Asymmetric algorithms only: a token with "HS256" or "none" is never accepted.
             ValidAlgorithms = AsymmetricAlgorithms,
             RequireSignedTokens = true,
             RequireExpirationTime = true,
@@ -69,7 +69,7 @@ public static class OidcIdTokenValidator
         return new OidcIdentity(subject, userName, string.IsNullOrEmpty(display) ? userName : display, groups);
     }
 
-    /// <summary>Zeitkonstanter Vergleich, damit state/nonce nicht über die Antwortzeit erraten werden können.</summary>
+    /// <summary>Constant-time comparison so that state/nonce cannot be guessed from the response time.</summary>
     public static bool FixedTimeEquals(string a, string b)
     {
         var x = Encoding.UTF8.GetBytes(a);

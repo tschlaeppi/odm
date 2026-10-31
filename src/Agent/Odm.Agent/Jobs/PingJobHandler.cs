@@ -1,6 +1,6 @@
 namespace Odm.Agent.Jobs;
 
-/// <summary>Testauftrag: prüft den gesamten Weg Server → Agent → Server.</summary>
+/// <summary>Test job: checks the whole path server → agent → server.</summary>
 public sealed class PingJobHandler : IJobHandler
 {
     public string Type => "ping";

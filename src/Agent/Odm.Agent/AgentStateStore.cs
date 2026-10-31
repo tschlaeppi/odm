@@ -6,12 +6,12 @@ using Microsoft.Extensions.Options;
 
 namespace Odm.Agent;
 
-/// <summary>Zugangsdaten, die nach der Registrierung lokal gespeichert werden.</summary>
+/// <summary>Credentials stored locally after registration.</summary>
 public sealed record AgentState(Guid AgentId, string Secret, Guid DeviceId);
 
 /// <summary>
-/// Speichert den Agent-Zustand. Die Datei enthält das Agent-Secret und ist deshalb nur für
-/// den Dienstkonto-Kontext lesbar (Linux: 0600/0700, Windows: nur SYSTEM und Administratoren).
+/// Stores the agent state. The file contains the agent secret and is therefore readable only in
+/// the service account context (Linux: 0600/0700, Windows: SYSTEM and administrators only).
 /// </summary>
 public sealed class AgentStateStore
 {
@@ -47,7 +47,7 @@ public sealed class AgentStateStore
         Directory.CreateDirectory(_directory);
         Restrict(_directory);
 
-        // Atomar schreiben: erst temporär, dann ersetzen.
+        // Write atomically: first to a temporary file, then replace.
         var temp = _file + ".tmp";
         await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(state, Json), ct);
         if (!OperatingSystem.IsWindows())
@@ -59,9 +59,9 @@ public sealed class AgentStateStore
     }
 
     /// <summary>
-    /// Legt ein Arbeitsverzeichnis für einen Auftrag an. Es liegt unterhalb des geschützten Zustandsverzeichnisses,
-    /// nicht im öffentlich beschreibbaren Temp-Ordner: sonst könnten lokale Benutzer Paketdateien austauschen,
-    /// die anschliessend mit SYSTEM-Rechten ausgeführt werden.
+    /// Creates a working directory for a job. It lies below the protected state directory,
+    /// not in the world-writable temp folder: otherwise local users could swap package files
+    /// that are then executed with SYSTEM rights.
     /// </summary>
     public string CreateWorkDirectory(Guid jobId)
     {
@@ -78,21 +78,21 @@ public sealed class AgentStateStore
         return path;
     }
 
-    /// <summary>Standard-Zustandsverzeichnis je Betriebssystem (vom Installationsskript angelegt und geschützt).</summary>
+    /// <summary>Default state directory per operating system (created and protected by the install script).</summary>
     public static string DefaultDirectory() =>
         OperatingSystem.IsWindows()
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "OpenDeviceManager")
             : "/var/lib/odm-agent";
 
     /// <summary>
-    /// Konfigurationsdatei des Installationsskripts (Agent:ServerUrl und das einmalige Agent:RegistrationToken).
-    /// Sie liegt im geschützten Zustandsverzeichnis, nicht neben dem Programm, damit normale Benutzer das Token nicht lesen können.
+    /// Configuration file of the install script (Agent:ServerUrl and the one-time Agent:RegistrationToken).
+    /// It lives in the protected state directory, not next to the program, so that normal users cannot read the token.
     /// </summary>
     public static string ConfigFile => Path.Combine(DefaultDirectory(), "agent.json");
 
     /// <summary>
-    /// Entfernt das Registrierungs-Token aus der Konfigurationsdatei. Es ist nach der Registrierung wertlos
-    /// (Einmal-Token) und soll nicht länger auf dem Gerät liegen.
+    /// Removes the registration token from the configuration file. It is worthless after registration
+    /// (one-time token) and should no longer be kept on the device.
     /// </summary>
     public async Task ClearRegistrationTokenAsync(CancellationToken ct)
     {

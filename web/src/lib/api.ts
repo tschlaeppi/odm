@@ -87,7 +87,7 @@ export interface JobDto {
 
 export type PackageKind = 'Psadt' | 'Winget' | 'Chocolatey' | 'Apt' | 'Rpm' | 'Flatpak' | 'Snap'
 
-/** Paketeinstellungen; welche Felder gelten, hängt von der Art ab. */
+/** Package settings; which fields apply depends on the kind. */
 export interface PackageSpec {
   identifier: string | null
   version: string | null
@@ -139,7 +139,7 @@ export type VersionPolicy = 'Latest' | 'Pinned'
 
 export type RolloutMode = 'Percent' | 'Groups'
 
-/** Eine Stufe der Tranchenverteilung: je nach Modus mit Prozentwert oder Untergruppe. */
+/** A stage of the tranche rollout: depending on the mode with a percentage or a subgroup. */
 export interface RolloutStage {
   afterDays: number
   percent: number | null
@@ -358,14 +358,14 @@ export interface PagedResult<T> {
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
-    /** Erste Fehlermeldung des Servers (bei Validierungsfehlern), sonst undefined. */
+    /** First error message from the server (for validation errors), otherwise undefined. */
     public readonly detail?: string,
   ) {
     super(`HTTP ${status}`)
   }
 }
 
-/** Liest die erste Meldung aus einer ASP.NET-ProblemDetails-Antwort (errors: { feld: [meldung] }). */
+/** Reads the first message from an ASP.NET ProblemDetails response (errors: { field: [message] }). */
 function firstProblemMessage(text: string): string | undefined {
   try {
     const body = JSON.parse(text) as { errors?: Record<string, string[]> }
@@ -400,7 +400,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T
 }
 
-/** Upload mit Fortschrittsanzeige (fetch kann den Upload-Fortschritt nicht melden). */
+/** Upload with progress display (fetch cannot report upload progress). */
 export function uploadVersion(
   packageId: string,
   version: string,
@@ -462,7 +462,7 @@ export const api = {
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ userName, password }) }),
   me: () => request<UserDto>('/auth/me'),
   oidcProviders: () => request<OidcProviderDto[]>('/auth/oidc/providers'),
-  /** Benutzer zu einem frisch erhaltenen Token (die Sitzung ist zu diesem Zeitpunkt noch nicht gesetzt). */
+  /** User for a freshly obtained token (the session is not set yet at this point). */
   meWithToken: async (token: string): Promise<UserDto> => {
     const response = await fetch('/api/auth/me', {
       headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },

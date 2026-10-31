@@ -27,7 +27,7 @@ public class PackageSpecTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("--force")]      // darf nicht als Option des Paketmanagers gedeutet werden
+    [InlineData("--force")]      // must not be interpreted as an option of the package manager
     [InlineData("-y")]
     [InlineData("name with space")]
     [InlineData("name;rm -rf")]
@@ -41,7 +41,7 @@ public class PackageSpecTests
 
     [Theory]
     [InlineData("1.2.3", true)]
-    [InlineData("2:1.0-1ubuntu1~22.04", true)] // APT-Version mit Epoche und Tilde
+    [InlineData("2:1.0-1ubuntu1~22.04", true)] // APT version with epoch and tilde
     [InlineData("-1", false)]
     [InlineData("1 2", false)]
     public void Version_format(string version, bool valid)

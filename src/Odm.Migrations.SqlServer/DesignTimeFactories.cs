@@ -9,8 +9,8 @@ using Odm.SharedKernel.Persistence;
 
 namespace Odm.Migrations.SqlServer;
 
-// Je Modul eine Fabrik, die 'dotnet ef' für SQL Server verwendet (die Fabriken in den Modulen gelten für Postgres).
-// Die Verbindung kommt aus ODM_DB; zum Erzeugen von Migrationen wird keine Datenbank gebraucht.
+// One factory per module that 'dotnet ef' uses for SQL Server (the factories in the modules apply to PostgreSQL).
+// The connection comes from ODM_DB; no database is needed to create migrations.
 
 internal sealed class IdentityFactory : IDesignTimeDbContextFactory<IdentityDbContext>
 {

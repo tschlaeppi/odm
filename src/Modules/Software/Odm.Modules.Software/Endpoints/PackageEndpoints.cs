@@ -85,7 +85,7 @@ internal static partial class PackageEndpoints
                 var package = SoftwarePackage.Create(name, request.Description, kind, spec);
                 db.Packages.Add(package);
 
-                // Repo-Pakete haben keine Datei: die erste Revision macht sie direkt zuweisbar.
+                // Repo packages have no file: the first revision makes them directly assignable.
                 if (kind.IsRepo())
                 {
                     db.Versions.Add(PackageVersion.CreateRevision(package.Id, RevisionLabel(spec, 1), spec));
@@ -98,8 +98,8 @@ internal static partial class PackageEndpoints
             })
             .RequireAuthorization(Policies.Operator);
 
-        // Beschreibung und Einstellungen ändern. Bei Repo-Paketen entsteht dabei eine neue Revision,
-        // sodass alle zugewiesenen Geräte auf die neue Konfiguration abgeglichen werden.
+        // Change description and settings. For repo packages this creates a new revision,
+        // so that all assigned devices are reconciled to the new configuration.
         group.MapPut("/{id:guid}", async (
                 Guid id, UpdatePackageRequest request, SoftwareDbContext db, DeploymentTrigger trigger, CancellationToken ct) =>
             {
@@ -152,7 +152,7 @@ internal static partial class PackageEndpoints
             })
             .RequireAuthorization(Policies.Operator);
 
-        // Paket samt Versionen, Zuweisungen und Installationseinträgen löschen. Bereits installierte Software bleibt auf den Geräten.
+        // Delete the package including versions, assignments and installation entries. Software already installed stays on the devices.
         group.MapDelete("/{id:guid}", async (
                 Guid id, SoftwareDbContext db, IPackageStorage storage, ILogger<SoftwareModule> logger, CancellationToken ct) =>
             {
@@ -190,7 +190,7 @@ internal static partial class PackageEndpoints
                 Guid id, HttpRequest http, SoftwareDbContext db, IPackageStorage storage,
                 DeploymentTrigger trigger, CancellationToken ct) =>
             {
-                // Kestrel begrenzt Anfragen standardmässig auf 30 MB; für Pakete ist das Limit konfigurierbar.
+                // Kestrel limits requests to 30 MB by default; for packages the limit is configurable.
                 var sizeFeature = http.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
                 if (sizeFeature is { IsReadOnly: false })
                 {
@@ -233,7 +233,7 @@ internal static partial class PackageEndpoints
                     return Results.Conflict();
                 }
 
-                // Erst lokal zwischenspeichern: Prüfsumme und ZIP-Prüfung brauchen die ganze Datei, S3 die Länge.
+                // Buffer locally first: checksum and ZIP check need the whole file, S3 needs the length.
                 var temp = Path.GetTempFileName();
                 try
                 {
@@ -263,14 +263,14 @@ internal static partial class PackageEndpoints
                         var entity = PackageVersion.Create(versionId, id, version, key, file.Length, sha256, notes);
                         db.Versions.Add(entity);
                         await db.SaveChangesAsync(ct);
-                        trigger.Request(); // Zuweisungen mit "neueste Version" sollen sofort aktualisiert werden
+                        trigger.Request(); // assignments with "latest version" should be updated immediately
 
                         return Results.Created($"/api/software/packages/{id}",
                             new VersionDto(entity.Id, entity.Version, entity.SizeBytes, entity.Sha256, entity.Notes, entity.UploadedAt));
                     }
                     catch
                     {
-                        await storage.DeleteAsync(key, CancellationToken.None); // kein verwaistes Objekt hinterlassen
+                        await storage.DeleteAsync(key, CancellationToken.None); // leave no orphaned object behind
                         throw;
                     }
                 }
@@ -280,7 +280,7 @@ internal static partial class PackageEndpoints
                 }
             })
             .RequireAuthorization(Policies.Operator)
-            // Bearer-Token statt Cookies: kein CSRF-Risiko, daher ist Antiforgery hier nicht nötig.
+            // Bearer token instead of cookies: no CSRF risk, so antiforgery is not needed here.
             .DisableAntiforgery();
     }
 

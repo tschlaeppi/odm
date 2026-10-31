@@ -69,7 +69,7 @@ public class AgentUpdatePlannerTests : IDisposable
     [InlineData("linux-x64", null)]
     [InlineData("osx-arm64", "0.4.0")]
     [InlineData("linux-x64", "abc")]
-    [InlineData("linux-arm64", "0.4.0")] // keine Datei für diese Plattform
+    [InlineData("linux-arm64", "0.4.0")] // no file for this platform
     public void Invalid_or_unknown_input_yields_no_offer(string? platform, string? version)
     {
         var catalog = Catalog("odm-agent-0.5.0-linux-x64.tar.gz");

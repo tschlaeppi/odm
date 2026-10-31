@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    SQL-Server-Migrationen aller Module. Migrationen sind providerspezifisch: Postgres behält seine in den Modulen,
-    SQL Server hat dieses Projekt (UseOdmDatabase lädt es nur bei Database:Provider = SqlServer).
+    SQL Server migrations of all modules. Migrations are provider-specific: PostgreSQL keeps its own in the modules,
+    SQL Server has this project (UseOdmDatabase loads it only when Database:Provider = SqlServer).
     Erzeugen: scripts/ef-sqlserver.ps1 bzw. scripts/ef-sqlserver.sh
   -->
   <ItemGroup>

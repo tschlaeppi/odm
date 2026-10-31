@@ -16,8 +16,8 @@ public enum WeekDays
 }
 
 /// <summary>
-/// Wiederkehrendes Wochen-Zeitfenster in einer Zeitzone, in dem Updates installiert werden dürfen.
-/// Fenster dürfen über Mitternacht reichen. Maximale Dauer: 24 Stunden.
+/// Recurring weekly time window in a time zone in which updates may be installed.
+/// Windows may extend past midnight. Maximum duration: 24 hours.
 /// </summary>
 public sealed class MaintenanceWindow : Entity
 {
@@ -27,12 +27,12 @@ public sealed class MaintenanceWindow : Entity
     public string Name { get; private set; } = "";
     public WeekDays Days { get; private set; }
 
-    /// <summary>Beginn in Minuten nach Mitternacht (Ortszeit der Zeitzone), 0-1439.</summary>
+    /// <summary>Start in minutes after midnight (local time of the time zone), 0-1439.</summary>
     public int StartMinutes { get; private set; }
 
     public int DurationMinutes { get; private set; }
 
-    /// <summary>IANA-Name, z. B. "Europe/Zurich". Sommerzeit wird berücksichtigt.</summary>
+    /// <summary>IANA name, e.g. "Europe/Zurich". Daylight saving time is taken into account.</summary>
     public string TimeZoneId { get; private set; } = "UTC";
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -59,13 +59,13 @@ public sealed class MaintenanceWindow : Entity
 
     public static bool IsValidTimeZone(string id) => TimeZoneInfo.TryFindSystemTimeZoneById(id, out _);
 
-    /// <summary>Liegt der Zeitpunkt in einem Fenster? Wenn ja: Beginn und Ende dieses Auftretens (UTC).</summary>
+    /// <summary>Is the point in time inside a window? If so: start and end of this occurrence (UTC).</summary>
     public bool TryGetOccurrence(DateTimeOffset now, out DateTimeOffset start, out DateTimeOffset end)
     {
         var zone = TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
         var localNow = TimeZoneInfo.ConvertTime(now, zone).DateTime;
 
-        // Heute und gestern prüfen: ein gestern begonnenes Fenster kann über Mitternacht bis heute reichen.
+        // Check today and yesterday: a window that started yesterday can extend past midnight into today.
         for (var offset = 0; offset >= -1; offset--)
         {
             var date = localNow.Date.AddDays(offset);
@@ -77,7 +77,7 @@ public sealed class MaintenanceWindow : Entity
             var startLocal = date.AddMinutes(StartMinutes);
             if (zone.IsInvalidTime(startLocal))
             {
-                startLocal = startLocal.AddHours(1); // Lücke bei Beginn der Sommerzeit
+                startLocal = startLocal.AddHours(1); // gap at the start of daylight saving time
             }
 
             var startUtc = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(startLocal, zone), TimeSpan.Zero);

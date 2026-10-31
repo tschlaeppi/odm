@@ -13,8 +13,8 @@ using Odm.Modules.Agents.Domain;
 namespace Odm.Modules.Agents.Infrastructure;
 
 /// <summary>
-/// Authentisiert Agents über den Header "Authorization: Agent {agentId}.{secret}".
-/// Eigenes Schema, damit Agent-Zugangsdaten nie für Benutzer-Endpunkte gelten (und umgekehrt).
+/// Authenticates agents through the header "Authorization: Agent {agentId}.{secret}".
+/// Own scheme so that agent credentials never apply to user endpoints (and vice versa).
 /// </summary>
 public sealed class AgentAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -78,8 +78,8 @@ public sealed class AgentAuthenticationHandler(
         }
         else if (credential.CertThumbprint is null)
         {
-            // Noch kein Zertifikat ausgestellt: nur das Secret zählt. Im Modus "Erforderlich" darf der Agent dann
-            // lediglich Heartbeat und Zertifikatsanforderung aufrufen (kein Zugriff auf Aufträge, Pakete, Secrets).
+            // No certificate issued yet: only the secret counts. In "Required" mode the agent may then
+            // call only heartbeat and certificate request (no access to jobs, packages, secrets).
             if (authority.Mode == AgentMtlsMode.Required && !IsBootstrapPath(Request.Path))
             {
                 return AuthenticateResult.Fail("Client certificate required.");
@@ -89,7 +89,7 @@ public sealed class AgentAuthenticationHandler(
         }
         else
         {
-            // Wer ein Zertifikat hat, muss es immer vorweisen; ein gestohlenes Secret allein genügt dann nicht mehr.
+            // Whoever has a certificate must always present it; a stolen secret alone is no longer enough.
             var certificate = await Context.Connection.GetClientCertificateAsync(Context.RequestAborted);
             if (certificate is null ||
                 !authority.IsValid(certificate, credential.Id, credential.CertThumbprint, DateTimeOffset.UtcNow))

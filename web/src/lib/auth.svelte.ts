@@ -25,7 +25,7 @@ export type OidcError = 'failed' | 'denied'
 class AuthStore {
   session = $state<Session | null>(loadSession())
 
-  /** Fehler der letzten Anmeldung über einen externen Anbieter (für die Anmeldeseite). */
+  /** Error of the last sign-in through an external provider (for the sign-in page). */
   oidcError = $state<OidcError | null>(null)
 
   get isAuthenticated() {
@@ -36,7 +36,7 @@ class AuthStore {
     return this.session?.user ?? null
   }
 
-  /** Operatoren und Administratoren dürfen ändern (serverseitig ebenfalls erzwungen). */
+  /** Operators and administrators may change things (also enforced server-side). */
   get canEdit() {
     const role = this.session?.user.role
     return role === 'Admin' || role === 'Operator'
@@ -50,13 +50,13 @@ class AuthStore {
   async login(userName: string, password: string) {
     const response = await api.login(userName, password)
     this.session = response
-    // sessionStorage: nur für die Dauer des Browser-Tabs
+    // sessionStorage: only for the lifetime of the browser tab
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(response))
   }
 
   /**
-   * Rückkehr von der Anmeldung über einen externen Anbieter: Der Server leitet mit "#/oidc?token=…" bzw.
-   * "#/login?oidc=…" zurück. Das Token wird sofort aus der Adresse entfernt, damit es nicht im Verlauf bleibt.
+   * Return from sign-in through an external provider: the server redirects with "#/oidc?token=…" or
+   * "#/login?oidc=…". The token is removed from the address immediately so that it does not stay in the history.
    */
   async handleOidcReturn() {
     const hash = location.hash

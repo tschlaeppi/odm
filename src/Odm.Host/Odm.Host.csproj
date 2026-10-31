@@ -6,11 +6,11 @@
     <ProjectReference Include="..\Modules\Agents\Odm.Modules.Agents\Odm.Modules.Agents.csproj" />
     <ProjectReference Include="..\Modules\Software\Odm.Modules.Software\Odm.Modules.Software.csproj" />
     <ProjectReference Include="..\Modules\OsUpdates\Odm.Modules.OsUpdates\Odm.Modules.OsUpdates.csproj" />
-    <!-- SQL-Server-Migrationen: wird nur geladen, wenn Database:Provider = SqlServer -->
+    <!-- SQL Server migrations: only loaded when Database:Provider = SqlServer -->
     <ProjectReference Include="..\Odm.Migrations.SqlServer\Odm.Migrations.SqlServer.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Startprojekt für 'dotnet ef' (scripts/ef-sqlserver.*) -->
+    <!-- Startup project for 'dotnet ef' (scripts/ef-sqlserver.*) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

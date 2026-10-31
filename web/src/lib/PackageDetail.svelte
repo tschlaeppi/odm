@@ -38,7 +38,7 @@
   let loading = $state(true)
   let timer: ReturnType<typeof setInterval> | undefined
 
-  // Einstellungen (Zusatzargumente; bei Repo-Paketen auch Bezeichner, Version usw.)
+  // Settings (additional arguments; for repo packages also identifier, version etc.)
   let spec = $state(emptySpec('Psadt'))
   let secretNames = $state<string[]>([])
   let configMessage = $state<string | null>(null)
@@ -79,7 +79,7 @@
     try {
       assignments = await api.assignments(id)
     } catch {
-      /* wird beim nächsten Aufruf erneut versucht */
+      /* retried on the next call */
     }
   }
 
@@ -87,7 +87,7 @@
     try {
       installations = await api.installations(id)
     } catch {
-      /* wird beim nächsten Aufruf erneut versucht */
+      /* retried on the next call */
     }
   }
 
@@ -109,7 +109,7 @@
 
   onDestroy(() => clearInterval(timer))
 
-  // Gerätesuche für die Zuweisung (verzögert)
+  // Device search for the assignment (debounced)
   $effect(() => {
     const term = deviceSearch.trim()
     if (targetKind !== 'Device' || term.length < 2) {
@@ -178,7 +178,7 @@
     try {
       await api.updatePackageAssignment(assignment.id, newPolicy, pin, assignment.rollout, assignment.intent)
     } catch {
-      /* Anzeige wird unten neu geladen */
+      /* display is reloaded below */
     }
     await loadAssignments()
   }
@@ -189,7 +189,7 @@
         assignment.id, assignment.versionPolicy, assignment.pinnedVersionId, assignment.rollout, newIntent,
       )
     } catch {
-      /* Anzeige wird unten neu geladen */
+      /* display is reloaded below */
     }
     await loadAssignments()
   }

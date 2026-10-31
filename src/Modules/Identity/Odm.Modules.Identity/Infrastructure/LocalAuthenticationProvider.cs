@@ -4,10 +4,10 @@ using Odm.Modules.Identity.Domain;
 
 namespace Odm.Modules.Identity.Infrastructure;
 
-/// <summary>Authentisierung gegen die lokale Datenbank.</summary>
+/// <summary>Authentication against the local database.</summary>
 public sealed class LocalAuthenticationProvider(IdentityDbContext db, IPasswordHasher hasher) : IAuthenticationProvider
 {
-    // Gegen Timing-Angriffe zur Benutzer-Enumeration: auch bei unbekanntem Benutzer wird gehasht.
+    // Against timing attacks for user enumeration: hash even for an unknown user.
     private static string? _dummyHash;
 
     public string Name => "local";

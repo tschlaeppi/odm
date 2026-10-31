@@ -1,6 +1,6 @@
 namespace Odm.Modules.Software.Application;
 
-/// <summary>Weckt den Abgleich sofort auf (z. B. nach neuer Zuweisung), statt bis zum nächsten Intervall zu warten.</summary>
+/// <summary>Wakes the reconciliation up immediately (e.g. after a new assignment) instead of waiting for the next interval.</summary>
 public sealed class DeploymentTrigger
 {
     private readonly SemaphoreSlim _signal = new(0);

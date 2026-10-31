@@ -8,9 +8,9 @@ using System.Text.RegularExpressions;
 namespace Odm.Agent.Update;
 
 /// <summary>
-/// Selbstaktualisierung: lädt das vom Server angebotene Paket, prüft die SHA-256-Prüfsumme, entpackt es in ein
-/// Staging-Verzeichnis und übergibt den Austausch an ein Hilfsskript (mit Rollback). Es wird nur aktualisiert, wenn der
-/// Server ein Angebot macht und der Agent keine Aufträge bearbeitet.
+/// Self-update: downloads the package offered by the server, verifies the SHA-256 checksum, unpacks it into a
+/// staging directory and hands the replacement to a helper script (with rollback). It only updates when the
+/// server makes an offer and the agent is not processing any jobs.
 /// </summary>
 public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store, ILogger<AgentUpdater> logger)
 {
@@ -28,7 +28,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
     [GeneratedRegex("^[0-9a-fA-F]{64}$")]
     private static partial Regex Sha256Pattern();
 
-    /// <summary>Plattformkennung wie im Paketnamen, z. B. <c>linux-x64</c>.</summary>
+    /// <summary>Platform identifier as in the package name, e.g. <c>linux-x64</c>.</summary>
     public static string? Platform
     {
         get
@@ -50,7 +50,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
     private string FailedFile => Path.Combine(store.StateDirectory, "update-failed");
 
     /// <summary>
-    /// Wird nach dem ersten erfolgreichen Heartbeat aufgerufen: meldet dem Hilfsskript, dass die neue Version läuft.
+    /// Called after the first successful heartbeat: tells the helper script that the new version is running.
     /// </summary>
     public void ConfirmStartup()
     {
@@ -61,7 +61,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
                 return;
             }
 
-            // Nur die neue Version bestätigt; der alte Agent läuft kurz weiter und darf die Markierung nicht löschen.
+            // Only the new version confirms; the old agent keeps running briefly and must not delete the marker.
             var pending = File.ReadAllText(PendingFile).Trim();
             if (pending == SystemInfoProvider.AgentVersion)
             {
@@ -76,7 +76,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
         }
     }
 
-    /// <summary>Gibt true zurück, wenn ein Update gestartet wurde (der Dienst wird dann in Kürze neu gestartet).</summary>
+    /// <summary>Returns true if an update was started (the service will be restarted shortly).</summary>
     public async Task<bool> TryUpdateAsync(UpdateOffer offer, CancellationToken ct)
     {
         if (DateTimeOffset.UtcNow - _lastAttempt < RetryAfter)
@@ -224,7 +224,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
         File.WriteAllText(shell, UpdateScripts.Linux);
         File.SetUnixFileMode(shell, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
-        // Eigene transiente systemd-Einheit: das Skript überlebt das Beenden des Agent-Dienstes.
+        // Own transient systemd unit: the script survives the agent service being stopped.
         var run = new ProcessStartInfo("systemd-run") { UseShellExecute = false };
         foreach (var arg in new[]
                  {

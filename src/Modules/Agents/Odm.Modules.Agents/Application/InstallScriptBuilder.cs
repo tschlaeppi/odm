@@ -3,15 +3,15 @@ using System.Text.RegularExpressions;
 
 namespace Odm.Modules.Agents.Application;
 
-/// <summary>Erzeugt die Convenience-Skripte aus den eingebetteten Vorlagen mit Server-Adresse und Prüfsummen.</summary>
+/// <summary>Creates the convenience scripts from the embedded templates with server address and checksums.</summary>
 public static partial class InstallScriptBuilder
 {
     [GeneratedRegex(@"^https?://[A-Za-z0-9.\-\[\]:]+(/[A-Za-z0-9._~\-/]*)?$")]
     private static partial Regex SafeBaseUrl();
 
     /// <summary>
-    /// Prüft die Server-Adresse und gibt sie ohne abschließenden Schrägstrich zurück. Die Adresse wird in Skripte eingebettet,
-    /// daher sind nur harmlose Zeichen erlaubt (kein Anführungszeichen, Leerzeichen, Query, Benutzerinfo).
+    /// Validates the server address and returns it without a trailing slash. The address is embedded in scripts,
+    /// so only harmless characters are allowed (no quotation mark, whitespace, query, user info).
     /// </summary>
     public static string? NormalizeBaseUrl(string? value)
     {
@@ -40,7 +40,7 @@ public static partial class InstallScriptBuilder
         using var stream = assembly.GetManifestResourceStream($"Odm.Install.{name}")
                            ?? throw new InvalidOperationException($"Vorlage {name} fehlt.");
         using var reader = new StreamReader(stream);
-        // Skripte immer mit LF ausliefern (sh verträgt kein CRLF).
+        // Always deliver scripts with LF (sh does not tolerate CRLF).
         return reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);
     }
 }

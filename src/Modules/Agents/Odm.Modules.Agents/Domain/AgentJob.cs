@@ -11,7 +11,7 @@ public enum JobStatus
     Failed = 3
 }
 
-/// <summary>Unterstützte Auftragstypen. Weitere kommen mit der Softwareverteilung.</summary>
+/// <summary>Supported job types. More come with software distribution.</summary>
 public static class JobTypes
 {
     public const string Ping = AgentJobTypes.Ping;
@@ -19,14 +19,14 @@ public static class JobTypes
     public const string InstallRepo = AgentJobTypes.InstallRepo;
     public const string OsUpdate = AgentJobTypes.OsUpdate;
 
-    /// <summary>Alle Typen, die ein Agent kennt.</summary>
+    /// <summary>All types an agent knows.</summary>
     public static readonly IReadOnlyCollection<string> All = [Ping, InstallPsadt, InstallRepo, OsUpdate];
 
-    /// <summary>Typen, die Benutzer direkt in der Oberfläche anstossen dürfen (der Rest entsteht aus Zuweisungen).</summary>
+    /// <summary>Types that users may trigger directly in the UI (the rest results from assignments).</summary>
     public static readonly IReadOnlyCollection<string> UserCreatable = [Ping];
 }
 
-/// <summary>Auftrag an einen Agent. Wird beim Heartbeat ausgeliefert, das Ergebnis beim nächsten gemeldet.</summary>
+/// <summary>Job for an agent. Delivered with the heartbeat, the result is reported with the next one.</summary>
 public sealed class AgentJob : Entity
 {
     public const int MaxOutputLength = 64000;
@@ -57,7 +57,7 @@ public sealed class AgentJob : Entity
         DeliveredAt = now;
     }
 
-    /// <summary>Ergebnis übernehmen; nur für ausgelieferte Aufträge (verhindert doppelte Meldungen).</summary>
+    /// <summary>Accept the result; only for delivered jobs (prevents duplicate reports).</summary>
     public bool Complete(bool success, string? output, DateTimeOffset now)
     {
         if (Status != JobStatus.Delivered)
@@ -67,7 +67,7 @@ public sealed class AgentJob : Entity
 
         Status = success ? JobStatus.Succeeded : JobStatus.Failed;
         CompletedAt = now;
-        Output = output is { Length: > MaxOutputLength } ? output[^MaxOutputLength..] : output; // bei Protokollen steht das Wichtige am Ende
+        Output = output is { Length: > MaxOutputLength } ? output[^MaxOutputLength..] : output; // for logs the important part is at the end
         return true;
     }
 }

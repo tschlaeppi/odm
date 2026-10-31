@@ -26,7 +26,7 @@ public class SecretProtectorTests
         var a = protector.Protect("LIZENZ", "geheim");
         var b = protector.Protect("LIZENZ", "geheim");
 
-        Assert.NotEqual(a, b); // zufällige Nonce
+        Assert.NotEqual(a, b); // random nonce
         Assert.DoesNotContain("geheim", System.Text.Encoding.UTF8.GetString(a));
     }
 

@@ -6,7 +6,7 @@ public static class PsadtZip
 {
     private static readonly string[] Scripts = ["Invoke-AppDeployToolkit.ps1", "Deploy-Application.ps1"];
 
-    /// <summary>Prüft, ob das ZIP ein PSADT-Paket ist (Skript im Stammverzeichnis oder eine Ebene darunter).</summary>
+    /// <summary>Checks whether the ZIP is a PSADT package (script in the root directory or one level below).</summary>
     public static string? Validate(string path)
     {
         try

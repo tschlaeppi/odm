@@ -15,7 +15,7 @@
     try {
       jobs = await api.jobs(device.id)
     } catch {
-      /* nächster Versuch beim nächsten Intervall */
+      /* next attempt at the next interval */
     }
   }
 
@@ -26,7 +26,7 @@
     info = null
     dialog.showModal()
     refresh()
-    // Ergebnisse treffen erst mit dem nächsten Heartbeat ein: solange offen, regelmässig aktualisieren.
+    // Results only arrive with the next heartbeat: refresh regularly while any are open.
     timer = setInterval(refresh, 5000)
   }
 

@@ -6,7 +6,7 @@ namespace Odm.Agent;
 
 public sealed record SystemInfo(string Hostname, string OsFamily, string OsName, string OsVersion);
 
-/// <summary>Ermittelt Rechnername sowie Betriebssystem-Name und -Version.</summary>
+/// <summary>Determines host name as well as operating system name and version.</summary>
 public sealed class SystemInfoProvider
 {
     public static string AgentVersion { get; } =
@@ -35,7 +35,7 @@ public sealed class SystemInfoProvider
         using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
 
         var product = key?.GetValue("ProductName") as string ?? "Windows";
-        // Windows 11 meldet im Registry-Wert weiterhin "Windows 10"; Build 22000 und höher ist Windows 11.
+        // Windows 11 still reports "Windows 10" in the registry value; build 22000 and higher is Windows 11.
         if (int.TryParse(key?.GetValue("CurrentBuildNumber") as string, out var build) && build >= 22000)
         {
             product = product.Replace("Windows 10", "Windows 11", StringComparison.Ordinal);

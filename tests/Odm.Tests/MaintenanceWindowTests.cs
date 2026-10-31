@@ -3,9 +3,9 @@ using Odm.Modules.OsUpdates.Domain;
 namespace Odm.Tests;
 
 /// <summary>
-/// Wartungsfenster rechnen mit Zeitzonen und Sommerzeit. Referenzdaten (2026):
-/// Sommerzeit in Europa beginnt am 29.03. (Sonntag) und endet am 25.10.; der 31.10. ist ein Samstag (UTC+1),
-/// der 04.07. ebenfalls (UTC+2).
+/// Maintenance windows work with time zones and daylight saving time. Reference data (2026):
+/// Daylight saving time in Europe starts on 29 March (Sunday) and ends on 25 October; 31 October is a Saturday (UTC+1),
+/// and so is 4 July (UTC+2).
 /// </summary>
 public class MaintenanceWindowTests
 {
@@ -17,7 +17,7 @@ public class MaintenanceWindowTests
     [Fact]
     public void Inside_window_returns_start_and_end_in_utc()
     {
-        // Samstag 02:00-04:00 in Zürich (Winterzeit, UTC+1) = 01:00-03:00 UTC
+        // Saturday 02:00-04:00 in Zurich (winter time, UTC+1) = 01:00-03:00 UTC
         var found = SaturdayNight().TryGetOccurrence(Utc("2026-10-31T01:30:00Z"), out var start, out var end);
 
         Assert.True(found);
@@ -26,10 +26,10 @@ public class MaintenanceWindowTests
     }
 
     [Theory]
-    [InlineData("2026-10-31T00:59:59Z", false)] // eine Sekunde vor Beginn
-    [InlineData("2026-10-31T01:00:00Z", true)]  // Beginn zählt dazu
+    [InlineData("2026-10-31T00:59:59Z", false)] // one second before the start
+    [InlineData("2026-10-31T01:00:00Z", true)]  // the start is included
     [InlineData("2026-10-31T02:59:59Z", true)]
-    [InlineData("2026-10-31T03:00:00Z", false)] // Ende zählt nicht mehr dazu
+    [InlineData("2026-10-31T03:00:00Z", false)] // the end is no longer included
     public void Boundaries_are_start_inclusive_and_end_exclusive(string now, bool expected)
     {
         Assert.Equal(expected, SaturdayNight().TryGetOccurrence(Utc(now), out _, out _));
@@ -38,14 +38,14 @@ public class MaintenanceWindowTests
     [Fact]
     public void Other_weekday_is_outside_window()
     {
-        // Sonntag 02:30 Ortszeit; das Samstagsfenster ist längst vorbei
+        // Sunday 02:30 local time; the Saturday window is long over
         Assert.False(SaturdayNight().TryGetOccurrence(Utc("2026-11-01T01:30:00Z"), out _, out _));
     }
 
     [Fact]
     public void Window_crossing_midnight_is_found_on_the_following_day()
     {
-        // Freitag 23:00, zwei Stunden, UTC: reicht bis Samstag 01:00
+        // Friday 23:00, two hours, UTC: extends to Saturday 01:00
         var window = MaintenanceWindow.Create("Mitternacht", WeekDays.Friday, 23 * 60, 120, "UTC");
 
         var found = window.TryGetOccurrence(Utc("2026-10-31T00:30:00Z"), out var start, out var end);
@@ -58,7 +58,7 @@ public class MaintenanceWindowTests
     [Fact]
     public void Summer_time_shifts_the_utc_window()
     {
-        // Samstag 04.07.2026: Zürich = UTC+2, 02:00 Ortszeit = 00:00 UTC
+        // Saturday 4 July 2026: Zurich = UTC+2, 02:00 local time = 00:00 UTC
         var found = SaturdayNight().TryGetOccurrence(Utc("2026-07-04T00:30:00Z"), out var start, out var end);
 
         Assert.True(found);
@@ -69,7 +69,7 @@ public class MaintenanceWindowTests
     [Fact]
     public void Start_time_in_the_spring_gap_is_moved_by_one_hour()
     {
-        // 29.03.2026: 02:00 springt auf 03:00, 02:30 existiert nicht. Beginn wird zu 03:30 Ortszeit = 01:30 UTC.
+        // 29 March 2026: 02:00 jumps to 03:00, 02:30 does not exist. The start becomes 03:30 local time = 01:30 UTC.
         var window = MaintenanceWindow.Create("Lücke", WeekDays.Sunday, 150, 60, "Europe/Zurich");
 
         var found = window.TryGetOccurrence(Utc("2026-03-29T01:45:00Z"), out var start, out var end);

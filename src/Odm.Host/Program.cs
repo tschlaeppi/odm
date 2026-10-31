@@ -9,7 +9,7 @@ using Odm.SharedKernel.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Reihenfolge = Initialisierungsreihenfolge. Neue Module werden hier registriert.
+// Order = initialization order. New modules are registered here.
 IModule[] modules =
 [
     new IdentityModule(),
@@ -25,8 +25,8 @@ builder.Services
     .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString), "Database:ConnectionString fehlt.")
     .ValidateOnStart();
 
-// mTLS für Agents: HTTPS-Endpunkte fordern ein Client-Zertifikat an, verlangen es aber nicht (Browser ohne Zertifikat
-// funktionieren weiter). Ob ein Zertifikat gültig und das richtige ist, prüft die Agent-Authentisierung (Agents-Modul).
+// mTLS for agents: HTTPS endpoints request a client certificate but do not require it (browsers without a certificate
+// keep working). Whether a certificate is valid and the right one is checked by the agent authentication (Agents module).
 var mtlsMode = builder.Configuration["Agents:Mtls:Mode"];
 if (!string.IsNullOrWhiteSpace(mtlsMode) && !mtlsMode.Equals("Off", StringComparison.OrdinalIgnoreCase))
 {

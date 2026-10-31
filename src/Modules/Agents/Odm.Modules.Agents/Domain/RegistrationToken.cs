@@ -2,7 +2,7 @@ using Odm.SharedKernel;
 
 namespace Odm.Modules.Agents.Domain;
 
-/// <summary>Einmal verwendbares Token, mit dem sich ein neuer Agent registrieren darf.</summary>
+/// <summary>Single-use token with which a new agent may register.</summary>
 public sealed class RegistrationToken : Entity
 {
     public const string Prefix = "odm-reg-";
@@ -15,7 +15,7 @@ public sealed class RegistrationToken : Entity
 
     private RegistrationToken() { }
 
-    /// <summary>Erzeugt ein Token. Der Klartext wird nur hier zurückgegeben und nie gespeichert.</summary>
+    /// <summary>Creates a token. The plaintext is returned only here and never stored.</summary>
     public static (RegistrationToken Token, string Plain) Issue(string label, TimeSpan validity)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(label);

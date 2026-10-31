@@ -10,7 +10,7 @@ using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.OsUpdates.Endpoints;
 
-/// <summary>Zuweisungen von Richtlinien und Wartungsfenstern an Geräte oder Gruppen.</summary>
+/// <summary>Assignments of policies and maintenance windows to devices or groups.</summary>
 internal static class AssignmentEndpoints
 {
     public static void Map(IEndpointRouteBuilder endpoints)
@@ -80,7 +80,7 @@ internal static class AssignmentEndpoints
 
                 var target = targetId.ToString("D");
 
-                // Je Ziel gilt genau eine Richtlinie; Wartungsfenster dürfen sich beliebig kombinieren.
+                // Exactly one policy applies per target; maintenance windows may be combined freely.
                 var conflict = scope == AssignmentScope.Policy
                     ? await db.Assignments.AnyAsync(a => a.Scope == scope && a.TargetKind == kind && a.Target == target, ct)
                     : await db.Assignments.AnyAsync(a => a.Scope == scope && a.ParentId == request.ParentId && a.TargetKind == kind && a.Target == target, ct);

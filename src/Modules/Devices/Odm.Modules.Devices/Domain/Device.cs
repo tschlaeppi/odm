@@ -15,10 +15,10 @@ public sealed class Device : Entity
     public string OsName { get; private set; } = "";
     public string OsVersion { get; private set; } = "";
 
-    /// <summary>Hauptbenutzer (Verzeichnisbenutzer, nicht zwingend ein ODM-Login).</summary>
+    /// <summary>Primary user (directory user, not necessarily an ODM login).</summary>
     public string? PrimaryUser { get; private set; }
 
-    /// <summary>Organisationseinheit des Hauptbenutzers (später aus dem Verzeichnis synchronisiert).</summary>
+    /// <summary>Organizational unit of the primary user (later synchronized from the directory).</summary>
     public string? PrimaryUserOrgUnit { get; private set; }
 
     public string? CostCenter { get; private set; }
@@ -49,7 +49,7 @@ public sealed class Device : Entity
         CostCenter = Clean(costCenter);
     }
 
-    /// <summary>Übernimmt einen geänderten Rechnernamen (Gross-/Kleinschreibung zählt als Änderung).</summary>
+    /// <summary>Adopts a changed host name (a change of letter case counts as a change).</summary>
     public void Rename(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -58,7 +58,7 @@ public sealed class Device : Entity
 
     public void MarkSeen() => LastSeenAt = DateTimeOffset.UtcNow;
 
-    /// <summary>Übernimmt die vom Agent gemeldeten Werte.</summary>
+    /// <summary>Adopts the values reported by the agent.</summary>
     public void ApplyReport(OsFamily family, string osName, string osVersion, string? agentVersion)
     {
         OsFamily = family;

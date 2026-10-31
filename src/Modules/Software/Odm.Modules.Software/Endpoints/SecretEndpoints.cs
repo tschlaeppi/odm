@@ -12,7 +12,7 @@ using Odm.SharedKernel;
 namespace Odm.Modules.Software.Endpoints;
 
 /// <summary>
-/// Verwaltung der Secrets (nur Namen sichtbar, Werte werden nie zurückgegeben) und Ausgabe an Agents.
+/// Management of secrets (only names visible, values are never returned) and delivery to agents.
 /// </summary>
 internal static class SecretEndpoints
 {
@@ -20,7 +20,7 @@ internal static class SecretEndpoints
     {
         var group = endpoints.MapGroup("/software/secrets").WithTags("Software").RequireAuthorization();
 
-        // Namen sind für Operatoren sichtbar (zum Verweisen in Argumenten), Werte für niemanden.
+        // Names are visible to operators (for referencing in arguments), values to nobody.
         group.MapGet("/", async (SoftwareDbContext db, CancellationToken ct) =>
             Results.Ok((await db.Secrets.AsNoTracking().OrderBy(s => s.Name).ToListAsync(ct))
                 .Select(s => new SecretDto(s.Name, s.UpdatedAt))));
@@ -55,7 +55,7 @@ internal static class SecretEndpoints
 
         group.MapDelete("/{name}", async (string name, SoftwareDbContext db, CancellationToken ct) =>
             {
-                // Ein Secret, auf das noch Pakete verweisen, darf nicht gelöscht werden.
+                // A secret that packages still refer to must not be deleted.
                 var packages = await db.Packages.AsNoTracking().ToListAsync(ct);
                 var snapshots = await db.Versions.AsNoTracking()
                     .Where(v => v.SpecSnapshot != null)
@@ -73,14 +73,14 @@ internal static class SecretEndpoints
             })
             .RequireAuthorization(Policies.Admin);
 
-        // Agent: Werte der Secrets, die der gerade laufende Auftrag in seinen Argumenten verwendet.
+        // Agent: values of the secrets that the currently running job uses in its arguments.
         endpoints.MapPost("/agent/v1/secrets/resolve", async (
                 ResolveSecretsRequest request, ClaimsPrincipal principal, SoftwareDbContext db,
                 SecretProtector protector, CancellationToken ct) =>
             {
                 var deviceId = Guid.Parse(principal.FindFirstValue("device_id")!);
 
-                // Nur für einen laufenden Installationsauftrag dieses Geräts, und nur die dort referenzierten Secrets.
+                // Only for a running installation job of this device, and only the secrets referenced there.
                 var installation = await db.Installations.AsNoTracking().SingleOrDefaultAsync(
                     i => i.JobId == request.JobId && i.DeviceId == deviceId && i.Status == InstallStatus.Running, ct);
                 if (installation is null)

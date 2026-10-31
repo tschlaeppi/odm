@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Odm.Agent;
 
-// ---- Protokoll (/api/agent/v1), Gegenstück zu den Verträgen des Servers ----
+// ---- Protocol (/api/agent/v1), counterpart of the server contracts ----
 
 public sealed record RegisterRequest(
     string Token, string Hostname, string OsFamily, string OsName, string OsVersion, string AgentVersion, string? Csr = null);
@@ -58,7 +58,7 @@ public sealed class ServerClient(HttpClient http)
         return (await response.Content.ReadFromJsonAsync<HeartbeatResponse>(Json, ct))!;
     }
 
-    /// <summary>Fordert ein (neues) Client-Zertifikat an. Die Antwort enthält das Zertifikat und das CA-Zertifikat.</summary>
+    /// <summary>Requests a (new) client certificate. The response contains the certificate and the CA certificate.</summary>
     public async Task<CertificateResponse> RequestCertificateAsync(AgentState state, string csrPem, CancellationToken ct)
     {
         using var message = new HttpRequestMessage(HttpMethod.Post, "api/agent/v1/certificate")
@@ -72,13 +72,13 @@ public sealed class ServerClient(HttpClient http)
         return (await response.Content.ReadFromJsonAsync<CertificateResponse>(Json, ct))!;
     }
 
-    /// <summary>Lädt ein Paket in eine Datei. Der Inhalt wird gestreamt, nicht im Speicher gehalten.</summary>
+    /// <summary>Downloads a package to a file. The content is streamed, not held in memory.</summary>
     public async Task DownloadPackageAsync(AgentState state, Guid versionId, string destinationPath, CancellationToken ct)
     {
         using var message = new HttpRequestMessage(HttpMethod.Get, $"api/agent/v1/packages/{versionId}/download");
         Authorize(message, state);
 
-        // ResponseHeadersRead: das Timeout des HttpClient gilt nur bis zu den Headern, nicht für den ganzen Download.
+        // ResponseHeadersRead: the HttpClient timeout only applies up to the headers, not to the whole download.
         using var response = await http.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 
@@ -87,7 +87,7 @@ public sealed class ServerClient(HttpClient http)
         await source.CopyToAsync(target, ct);
     }
 
-    /// <summary>Holt die Werte der Secrets, auf die der laufende Auftrag verweist (nur beim Server, nie im Auftrag selbst).</summary>
+    /// <summary>Fetches the values of the secrets the running job refers to (only from the server, never in the job itself).</summary>
     public async Task<IReadOnlyDictionary<string, string>> ResolveSecretsAsync(AgentState state, Guid jobId, CancellationToken ct)
     {
         using var message = new HttpRequestMessage(HttpMethod.Post, "api/agent/v1/secrets/resolve")

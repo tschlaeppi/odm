@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Erzeugt SQL-Server-Migrationen für alle Module (Postgres-Migrationen bleiben unberührt).
-# Aufruf aus dem Repository-Wurzelverzeichnis:  scripts/ef-sqlserver.sh Initial
+# Creates SQL Server migrations for all modules (PostgreSQL migrations stay untouched).
+# Run from the repository root:  scripts/ef-sqlserver.sh Initial
 set -euo pipefail
 
 name="${1:?Name der Migration angeben, z. B. Initial}"
 
 export ODM_DB_PROVIDER=SqlServer
-# Zum Erzeugen von Migrationen wird keine Datenbank gebraucht; die Verbindung dient nur dem Modell.
+# No database is needed to create migrations; the connection string only serves the model.
 export ODM_DB="${ODM_DB:-Server=localhost;Database=odm_design;User Id=sa;Password=unused;TrustServerCertificate=True}"
 
-# Pakete wiederherstellen (das Migrationsprojekt ist neu und wurde noch nicht restauriert)
+# Restore packages (the migrations project is new and has not been restored yet)
 dotnet restore src/Odm.Host
 
 for module in Identity Devices Agents Software OsUpdates; do

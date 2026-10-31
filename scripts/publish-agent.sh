@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Baut die eigenständigen Agent-Pakete (self-contained, Single-File) für den Download über den Server.
+# Builds the self-contained, single-file agent packages for download through the server.
 #   scripts/publish-agent.sh [Ausgabeverzeichnis] [RIDs...]
-# Standard: ./agent-packages und alle vier Plattformen. Ergebnis: odm-agent-<version>-<rid>.zip|tar.gz
+# Default: ./agent-packages and all four platforms. Result: odm-agent-<version>-<rid>.zip|tar.gz
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -26,7 +26,7 @@ for rid in "${RIDS[@]}"; do
     -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -o "$dir"
   case "$rid" in
     win-*)
-      command -v zip >/dev/null || { echo "'zip' wird benötigt." >&2; exit 1; }
+      command -v zip >/dev/null || { echo "'zip' is required." >&2; exit 1; }
       (cd "$dir" && rm -f "$OUT/odm-agent-$VERSION-$rid.zip" && zip -q -r "$OUT/odm-agent-$VERSION-$rid.zip" odm-agent.exe appsettings.json)
       ;;
     *)

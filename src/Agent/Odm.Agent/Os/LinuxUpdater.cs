@@ -1,6 +1,6 @@
 namespace Odm.Agent.Os;
 
-/// <summary>Linux-Updates über apt (DEB-basiert) bzw. dnf/yum (RPM-basiert).</summary>
+/// <summary>Linux updates through apt (DEB based) or dnf/yum (RPM based).</summary>
 public sealed class LinuxUpdater : IOsUpdater
 {
     private static readonly IReadOnlyDictionary<string, string> AptEnvironment = new Dictionary<string, string>
@@ -43,7 +43,7 @@ public sealed class LinuxUpdater : IOsUpdater
             return Fail($"apt-get update failed (exit code {update.ExitCode}). {Tail(update.Error)}");
         }
 
-        // Simulation: welche Pakete würden aktualisiert? ("Inst name [alt] (neu Quelle ...)")
+        // Simulation: which packages would be upgraded? ("Inst name [old] (new source ...)")
         var simulation = await ProcessRunner.RunAsync("/usr/bin/apt-get", ["-s", "upgrade"], timeout, ct, AptEnvironment);
         var packages = simulation.Output
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -93,7 +93,7 @@ public sealed class LinuxUpdater : IOsUpdater
     {
         string[] security = securityOnly ? ["--security"] : [];
 
-        // Exit-Code 100 = Updates verfügbar, 0 = keine, sonst Fehler.
+        // Exit code 100 = updates available, 0 = none, otherwise error.
         var check = await ProcessRunner.RunAsync(manager, ["-q", "check-update", .. security], timeout, ct, RpmEnvironment);
         if (check.ExitCode == 0)
         {
@@ -130,7 +130,7 @@ public sealed class LinuxUpdater : IOsUpdater
         const string tool = "/usr/bin/needs-restarting";
         if (!File.Exists(tool))
         {
-            return false; // ohne dnf-utils lässt sich das nicht zuverlässig feststellen
+            return false; // without dnf-utils this cannot be determined reliably
         }
 
         var result = await ProcessRunner.RunAsync(tool, ["-r"], TimeSpan.FromMinutes(2), ct);

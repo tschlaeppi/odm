@@ -23,7 +23,7 @@ public sealed record GroupDto(
         deviceCount);
 }
 
-/// <summary>Validierte Eingabe aus einer <see cref="GroupRequest"/>.</summary>
+/// <summary>Validated input from a <see cref="GroupRequest"/>.</summary>
 public sealed record GroupInput(string Name, string? Description, GroupMatchMode MatchMode, IReadOnlyList<GroupRule> Rules);
 
 public static class GroupRequestParser

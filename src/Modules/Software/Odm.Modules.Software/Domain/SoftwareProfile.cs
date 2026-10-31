@@ -2,7 +2,7 @@ using Odm.SharedKernel;
 
 namespace Odm.Modules.Software.Domain;
 
-/// <summary>Softwareprofil: Pakete, die in der angegebenen Reihenfolge installiert werden.</summary>
+/// <summary>Software profile: packages that are installed in the given order.</summary>
 public sealed class SoftwareProfile : Entity
 {
     public string Name { get; private set; } = "";
@@ -22,7 +22,7 @@ public sealed class SoftwareProfile : Entity
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 }
 
-/// <summary>Eintrag eines Profils. <see cref="Position"/> bestimmt die Installationsreihenfolge (0 = zuerst).</summary>
+/// <summary>Entry of a profile. <see cref="Position"/> determines the installation order (0 = first).</summary>
 public sealed class ProfileItem : Entity
 {
     public Guid ProfileId { get; private set; }
@@ -43,7 +43,7 @@ public sealed class ProfileItem : Entity
     };
 }
 
-/// <summary>Zuweisung eines ganzen Profils an ein Gerät, einen Benutzer oder eine Gruppe.</summary>
+/// <summary>Assignment of an entire profile to a device, a user or a group.</summary>
 public sealed class ProfileAssignment : Entity
 {
     public Guid ProfileId { get; private set; }

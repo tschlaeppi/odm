@@ -7,21 +7,21 @@ using Odm.Agent.Repo;
 
 namespace Odm.Agent.Jobs;
 
-/// <summary>Inhalt des Auftrags (Gegenstück zum Server).</summary>
+/// <summary>Content of the job (counterpart of the server).</summary>
 public sealed record InstallPsadtPayload(
     Guid VersionId, string PackageName, string Version, string Sha256, long SizeBytes, int TimeoutMinutes,
     string? Arguments = null, bool Uninstall = false);
 
 /// <summary>
-/// Installiert (oder deinstalliert) ein PSADT-Paket: herunterladen, Prüfsumme prüfen, entpacken, Skript still ausführen.
-/// Unterstützt PSADT v4 (Invoke-AppDeployToolkit.ps1) und v3 (Deploy-Application.ps1).
+/// Installs (or uninstalls) a PSADT package: download, verify checksum, unpack, run the script silently.
+/// Supports PSADT v4 (Invoke-AppDeployToolkit.ps1) and v3 (Deploy-Application.ps1).
 /// </summary>
 public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logger) : IJobHandler
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly string[] Scripts = ["Invoke-AppDeployToolkit.ps1", "Deploy-Application.ps1"];
 
-    // 1641 und 3010: Installation erfolgreich, Neustart erforderlich.
+    // 1641 and 3010: installation succeeded, restart required.
     private static readonly HashSet<int> SuccessCodes = [0, 1641, 3010];
 
     public string Type => "install-psadt";
@@ -94,7 +94,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
 
     private static string? FindScript(string root)
     {
-        // Stammverzeichnis zuerst, dann eine Ebene darunter (ZIPs enthalten oft einen Ordner).
+        // Root directory first, then one level below (ZIPs often contain a folder).
         var directories = new[] { root }.Concat(Directory.GetDirectories(root));
         foreach (var directory in directories)
         {
@@ -133,7 +133,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
             startInfo.ArgumentList.Add(argument);
         }
 
-        // Zusatzargumente werden an das PSADT-Skript übergeben; das Skript muss entsprechende Parameter deklarieren.
+        // Additional arguments are passed to the PSADT script; the script must declare matching parameters.
         foreach (var argument in arguments.Tokens)
         {
             startInfo.ArgumentList.Add(argument);
@@ -161,13 +161,13 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
             TryKill(process);
             if (ct.IsCancellationRequested)
             {
-                throw; // Agent wird beendet: Auftrag nicht als fehlgeschlagen melden, er wird erneut ausgeliefert.
+                throw; // agent is shutting down: do not report the job as failed, it will be delivered again.
             }
 
             return Fail($"Timed out after {minutes} minutes.\n{SecretSubstitution.Redact(tail.ToString(), arguments.SecretValues)}");
         }
 
-        process.WaitForExit(); // stellt sicher, dass die letzte Ausgabe gelesen wurde
+        process.WaitForExit(); // makes sure the last output has been read
 
         var code = process.ExitCode;
         var summary = code switch
@@ -192,7 +192,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
         }
         catch (Exception)
         {
-            // Prozess ist bereits beendet
+            // process has already exited
         }
     }
 
@@ -204,11 +204,11 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
         }
         catch (Exception)
         {
-            // Aufräumen ist best effort; Reste liegen im geschützten Arbeitsverzeichnis.
+            // Cleaning up is best effort; leftovers stay in the protected working directory.
         }
     }
 
-    /// <summary>Behält nur das Ende der Ausgabe (dort stehen bei Fehlern die relevanten Zeilen).</summary>
+    /// <summary>Keeps only the end of the output (that is where the relevant lines are on errors).</summary>
     private sealed class TailBuffer(int capacity)
     {
         private readonly StringBuilder _text = new();

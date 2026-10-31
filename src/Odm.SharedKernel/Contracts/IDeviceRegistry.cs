@@ -1,6 +1,6 @@
 namespace Odm.SharedKernel.Contracts;
 
-/// <summary>Vom Agent gemeldete Geräte-Informationen.</summary>
+/// <summary>Device information reported by the agent.</summary>
 public sealed record DeviceReport(
     string Hostname,
     string OsFamily,
@@ -9,14 +9,14 @@ public sealed record DeviceReport(
     string? AgentVersion);
 
 /// <summary>
-/// Schnittstelle des Devices-Moduls für andere Module (z. B. Agents).
-/// So bleiben die Module entkoppelt: sie kennen nur diesen Vertrag, nicht die Implementierung.
+/// Interface of the Devices module for other modules (e.g. Agents).
+/// This keeps the modules decoupled: they only know this contract, not the implementation.
 /// </summary>
 public interface IDeviceRegistry
 {
-    /// <summary>Legt das Gerät an oder liefert das bestehende Gerät mit gleichem Namen zurück.</summary>
+    /// <summary>Creates the device or returns the existing device with the same name.</summary>
     Task<Guid> RegisterAsync(DeviceReport report, CancellationToken ct);
 
-    /// <summary>Aktualisiert OS-Informationen und "zuletzt gesehen". Unbekannte Geräte werden ignoriert.</summary>
+    /// <summary>Updates OS information and "last seen". Unknown devices are ignored.</summary>
     Task ReportAsync(Guid deviceId, DeviceReport report, CancellationToken ct);
 }

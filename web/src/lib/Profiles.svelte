@@ -35,7 +35,7 @@
     busy = true
     errorText = null
     try {
-      // Ein Profil braucht mindestens ein Paket; weitere und die Reihenfolge folgen in der Detailansicht.
+      // A profile needs at least one package; more and the order follow in the detail view.
       const created = await api.createProfile(name.trim(), description.trim() || null, [
         { packageId: firstPackage, versionPolicy: 'Latest', pinnedVersionId: null },
       ])

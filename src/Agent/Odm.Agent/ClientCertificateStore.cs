@@ -4,8 +4,8 @@ using System.Security.Cryptography.X509Certificates;
 namespace Odm.Agent;
 
 /// <summary>
-/// Schlüsselpaar und Client-Zertifikat des Agents (mTLS). Der private Schlüssel (ECDSA P-256) wird auf dem Gerät erzeugt und
-/// verlässt es nie; der Server erhält nur eine Zertifikatsanforderung. Beides liegt im geschützten Zustandsverzeichnis.
+/// Key pair and client certificate of the agent (mTLS). The private key (ECDSA P-256) is created on the device and
+/// never leaves it; the server receives only a certificate request. Both live in the protected state directory.
 /// </summary>
 public sealed class ClientCertificateStore(AgentStateStore store, ILogger<ClientCertificateStore> logger)
 {
@@ -16,7 +16,7 @@ public sealed class ClientCertificateStore(AgentStateStore store, ILogger<Client
     private string KeyFile => Path.Combine(store.StateDirectory, "agent.key");
     private string CertFile => Path.Combine(store.StateDirectory, "agent.crt");
 
-    /// <summary>Das aktuelle Client-Zertifikat samt Schlüssel oder <c>null</c>, wenn noch keines vorhanden ist.</summary>
+    /// <summary>The current client certificate including its key, or <c>null</c> if there is none yet.</summary>
     public X509Certificate2? Current
     {
         get
@@ -34,7 +34,7 @@ public sealed class ClientCertificateStore(AgentStateStore store, ILogger<Client
         }
     }
 
-    /// <summary>Neues Schlüsselpaar und CSR (PEM). Der Schlüssel wird erst mit <see cref="Save"/> übernommen.</summary>
+    /// <summary>New key pair and CSR (PEM). The key is only adopted with <see cref="Save"/>.</summary>
     public (ECDsa Key, string CsrPem) CreateRequest()
     {
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -42,10 +42,10 @@ public sealed class ClientCertificateStore(AgentStateStore store, ILogger<Client
         return (key, request.CreateSigningRequestPem());
     }
 
-    /// <summary>Speichert Schlüssel und das vom Server ausgestellte Zertifikat und verwendet sie ab sofort.</summary>
+    /// <summary>Stores the key and the certificate issued by the server and uses them from now on.</summary>
     public void Save(ECDsa key, string certificatePem)
     {
-        // Prüfen, dass Zertifikat und Schlüssel zusammengehören, bevor die alten Dateien ersetzt werden.
+        // Check that certificate and key belong together before the old files are replaced.
         using var parsed = X509Certificate2.CreateFromPem(certificatePem, key.ExportPkcs8PrivateKeyPem());
 
         System.IO.Directory.CreateDirectory(store.StateDirectory);
@@ -72,7 +72,7 @@ public sealed class ClientCertificateStore(AgentStateStore store, ILogger<Client
         try
         {
             using var pem = X509Certificate2.CreateFromPem(File.ReadAllText(CertFile), File.ReadAllText(KeyFile));
-            // Unter Windows kann SChannel kurzlebige Schlüssel nicht verwenden; der Umweg über PKCS#12 macht sie nutzbar.
+            // On Windows SChannel cannot use ephemeral keys; going through PKCS#12 makes them usable.
             return X509CertificateLoader.LoadPkcs12(pem.Export(X509ContentType.Pkcs12), null);
         }
         catch (Exception ex) when (ex is CryptographicException or IOException or UnauthorizedAccessException)

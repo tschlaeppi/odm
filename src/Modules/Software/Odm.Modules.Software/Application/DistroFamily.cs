@@ -3,7 +3,7 @@ using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.Software.Application;
 
-/// <summary>Grobe Einordnung der Linux-Distribution anhand des gemeldeten OS-Namens.</summary>
+/// <summary>Rough classification of the Linux distribution based on the reported OS name.</summary>
 public static class DistroFamily
 {
     private static readonly string[] Deb = ["ubuntu", "debian", "mint", "pop!_os", "pop_os", "raspbian", "kali", "elementary", "zorin"];
@@ -13,8 +13,8 @@ public static class DistroFamily
         keywords.Any(k => osName.Contains(k, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// Passt die Paketart zum Gerät? Bei unbekannter Distribution wird zugelassen; der Agent meldet dann klar,
-    /// falls der Paketmanager fehlt.
+    /// Does the package kind fit the device? An unknown distribution is allowed; the agent then reports clearly
+    /// if the package manager is missing.
     /// </summary>
     public static bool Applies(PackageKind kind, DeviceRef device)
     {

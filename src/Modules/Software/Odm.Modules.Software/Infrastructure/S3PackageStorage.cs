@@ -8,7 +8,7 @@ using Odm.Modules.Software.Application;
 
 namespace Odm.Modules.Software.Infrastructure;
 
-/// <summary>Ablage der Pakete auf S3 (AWS oder kompatibel, z. B. MinIO).</summary>
+/// <summary>Package storage on S3 (AWS or compatible, e.g. MinIO).</summary>
 public sealed class S3PackageStorage : IPackageStorage, IDisposable
 {
     private readonly AmazonS3Client _client;
@@ -24,7 +24,7 @@ public sealed class S3PackageStorage : IPackageStorage, IDisposable
         var config = new AmazonS3Config
         {
             ForcePathStyle = o.ForcePathStyle,
-            // Kompatibel mit S3-Implementierungen, die die neuen Standard-Prüfsummen nicht kennen.
+            // Compatible with S3 implementations that do not know the new default checksums.
             RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
             ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED
         };

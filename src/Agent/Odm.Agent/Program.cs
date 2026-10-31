@@ -5,9 +5,9 @@ using Odm.Agent.Os;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Vom Installationsskript geschriebene Konfiguration (ServerUrl, einmaliges Token) im geschützten Zustandsverzeichnis.
-// Sie hat Vorrang vor appsettings.json und Umgebungsvariablen; fehlt sie, gilt die übliche Konfiguration.
-// Ist sie für den aktuellen Benutzer nicht lesbar (Agent von Hand ohne Administratorrechte gestartet), wird sie übersprungen.
+// Configuration written by the install script (ServerUrl, one-time token) in the protected state directory.
+// It takes precedence over appsettings.json and environment variables; if it is missing, the usual configuration applies.
+// If it is not readable for the current user (agent started by hand without administrator rights), it is skipped.
 if (File.Exists(AgentStateStore.ConfigFile))
 {
     try
@@ -21,8 +21,8 @@ if (File.Exists(AgentStateStore.ConfigFile))
     }
 }
 
-// Logdatei im Zustandsverzeichnis (Windows: C:\ProgramData\OpenDeviceManager\logs, Linux: /var/lib/odm-agent/logs),
-// zusätzlich zu Konsole/journald bzw. Ereignisanzeige. Abschaltbar mit Agent:LogToFile=false.
+// Log file in the state directory (Windows: C:\ProgramData\OpenDeviceManager\logs, Linux: /var/lib/odm-agent/logs),
+// in addition to console/journald or the Event Log. Can be disabled with Agent:LogToFile=false.
 if (builder.Configuration.GetValue("Agent:LogToFile", true))
 {
     var stateDirectory = builder.Configuration["Agent:StateDirectory"];
@@ -30,7 +30,7 @@ if (builder.Configuration.GetValue("Agent:LogToFile", true))
     builder.Logging.AddProvider(new FileLoggerProvider(logDirectory));
 }
 
-// Läuft als Windows-Dienst bzw. systemd-Dienst; beim Start aus der Konsole sind beide Aufrufe wirkungslos.
+// Runs as Windows service or systemd service; when started from a console both calls have no effect.
 builder.Services.AddWindowsService(o => o.ServiceName = "OpenDeviceManagerAgent");
 builder.Services.AddSystemd();
 
@@ -45,8 +45,8 @@ builder.Services.AddSingleton(sp =>
     var certificates = sp.GetRequiredService<ClientCertificateStore>();
     var handler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) };
 
-    // Client-Zertifikat (mTLS) wird erst beim Verbindungsaufbau gewählt, damit ein später ausgestelltes oder erneuertes
-    // Zertifikat ohne Neustart gilt. Ohne Zertifikat verbindet sich der Agent wie bisher nur mit seinem Secret.
+    // The client certificate (mTLS) is only chosen when the connection is established, so that a certificate issued or renewed
+    // later applies without a restart. Without a certificate the agent connects with its secret only, as before.
     handler.SslOptions.LocalCertificateSelectionCallback = (_, _, _, _, _) => certificates.Current!;
     return new HttpClient(handler)
     {

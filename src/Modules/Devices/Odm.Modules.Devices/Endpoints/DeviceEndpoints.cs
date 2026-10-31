@@ -39,7 +39,7 @@ internal static class DeviceEndpoints
             return Results.Ok(await DeviceQueries.PageAsync(query, skip, take, ct));
         });
 
-        // Kennzahlen für das Dashboard. "Ohne Meldung" = seit silentHours Stunden kein Heartbeat (oder nie einer).
+        // Key figures for the dashboard. "Silent" = no heartbeat for silentHours hours (or never one).
         group.MapGet("/stats", async (DevicesDbContext db, int? silentHours, CancellationToken ct) =>
         {
             var now = DateTimeOffset.UtcNow;
@@ -81,7 +81,7 @@ internal static class DeviceEndpoints
             return device is null ? Results.NotFound() : Results.Ok(DeviceDto.From(device));
         });
 
-        // Gruppen, in denen das Gerät aktuell Mitglied ist (Gruppen sind dynamisch und werden hier ausgewertet).
+        // Groups the device is currently a member of (groups are dynamic and evaluated here).
         group.MapGet("/{id:guid}/groups", async (Guid id, DevicesDbContext db, CancellationToken ct) =>
         {
             if (!await db.Devices.AnyAsync(d => d.Id == id, ct))

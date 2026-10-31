@@ -9,9 +9,9 @@ namespace Odm.Modules.Agents.Application;
 public sealed record IssuedCertificate(string CertificatePem, string Thumbprint, DateTimeOffset NotAfter);
 
 /// <summary>
-/// Eigene CA für Agent-Zertifikate (ECDSA P-256). Der Agent erzeugt sein Schlüsselpaar selbst und sendet nur eine
-/// Zertifikatsanforderung (CSR); der Server übernimmt daraus ausschliesslich den öffentlichen Schlüssel.
-/// Subject, Erweiterungen und Gültigkeit bestimmt allein der Server. Das Subject (CN) ist die Agent-ID.
+/// Own CA for agent certificates (ECDSA P-256). The agent creates its key pair itself and only sends a
+/// certificate signing request (CSR); the server takes nothing but the public key from it.
+/// Subject, extensions and validity are decided by the server alone. The subject (CN) is the agent ID.
 /// </summary>
 public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, IHostEnvironment environment) : IDisposable
 {
@@ -46,7 +46,7 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
         }
     }
 
-    /// <summary>Das öffentliche CA-Zertifikat (PEM) für die Agents.</summary>
+    /// <summary>The public CA certificate (PEM) for the agents.</summary>
     public string CaCertificatePem => Ca.ExportCertificatePem();
 
     private X509Certificate2 LoadOrCreate()
@@ -67,7 +67,7 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
             var now = DateTimeOffset.UtcNow;
             using var created = request.CreateSelfSigned(now.AddMinutes(-5), now.AddYears(10));
 
-            // Schlüssel zuerst und nur für den Besitzer lesbar; "CreateNew" verhindert, dass parallel startende Instanzen sich überschreiben.
+            // Key first and readable only by the owner; "CreateNew" prevents instances starting in parallel from overwriting each other.
             try
             {
                 WriteNew(keyFile, key.ExportPkcs8PrivateKeyPem(), secret: true);
@@ -75,7 +75,7 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
             }
             catch (IOException) when (File.Exists(keyFile))
             {
-                // Eine andere Instanz war schneller; deren Dateien werden unten geladen.
+                // Another instance was faster; its files are loaded below.
                 for (var i = 0; i < 20 && !File.Exists(certFile); i++)
                 {
                     Thread.Sleep(100);
@@ -101,7 +101,7 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
         writer.Write(content);
     }
 
-    /// <summary>Stellt aus einer CSR ein Client-Zertifikat für den Agent aus. Wirft <see cref="CryptographicException"/> bei ungültiger CSR.</summary>
+    /// <summary>Issues a client certificate for the agent from a CSR. Throws <see cref="CryptographicException"/> for an invalid CSR.</summary>
     public IssuedCertificate Issue(string csrPem, Guid agentId, DateTimeOffset now)
     {
         var csr = CertificateRequest.LoadSigningRequestPem(csrPem, HashAlgorithmName.SHA256);
@@ -131,7 +131,7 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
         var notBefore = now.AddMinutes(-5);
         if (notBefore < ca.NotBefore)
         {
-            notBefore = new DateTimeOffset(ca.NotBefore.ToUniversalTime(), TimeSpan.Zero); // nicht vor der CA gültig
+            notBefore = new DateTimeOffset(ca.NotBefore.ToUniversalTime(), TimeSpan.Zero); // not valid before the CA
         }
         var notAfter = now.AddDays(Math.Clamp(options.Value.Mtls.CertificateValidityDays, 1, 3650));
         if (notAfter > ca.NotAfter)
@@ -150,8 +150,8 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
     }
 
     /// <summary>
-    /// Prüft ein vorgelegtes Client-Zertifikat: ausgestellt von der Agent-CA, zeitlich gültig, Client-Authentisierung,
-    /// Subject = Agent-ID und Fingerabdruck wie beim Agent hinterlegt.
+    /// Validates a presented client certificate: issued by the agent CA, within its validity period, client authentication,
+    /// subject = agent ID and thumbprint as stored for the agent.
     /// </summary>
     public bool IsValid(X509Certificate2 certificate, Guid agentId, string expectedThumbprint, DateTimeOffset now)
     {

@@ -9,17 +9,17 @@ public enum RunStatus
     Failed = 2
 }
 
-/// <summary>Ein Update-Lauf auf einem Gerät, entweder in einem Wartungsfenster oder manuell ausgelöst.</summary>
+/// <summary>An update run on a device, either in a maintenance window or triggered manually.</summary>
 public sealed class UpdateRun : Entity
 {
     public const int MaxMessageLength = 2000;
 
     public Guid DeviceId { get; private set; }
 
-    /// <summary>Guid.Empty bei manuell ausgelösten Läufen.</summary>
+    /// <summary>Guid.Empty for manually triggered runs.</summary>
     public Guid WindowId { get; private set; }
 
-    /// <summary>Beginn des Fensters; zusammen mit Gerät und Fenster verhindert das doppelte Läufe.</summary>
+    /// <summary>Start of the window; together with device and window this prevents duplicate runs.</summary>
     public DateTimeOffset OccurrenceStart { get; private set; }
 
     public Guid JobId { get; private set; }

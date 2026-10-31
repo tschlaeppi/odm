@@ -1,6 +1,6 @@
 namespace Odm.Agent.Repo;
 
-/// <summary>Findet Paketmanager-Programme, auch wenn der Dienst keinen vollständigen PATH hat.</summary>
+/// <summary>Finds package manager programs even if the service does not have a complete PATH.</summary>
 public static class ToolLocator
 {
     private static readonly string[] LinuxDirectories = ["/usr/bin", "/bin", "/usr/sbin", "/usr/local/bin", "/snap/bin"];
@@ -16,8 +16,8 @@ public static class ToolLocator
     }
 
     /// <summary>
-    /// Winget gehört zum "App-Installer" (MSIX) und liegt unter WindowsApps. Als SYSTEM ist es nicht im PATH,
-    /// deshalb wird die neueste installierte Version direkt gesucht.
+    /// Winget belongs to the "App Installer" (MSIX) and lives under WindowsApps. As SYSTEM it is not on the PATH,
+    /// so the newest installed version is searched directly.
     /// </summary>
     public static string? Winget()
     {
@@ -40,7 +40,7 @@ public static class ToolLocator
         }
         catch (UnauthorizedAccessException)
         {
-            // kein Zugriff: auf PATH ausweichen
+            // no access: fall back to PATH
         }
 
         return OnPath("winget.exe");

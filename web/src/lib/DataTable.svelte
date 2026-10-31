@@ -4,10 +4,10 @@
   export interface Column<R> {
     key: string
     label: string
-    /** Wert für Sortierung und Filter (Anzeige über <c>cell</c>, sonst dieser Wert). */
+    /** Value for sorting and filtering (display via <c>cell</c>, otherwise this value). */
     value: (row: R) => string | number | null | undefined
     cell?: Snippet<[R]>
-    /** 'select' = Auswahlliste der vorkommenden Werte, sonst Textfilter. */
+    /** 'select' = dropdown of the values that occur, otherwise a text filter. */
     filter?: 'text' | 'select' | 'none'
     align?: 'right'
     muted?: boolean
@@ -27,12 +27,12 @@
     searchPlaceholder?: string
     emptyText?: string
     stale?: boolean
-    /** Zusätzliche Bedienelemente rechts neben der Suche. */
+    /** Additional controls to the right of the search. */
     toolbar?: Snippet
     pageSize?: number
-    /** Spalten (key), die anfangs ausgeblendet sind. */
+    /** Columns (key) that are initially hidden. */
     defaultHidden?: string[]
-    /** Schlüssel, unter dem die Spaltenauswahl im Browser gemerkt wird. */
+    /** Key under which the column selection is remembered in the browser. */
     storageKey?: string
   }
 
@@ -46,13 +46,13 @@
   let page = $state(0)
   let size = $state(untrack(() => pageSize))
 
-  // Ausgeblendete Spalten; die Auswahl wird (falls möglich) im Browser gemerkt.
+  // Hidden columns; the selection is remembered in the browser (if possible).
   function loadHidden(): string[] {
     try {
       const raw = storageKey ? localStorage.getItem(`odm.columns.${storageKey}`) : null
       if (raw) return JSON.parse(raw) as string[]
     } catch {
-      // Speicher nicht verfügbar: Standard verwenden
+      // Storage not available: use the default
     }
     return [...defaultHidden]
   }
@@ -108,7 +108,7 @@
   const current = $derived(Math.min(page, pages - 1))
   const visible = $derived(sorted.slice(current * size, current * size + size))
 
-  // Filter-/Sortieränderungen springen zurück auf Seite 1
+  // Changes to filter/sort jump back to page 1
   $effect(() => {
     query
     filters

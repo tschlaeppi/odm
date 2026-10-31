@@ -15,7 +15,7 @@
 
   let groupId = $state('')
 
-  // Bearbeiten der Zuordnung
+  // Editing the assignment
   let dialog: HTMLDialogElement
   let jobs: DeviceJobs
   let editing = $state<DeviceDto | null>(null)
@@ -23,7 +23,7 @@
   let saving = $state(false)
   let saveFailed = $state(false)
 
-  // Lädt alle Geräte (in Blöcken zu 500); Suche, Spaltenfilter und Sortierung erfolgen in der Tabelle.
+  // Loads all devices (in blocks of 500); search, column filters and sorting happen in the table.
   async function load(group: string) {
     loading = true
     failed = false

@@ -10,7 +10,7 @@ using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.Software.Endpoints;
 
-/// <summary>Softwareprofile (geordnete Paketlisten) und ihre Zuweisungen.</summary>
+/// <summary>Software profiles (ordered package lists) and their assignments.</summary>
 internal static class ProfileEndpoints
 {
     private const int MaxItems = 50;
@@ -89,7 +89,7 @@ internal static class ProfileEndpoints
                     return Invalid("items", built.Error);
                 }
 
-                // Löschen und Neuanlegen in einer Transaktion: die Reihenfolge wird als Ganzes ersetzt.
+                // Delete and re-create in one transaction: the order is replaced as a whole.
                 await using var transaction = await db.Database.BeginTransactionAsync(ct);
                 profile.Update(request.Description);
                 await db.ProfileItems.Where(i => i.ProfileId == id).ExecuteDeleteAsync(ct);
@@ -226,7 +226,7 @@ internal static class ProfileEndpoints
                 .ToList());
     }
 
-    /// <summary>Prüft die Einträge und legt sie in der angegebenen Reihenfolge an.</summary>
+    /// <summary>Validates the entries and creates them in the given order.</summary>
     private static async Task<(IReadOnlyList<ProfileItem> Items, string? Error)> BuildItemsAsync(
         SoftwareDbContext db, Guid profileId, IReadOnlyList<ProfileItemRequest>? requested, CancellationToken ct)
     {

@@ -8,8 +8,8 @@ public sealed record OsUpdateOutput(
     int Installed, int Failed, IReadOnlyList<string> Titles, bool RebootRequired, bool Rebooting, string? Message);
 
 /// <summary>
-/// Führt einen Update-Lauf im Wartungsfenster aus und plant bei Bedarf den Neustart.
-/// Der Neustart erfolgt mit Verzögerung, damit der Agent das Ergebnis vorher melden kann.
+/// Runs an update run in the maintenance window and schedules the restart if needed.
+/// The restart is delayed so that the agent can report the result first.
 /// </summary>
 public sealed class OsUpdateJobHandler(
     WindowsUpdater windows,
@@ -18,10 +18,10 @@ public sealed class OsUpdateJobHandler(
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Wird ein Auftrag später als (Fensterende - Puffer) gestartet, wird er nicht mehr ausgeführt.</summary>
+    /// <summary>A job that is started later than (window end - buffer) is no longer executed.</summary>
     private static readonly TimeSpan StartBuffer = TimeSpan.FromMinutes(10);
 
-    /// <summary>Ein Neustart wird nur geplant, wenn bis zum Fensterende noch so viel Zeit bleibt.</summary>
+    /// <summary>A restart is only scheduled if that much time remains until the end of the window.</summary>
     private static readonly TimeSpan RebootBuffer = TimeSpan.FromMinutes(5);
 
     private const int RebootDelaySeconds = 120;
@@ -74,7 +74,7 @@ public sealed class OsUpdateJobHandler(
             }
             catch (Exception)
             {
-                // Aufräumen ist best effort
+                // Cleaning up is best effort
             }
         }
     }

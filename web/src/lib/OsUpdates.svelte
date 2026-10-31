@@ -23,7 +23,7 @@
   let policies = $state<UpdatePolicyDto[]>([])
   let windows = $state<MaintenanceWindowDto[]>([])
   let runs = $state<UpdateRunDto[]>([])
-  // Zuweisungen je Richtlinie bzw. Fenster
+  // Assignments per policy or window
   let assignments = $state<Record<string, OsAssignmentDto[]>>({})
   let loading = $state(true)
   let errorKey = $state<MessageKey | null>(null)
@@ -34,7 +34,7 @@
   let policyMode = $state<UpdateMode>('SecurityOnly')
   let policyReboot = $state<RebootBehavior>('Never')
 
-  // Formular Fenster (auch zum Bearbeiten)
+  // Window form (also for editing)
   const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const zones: string[] = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ?? [localZone]
   let editingWindowId = $state<string | null>(null)
@@ -69,7 +69,7 @@
     try {
       runs = await api.osRuns()
     } catch {
-      /* nächster Versuch beim nächsten Intervall */
+      /* next attempt at the next interval */
     }
   }
 
@@ -370,7 +370,7 @@
       </article>
     {/each}
 
-    <!-- Läufe -->
+    <!-- Runs -->
     <h2>{i18n.t('os.runs')}</h2>
     {#if runs.length === 0}
       <p class="muted">{i18n.t('os.noRuns')}</p>

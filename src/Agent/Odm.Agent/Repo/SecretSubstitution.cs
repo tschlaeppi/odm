@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Odm.Agent.Repo;
 
-/// <summary>Ersetzt {{secret:NAME}} in Argumenten und entfernt Secret-Werte aus Ausgaben.</summary>
+/// <summary>Replaces {{secret:NAME}} in arguments and removes secret values from output.</summary>
 public static partial class SecretSubstitution
 {
     [GeneratedRegex(@"\{\{secret:([A-Za-z0-9_.-]{1,64})\}\}")]
@@ -20,9 +20,9 @@ public static partial class SecretSubstitution
         });
 
     /// <summary>
-    /// Installer geben ihre Befehlszeile gelegentlich aus. Damit Secret-Werte nicht in Auftragsergebnissen
-    /// und damit in der Datenbank landen, werden sie vor dem Melden unkenntlich gemacht.
-    /// Sehr kurze Werte (unter 3 Zeichen) werden nicht ersetzt, weil sonst die Ausgabe unlesbar würde.
+    /// Installers occasionally print their command line. So that secret values do not end up in job results
+    /// and thus in the database, they are masked before reporting.
+    /// Very short values (under 3 characters) are not replaced because the output would become unreadable.
     /// </summary>
     public static string Redact(string? text, IEnumerable<string> secretValues)
     {

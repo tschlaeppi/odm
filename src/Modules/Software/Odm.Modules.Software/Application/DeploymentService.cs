@@ -9,9 +9,9 @@ using Odm.SharedKernel.Contracts;
 namespace Odm.Modules.Software.Application;
 
 /// <summary>
-/// Gleicht Soll (Zuweisungen) und Ist (Installationen) ab und erzeugt Agent-Aufträge.
-/// Läuft regelmässig, nicht nur bei Änderungen: so werden auch neue Gruppenmitglieder,
-/// neue Paketversionen und automatisch aktualisierte Repo-Pakete erfasst.
+/// Reconciles desired state (assignments) and actual state (installations) and creates agent jobs.
+/// Runs regularly, not only on changes: this also catches new group members,
+/// new package versions and automatically updated repo packages.
 /// </summary>
 public sealed class DeploymentService(
     SoftwareDbContext db,
@@ -32,7 +32,7 @@ public sealed class DeploymentService(
     private sealed record SourceItem(
         Guid PackageId, VersionPolicy Policy, Guid? PinnedVersionId, AssignmentIntent Intent = AssignmentIntent.Install);
 
-    /// <summary>Eine Zuweisung als Quelle des Soll-Zustands; bei Profilen mehrere Einträge in Installationsreihenfolge.</summary>
+    /// <summary>An assignment as a source of the desired state; for profiles several entries in installation order.</summary>
     private sealed record Source(
         Guid Id, TargetKind Kind, string Target, DateTimeOffset Start, RolloutPlan? Rollout, bool FromProfile,
         IReadOnlyList<SourceItem> Items);
@@ -62,7 +62,7 @@ public sealed class DeploymentService(
         return sources;
     }
 
-    /// <summary>Gewünschte Version: feste Version (nur PSADT) oder die neueste; null, wenn es keine gibt.</summary>
+    /// <summary>Desired version: pinned version (PSADT only) or the latest; null if there is none.</summary>
     private static Guid? ResolveVersion(
         SoftwarePackage package, VersionPolicy policy, Guid? pinnedVersionId,
         IReadOnlyDictionary<Guid, VersionInfo> versionsById, IReadOnlyDictionary<Guid, Guid> latestByPackage)
@@ -95,7 +95,7 @@ public sealed class DeploymentService(
             .GroupBy(v => v.PackageId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.UploadedAt).First().Id);
 
-        // Erfolgreich deinstallierte Einträge zuerst löschen (und speichern), damit bei erneuter Zuweisung kein Schlüsselkonflikt entsteht.
+        // Delete successfully uninstalled entries first (and save) so that a re-assignment causes no key conflict.
         var allInstallations = await db.Installations.ToListAsync(ct);
         var removed = allInstallations.Where(i => i.Status == InstallStatus.Removed).ToList();
         if (removed.Count > 0)
@@ -107,7 +107,7 @@ public sealed class DeploymentService(
         var installations = allInstallations.Except(removed).ToList();
         var byKey = installations.ToDictionary(i => (i.DeviceId, i.PackageId));
 
-        // 1. Quellen des Soll-Zustands: einzelne Paketzuweisungen und Profilzuweisungen (mit Reihenfolge).
+        // 1. Sources of the desired state: single package assignments and profile assignments (with order).
         var sources = await LoadSourcesAsync(ct);
 
         var groupMembers = new Dictionary<Guid, HashSet<Guid>>();
@@ -119,8 +119,8 @@ public sealed class DeploymentService(
 
         bool IsMember(Guid groupId, Guid deviceId) => groupMembers.TryGetValue(groupId, out var m) && m.Contains(deviceId);
 
-        // (Gerät, Paket) -> Version; bei mehreren Quellen gewinnt die spezifischere (Gerät vor Benutzer vor Gruppe,
-        // innerhalb davon die einzelne Paketzuweisung vor dem Profil).
+        // (device, package) -> version; with several sources the more specific wins (device before user before group,
+        // within that the single package assignment before the profile).
         var desired = new Dictionary<(Guid Device, Guid Package), Desired>();
 
         foreach (var source in sources)
@@ -135,16 +135,16 @@ public sealed class DeploymentService(
                 var uninstall = item.Intent == AssignmentIntent.Uninstall;
                 if (!packages.TryGetValue(item.PackageId, out var package))
                 {
-                    continue; // Paket gelöscht
+                    continue; // package deleted
                 }
 
-                // Beim Deinstallieren zählt die installierte Version, nicht die gewünschte.
+                // When uninstalling, the installed version counts, not the desired one.
                 var resolved = uninstall
                     ? Guid.Empty
                     : ResolveVersion(package, item.Policy, item.PinnedVersionId, versionsById, latestByPackage);
                 if (resolved is not { } versionId)
                 {
-                    continue; // ohne Version/Revision oder feste Version ungültig
+                    continue; // no version/revision or pinned version invalid
                 }
 
                 foreach (var device in devices)
@@ -158,10 +158,10 @@ public sealed class DeploymentService(
 
                     if (uninstall && !byKey.ContainsKey(key))
                     {
-                        continue; // nichts von ODM Installiertes zu entfernen
+                        continue; // nothing installed by ODM to remove
                     }
 
-                    // Tranchen gelten nur für neue Installationen; wer das Paket schon hat, wird nicht ausgebremst.
+                    // Tranches only apply to new installations; whoever already has the package is not held back.
                     var allowed = source.Rollout is null ||
                                   byKey.ContainsKey(key) ||
                                   source.Rollout.IsReleased(source.Id, device.Id, elapsed, IsMember);
@@ -174,7 +174,7 @@ public sealed class DeploymentService(
                         ? before.ToList()
                         : [];
 
-                    // Bei gleichem Rang gewinnt "installieren" vor "deinstallieren".
+                    // At equal rank "install" wins over "uninstall".
                     if (!desired.TryGetValue(key, out var current) || priority < current.Priority ||
                         (priority == current.Priority && current.Uninstall && !uninstall))
                     {
@@ -209,7 +209,7 @@ public sealed class DeploymentService(
                     continue;
                 }
 
-                // Repo-Pakete ohne feste Version regelmässig vom Paketmanager aktualisieren lassen.
+                // Have the package manager update repo packages without a pinned version regularly.
                 var refresh = packages[key.Package].Kind.IsRepo() && specs[key.Package].AutoUpdate ? repoRefresh : null;
                 installation.Evaluate(want.Version, now, refresh);
             }
@@ -221,8 +221,8 @@ public sealed class DeploymentService(
 
         await db.SaveChangesAsync(ct);
 
-        // 3. Offene Installationen als Aufträge einreihen
-        // Profile: ein Paket wartet, bis alle Pakete davor auf demselben Gerät installiert sind.
+        // 3. Queue open installations as jobs
+        // Profiles: a package waits until all packages before it on the same device are installed.
         var statusByKey = db.Installations.Local.ToDictionary(i => (i.DeviceId, i.PackageId), i => i.Status);
         var pending = db.Installations.Local
             .Where(i => i.Status == InstallStatus.Pending &&
@@ -244,7 +244,7 @@ public sealed class DeploymentService(
         {
             if (!versionEntities.TryGetValue(installation.TargetVersionId, out var version))
             {
-                continue; // Version wurde gelöscht
+                continue; // version was deleted
             }
 
             var package = packages[installation.PackageId];
@@ -253,19 +253,19 @@ public sealed class DeploymentService(
             var jobId = await jobs.EnqueueAsync(installation.DeviceId, jobType, payload, ct);
             if (jobId is null)
             {
-                continue; // Gerät hat (noch) keinen Agent; nächster Lauf versucht es erneut
+                continue; // device has no agent (yet); the next run tries again
             }
 
             installation.MarkQueued(jobId.Value, now);
-            await db.SaveChangesAsync(ct); // sofort speichern: der Auftrag existiert bereits
+            await db.SaveChangesAsync(ct); // save immediately: the job already exists
         }
 
         logger.LogInformation("Reconciliation: {Count} installation jobs queued.", pending.Count(i => i.Status == InstallStatus.Running));
     }
 
     /// <summary>
-    /// Baut den Auftrag. Argumente enthalten nur Verweise {{secret:NAME}}; die Werte holt der Agent erst bei der
-    /// Ausführung ab, damit sie nie in der Auftragstabelle landen.
+    /// Builds the job. Arguments contain only references {{secret:NAME}}; the agent fetches the values only at
+    /// execution time so that they never end up in the job table.
     /// </summary>
     private static (string Type, string Payload) BuildJob(
         SoftwarePackage package, PackageSpec current, PackageVersion version, bool uninstall)
@@ -279,7 +279,7 @@ public sealed class DeploymentService(
                 Json));
         }
 
-        // Repo-Paket: die Einstellungen der Revision gelten, nicht die aktuell bearbeiteten.
+        // Repo package: the settings of the revision apply, not the ones currently being edited.
         var spec = PackageSpec.Parse(version.SpecSnapshot);
         return (AgentJobTypes.InstallRepo, JsonSerializer.Serialize(
             new InstallRepoPayload(

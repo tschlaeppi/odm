@@ -2,7 +2,7 @@
   import type { GroupDto, Rollout, RolloutMode } from './api'
   import { i18n, type MessageKey } from './i18n.svelte'
 
-  // Tranchenplan einer Zuweisung; null = sofort an alle. Steht in einem <form>, die Browserprüfung (required, min, max) greift also.
+  // Tranche plan of an assignment; null = immediately to all. Lives in a <form>, so the browser validation (required, min, max) applies.
   let { value = $bindable(null), groups }: { value: Rollout | null; groups: GroupDto[] } = $props()
 
   const mode = $derived<RolloutMode | ''>(value?.mode ?? '')

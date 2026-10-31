@@ -5,10 +5,10 @@ namespace Odm.Modules.Software.Domain;
 
 public enum PackageKind
 {
-    /// <summary>PSAppDeployToolkit-Paket (gezipptes PSADT), nur Windows.</summary>
+    /// <summary>PSAppDeployToolkit package (zipped PSADT), Windows only.</summary>
     Psadt = 0,
 
-    // Pakete aus fremden Repositories: der Paketmanager des Geräts installiert und aktualisiert sie.
+    // Packages from third-party repositories: the device's package manager installs and updates them.
     Winget = 1,
     Chocolatey = 2,
     Apt = 3,
@@ -21,14 +21,14 @@ public static class PackageKindExtensions
 {
     public static bool IsRepo(this PackageKind kind) => kind != PackageKind.Psadt;
 
-    /// <summary>Winget, Chocolatey und PSADT laufen nur auf Windows, die übrigen nur auf Linux.</summary>
+    /// <summary>Winget, Chocolatey and PSADT run on Windows only, the rest on Linux only.</summary>
     public static bool IsWindowsOnly(this PackageKind kind) =>
         kind is PackageKind.Psadt or PackageKind.Winget or PackageKind.Chocolatey;
 }
 
 /// <summary>
-/// Paketeinstellungen. Je nach Art sind nur einzelne Felder relevant; nicht relevante bleiben leer,
-/// damit gleiche Einstellungen immer zum gleichen JSON führen (Änderungserkennung).
+/// Package settings. Depending on the kind only some fields are relevant; irrelevant ones stay empty
+/// so that equal settings always lead to the same JSON (change detection).
 /// </summary>
 public sealed record PackageSpec(
     string? Identifier,
@@ -44,7 +44,7 @@ public sealed record PackageSpec(
 
     public static PackageSpec Empty { get; } = new(null, null, null, null, null, null, false, null);
 
-    /// <summary>Repo-Pakete ohne feste Version werden vom Paketmanager automatisch aktualisiert.</summary>
+    /// <summary>Repo packages without a pinned version are updated automatically by the package manager.</summary>
     public bool AutoUpdate => Version is null;
 
     public static PackageSpec Parse(string? json)
@@ -108,8 +108,8 @@ public sealed class SoftwarePackage : Entity
 
 /// <summary>
 /// Eine Version eines Pakets. PSADT: hochgeladenes ZIP ("neueste Version" = zuletzt hochgeladene).
-/// Repo-Pakete: eine "Revision", also ein Schnappschuss der Einstellungen; ändert sich die Konfiguration,
-/// entsteht eine neue Revision und die Geräte werden darauf abgeglichen.
+/// Repo packages: a "revision", i.e. a snapshot of the settings; when the configuration changes,
+/// a new revision is created and the devices are reconciled to it.
 /// </summary>
 public sealed class PackageVersion : Entity
 {

@@ -5,8 +5,8 @@ namespace Odm.SharedKernel.Persistence;
 public static class DatabaseMigrator
 {
     /// <summary>
-    /// Wendet die Migrationen an. Fehlen sie ganz, bricht der Start mit einer klaren Meldung ab, statt mit einer
-    /// leeren Datenbank weiterzulaufen und erst bei der ersten Abfrage zu scheitern.
+    /// Applies the migrations. If they are missing entirely, startup aborts with a clear message instead of
+    /// continuing with an empty database and failing only at the first query.
     /// </summary>
     public static async Task MigrateOdmAsync(this DbContext db, CancellationToken ct = default)
     {

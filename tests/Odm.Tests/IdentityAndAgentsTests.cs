@@ -23,7 +23,7 @@ public class PasswordHasherTests
         var a = _hasher.Hash("Pa$$w0rt");
         var b = _hasher.Hash("Pa$$w0rt");
 
-        Assert.NotEqual(a, b); // zufälliges Salt
+        Assert.NotEqual(a, b); // random salt
         Assert.DoesNotContain("Pa$$w0rt", a);
         Assert.StartsWith("v1.", a);
     }
@@ -49,7 +49,7 @@ public class AgentSecretsTests
 
         Assert.StartsWith("odm-reg-", a);
         Assert.NotEqual(a, b);
-        Assert.Equal("odm-reg-".Length + 43, a.Length); // 32 Byte als Base64Url ohne Auffüllung
+        Assert.Equal("odm-reg-".Length + 43, a.Length); // 32 bytes as Base64Url without padding
     }
 
     [Fact]

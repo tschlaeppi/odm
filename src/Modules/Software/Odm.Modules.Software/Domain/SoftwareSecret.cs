@@ -2,7 +2,7 @@ using Odm.SharedKernel;
 
 namespace Odm.Modules.Software.Domain;
 
-/// <summary>Benannter Wert (z. B. Lizenzschlüssel), verschlüsselt gespeichert. Argumente verweisen mit {{secret:NAME}} darauf.</summary>
+/// <summary>Named value (e.g. license key), stored encrypted. Arguments refer to it with {{secret:NAME}}.</summary>
 public sealed class SoftwareSecret : Entity
 {
     public string Name { get; private set; } = "";

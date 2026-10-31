@@ -4,7 +4,7 @@ public sealed class S3Options
 {
     public const string SectionName = "Storage:S3";
 
-    /// <summary>Leer = AWS. Für MinIO o. Ä. die URL des Dienstes angeben.</summary>
+    /// <summary>Empty = AWS. For MinIO or similar, give the URL of the service.</summary>
     public string ServiceUrl { get; set; } = "";
 
     public string Region { get; set; } = "us-east-1";
@@ -18,7 +18,7 @@ public sealed class SecretsOptions
 {
     public const string SectionName = "Secrets";
 
-    /// <summary>Base64-codierter 256-Bit-Schlüssel (z. B. "openssl rand -base64 32").</summary>
+    /// <summary>Base64-encoded 256-bit key (e.g. "openssl rand -base64 32").</summary>
     public string MasterKey { get; set; } = "";
 
     public static bool IsValid(string key)
@@ -38,14 +38,14 @@ public sealed class SoftwareOptions
 {
     public const string SectionName = "Software";
 
-    /// <summary>Maximale Grösse eines hochgeladenen Pakets (S3 erlaubt in einem Upload höchstens 5 GB).</summary>
+    /// <summary>Maximum size of an uploaded package (S3 allows at most 5 GB in one upload).</summary>
     public int MaxPackageMegabytes { get; set; } = 4096;
 
-    /// <summary>Spätestens nach dieser Zeit wird der Soll-Zustand neu abgeglichen.</summary>
+    /// <summary>The desired state is reconciled again after this time at the latest.</summary>
     public int ReconcileSeconds { get; set; } = 60;
 
     /// <summary>
-    /// Automatisch aktualisierte Repo-Pakete (ohne feste Version) werden nach dieser Zeit erneut "installiert/aktualisiert".
+    /// Automatically updated repo packages (without a pinned version) are "installed/updated" again after this time.
     /// 0 = nie.
     /// </summary>
     public int RepoRefreshHours { get; set; } = 24;

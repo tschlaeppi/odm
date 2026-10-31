@@ -5,8 +5,8 @@ using Odm.Modules.Devices.Domain;
 namespace Odm.Modules.Devices.Application;
 
 /// <summary>
-/// Übersetzt Gruppenregeln in einen Ausdruck, den EF Core in SQL umsetzt.
-/// Textvergleiche sind unabhängig von Gross-/Kleinschreibung.
+/// Translates group rules into an expression that EF Core turns into SQL.
+/// Text comparisons are case-insensitive.
 /// </summary>
 public static class GroupFilter
 {
@@ -15,13 +15,13 @@ public static class GroupFilter
     private static readonly MethodInfo EndsWith = typeof(string).GetMethod(nameof(string.EndsWith), [typeof(string)])!;
     private static readonly MethodInfo Contains = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
 
-    // Wert in einem Objekt kapseln, damit EF ihn als Parameter (nicht als Literal) an die DB übergibt.
+    // Wrap the value in an object so that EF passes it to the database as a parameter (not as a literal).
     private sealed class ValueBox(string value)
     {
         public string Value { get; } = value;
     }
 
-    /// <summary>Gruppe ohne Regeln enthält keine Geräte.</summary>
+    /// <summary>A group without rules contains no devices.</summary>
     public static Expression<Func<Device, bool>> Build(GroupMatchMode mode, IReadOnlyCollection<GroupRule> rules)
     {
         if (rules.Count == 0)

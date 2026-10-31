@@ -72,7 +72,7 @@ internal static class AssignmentEndpoints
                     return Results.NotFound();
                 }
 
-                // Bei Repo-Paketen steht die feste Version in der Paketkonfiguration, nicht in der Zuweisung.
+                // For repo packages the pinned version is in the package configuration, not in the assignment.
                 if (package.Kind.IsRepo())
                 {
                     policy = VersionPolicy.Latest;

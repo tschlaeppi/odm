@@ -33,7 +33,7 @@ public sealed class AgentsModule : IModule
         services.AddScoped<AgentService>();
         services.AddScoped<IJobQueue, JobQueue>();
 
-        // Zusätzliches Authentisierungsschema für Agents; der Standard (JWT für Benutzer) bleibt unverändert.
+        // Additional authentication scheme for agents; the default (JWT for users) stays unchanged.
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, AgentAuthenticationHandler>(AgentAuthenticationHandler.SchemeName, _ => { });
 

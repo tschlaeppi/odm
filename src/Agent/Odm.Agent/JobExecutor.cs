@@ -4,9 +4,9 @@ using Odm.Agent.Jobs;
 namespace Odm.Agent;
 
 /// <summary>
-/// Führt Aufträge unabhängig vom Heartbeat aus. Würde der Heartbeat auf eine lange Installation warten,
-/// wäre das Gerät in der Zwischenzeit "offline" und der Server würde den Auftrag erneut ausliefern.
-/// Aufträge laufen nacheinander (eine Installation zur Zeit).
+/// Runs jobs independently of the heartbeat. If the heartbeat waited for a long installation,
+/// the device would be "offline" in the meantime and the server would deliver the job again.
+/// Jobs run one after another (one installation at a time).
 /// </summary>
 public sealed class JobExecutor(
     ServerClient server,
@@ -18,10 +18,10 @@ public sealed class JobExecutor(
     private readonly Dictionary<string, IJobHandler> _handlers = handlers.ToDictionary(h => h.Type);
     private readonly SemaphoreSlim _signal = new(0);
     private readonly object _gate = new();
-    private readonly HashSet<Guid> _active = [];          // eingereiht oder in Ausführung
-    private readonly List<JobResult> _results = [];       // fertig, aber noch nicht vom Server bestätigt
+    private readonly HashSet<Guid> _active = [];          // queued or running
+    private readonly List<JobResult> _results = [];       // finished, but not yet acknowledged by the server
 
-    /// <summary>Reiht einen Auftrag ein. Bereits bekannte Aufträge (erneute Auslieferung) werden ignoriert.</summary>
+    /// <summary>Queues a job. Jobs that are already known (delivered again) are ignored.</summary>
     public bool Enqueue(ServerJob job, AgentState state)
     {
         lock (_gate)
@@ -52,7 +52,7 @@ public sealed class JobExecutor(
         }
     }
 
-    /// <summary>Ergebnisse, die der Server erhalten hat, werden nicht erneut gesendet.</summary>
+    /// <summary>Results that the server has received are not sent again.</summary>
     public void Acknowledge(IReadOnlyCollection<JobResult> sent)
     {
         lock (_gate)
@@ -61,7 +61,7 @@ public sealed class JobExecutor(
         }
     }
 
-    /// <summary>Wartet bis zum Ablauf der Zeit oder bis ein Ergebnis vorliegt (dann soll sofort gemeldet werden).</summary>
+    /// <summary>Waits until the time has elapsed or a result is available (then it should be reported immediately).</summary>
     public async Task WaitAsync(TimeSpan timeout, CancellationToken ct)
     {
         if (await _signal.WaitAsync(timeout, ct))
@@ -91,7 +91,7 @@ public sealed class JobExecutor(
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // Agent wird beendet
+            // agent is shutting down
         }
     }
 

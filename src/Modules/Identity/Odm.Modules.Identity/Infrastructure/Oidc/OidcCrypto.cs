@@ -6,12 +6,12 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Odm.Modules.Identity.Infrastructure.Oidc;
 
-/// <summary>PKCE (RFC 7636) und Zufallswerte für state und nonce.</summary>
+/// <summary>PKCE (RFC 7636) and random values for state and nonce.</summary>
 public static class Pkce
 {
     public static string NewVerifier() => Base64Url(RandomNumberGenerator.GetBytes(32));
 
-    /// <summary>Zufallswert für state und nonce.</summary>
+    /// <summary>Random value for state and nonce.</summary>
     public static string NewToken() => Base64Url(RandomNumberGenerator.GetBytes(32));
 
     public static string Challenge(string verifier) => Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
@@ -20,13 +20,13 @@ public static class Pkce
         Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }
 
-/// <summary>Was der Browser zwischen Start und Rückkehr der Anmeldung mitführt.</summary>
+/// <summary>What the browser carries between the start and the return of the sign-in.</summary>
 public sealed record OidcLoginState(string Provider, string State, string Nonce, string Verifier);
 
 /// <summary>
-/// Schützt den Anmeldezustand in einem kurzlebigen, signierten Cookie. So braucht der Server keinen Zwischenspeicher
-/// und die Anmeldung funktioniert auch mit mehreren Instanzen. Der Schlüssel wird vom JWT-Secret abgeleitet und ist
-/// nicht der Schlüssel der API-Tokens; ein Cookie lässt sich also nicht als API-Token verwenden.
+/// Protects the sign-in state in a short-lived, signed cookie. This way the server needs no intermediate storage
+/// and sign-in also works with several instances. The key is derived from the JWT secret and is
+/// not the key of the API tokens; a cookie therefore cannot be used as an API token.
 /// </summary>
 public sealed class OidcStateProtector(IOptions<JwtOptions> jwt)
 {

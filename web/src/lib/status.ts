@@ -1,6 +1,6 @@
 import type { DeviceDto } from './api'
 
-// Heartbeat-Intervall ist 60 s; nach drei verpassten Meldungen gilt ein Gerät als offline.
+// Heartbeat interval is 60 s; after three missed reports a device counts as offline.
 const ONLINE_WINDOW_MS = 3 * 60_000
 
 export function isOnline(device: DeviceDto): boolean {

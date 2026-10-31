@@ -3,13 +3,13 @@ using System.Text.RegularExpressions;
 
 namespace Odm.Modules.Agents.Application;
 
-/// <summary>Entscheidet, ob und welches Update ein Agent beim Heartbeat angeboten bekommt.</summary>
+/// <summary>Decides whether and which update an agent is offered with the heartbeat.</summary>
 public static partial class AgentUpdatePlanner
 {
     [GeneratedRegex(@"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.\-]+)?$")]
     private static partial Regex VersionPattern();
 
-    /// <summary>Stabiler Wert 0–99 je Gerät für die gestaffelte Verteilung.</summary>
+    /// <summary>Stable value 0–99 per device for staged rollout.</summary>
     public static int Bucket(Guid deviceId)
     {
         var hash = SHA256.HashData(deviceId.ToByteArray());

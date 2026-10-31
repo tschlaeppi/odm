@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Odm.Modules.Software.Application;
 
-/// <summary>Verweise der Form {{secret:NAME}} in Argumenten.</summary>
+/// <summary>References of the form {{secret:NAME}} in arguments.</summary>
 public static partial class SecretReferences
 {
     public const string NamePattern = "^[A-Za-z0-9_.-]{1,64}$";

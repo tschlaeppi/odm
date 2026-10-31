@@ -4,9 +4,9 @@ using Odm.Modules.Devices.Domain;
 namespace Odm.Tests;
 
 /// <summary>
-/// Der Gruppenfilter wird für EF Core gebaut; hier wird derselbe Ausdruck im Speicher ausgewertet.
-/// Alle Testgeräte haben die geprüften Felder gesetzt (im Speicher würde ein leeres Feld eine NullReferenceException
-/// auslösen, in SQL ergibt es "keine Übereinstimmung").
+/// The group filter is built for EF Core; here the same expression is evaluated in memory.
+/// All test devices have the checked fields set (in memory an empty field would throw a NullReferenceException,
+/// in SQL it results in "no match").
 /// </summary>
 public class GroupFilterTests
 {

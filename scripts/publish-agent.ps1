@@ -1,4 +1,4 @@
-# Baut die eigenständigen Agent-Pakete (self-contained, Single-File) für den Download über den Server.
+# Builds the self-contained, single-file agent packages for download through the server.
 #   scripts\publish-agent.ps1 [-Out agent-packages] [-Rids win-x64,linux-x64,...]
 param(
     [string]$Out = 'agent-packages',

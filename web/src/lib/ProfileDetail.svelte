@@ -85,7 +85,7 @@
     try {
       assignments = await api.profileAssignments(id)
     } catch {
-      /* wird beim nächsten Aufruf erneut versucht */
+      /* retried on the next call */
     }
   }
 

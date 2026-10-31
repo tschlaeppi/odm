@@ -28,7 +28,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     }
 }
 
-/// <summary>Ermöglicht 'dotnet ef migrations add' ohne laufenden Host.</summary>
+/// <summary>Allows 'dotnet ef migrations add' without a running host.</summary>
 public sealed class IdentityDbContextFactory : IDesignTimeDbContextFactory<IdentityDbContext>
 {
     public IdentityDbContext CreateDbContext(string[] args) =>

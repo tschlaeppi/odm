@@ -5,14 +5,14 @@ namespace Odm.SharedKernel.Persistence;
 public static class DatabaseExtensions
 {
     /// <summary>
-    /// Assembly mit den SQL-Server-Migrationen. Migrationen sind providerspezifisch (Spaltentypen, Annotationen);
-    /// Postgres behält seine Migrationen in den Modulen, SQL Server hat ein eigenes Projekt.
+    /// Assembly with the SQL Server migrations. Migrations are provider-specific (column types, annotations);
+    /// PostgreSQL keeps its migrations in the modules, SQL Server has its own project.
     /// </summary>
     public const string SqlServerMigrationsAssembly = "Odm.Migrations.SqlServer";
 
     /// <summary>
-    /// Konfiguriert den DB-Provider zentral. Jedes Modul besitzt ein eigenes Schema
-    /// und eine eigene Migrations-Historie.
+    /// Configures the DB provider centrally. Each module has its own schema
+    /// and its own migration history.
     /// </summary>
     public static DbContextOptionsBuilder UseOdmDatabase(
         this DbContextOptionsBuilder builder, DatabaseOptions options, string schema)
@@ -41,8 +41,8 @@ public static class DatabaseExtensions
     }
 
     /// <summary>
-    /// Optionen für 'dotnet ef' (IDesignTimeDbContextFactory). Verbindung via ODM_DB, Provider via ODM_DB_PROVIDER
-    /// (Standard Postgres), sofern der Aufrufer ihn nicht vorgibt.
+    /// Options for 'dotnet ef' (IDesignTimeDbContextFactory). Connection via ODM_DB, provider via ODM_DB_PROVIDER
+    /// (default PostgreSQL), unless the caller specifies it.
     /// </summary>
     public static DbContextOptions<TContext> CreateDesignTimeOptions<TContext>(
         string schema, DatabaseProvider? provider = null)

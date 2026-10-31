@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Odm.Modules.Software.Application;
 
-/// <summary>Hintergrunddienst, der den Soll-/Ist-Abgleich regelmässig und auf Anforderung ausführt.</summary>
+/// <summary>Background service that runs the desired/actual reconciliation regularly and on demand.</summary>
 public sealed class DeploymentReconciler(
     IServiceScopeFactory scopes,
     DeploymentTrigger trigger,

@@ -5,8 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Odm.SharedKernel;
 
 /// <summary>
-/// Einstiegspunkt eines Moduls im modularen Monolithen.
-/// Module kennen sich nicht gegenseitig; die Host-Anwendung verdrahtet sie.
+/// Entry point of a module in the modular monolith.
+/// Modules do not know each other; the host application wires them together.
 /// </summary>
 public interface IModule
 {
@@ -14,9 +14,9 @@ public interface IModule
 
     void ConfigureServices(IServiceCollection services, IConfiguration configuration);
 
-    /// <summary>Registriert die Endpunkte relativ zur übergebenen Gruppe (z. B. "/api").</summary>
+    /// <summary>Registers the endpoints relative to the given group (e.g. "/api").</summary>
     void MapEndpoints(IEndpointRouteBuilder endpoints);
 
-    /// <summary>Wird einmal beim Start ausgeführt (Migrationen, Initialdaten).</summary>
+    /// <summary>Runs once at startup (migrations, initial data).</summary>
     Task InitializeAsync(IServiceProvider services, CancellationToken cancellationToken);
 }

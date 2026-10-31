@@ -83,7 +83,7 @@
     }
   }
 
-  // Live-Vorschau (nur wenn alle Regeln einen Wert haben)
+  // Live preview (only when all rules have a value)
   $effect(() => {
     if (readOnly || loading) return
     const input = toInput()

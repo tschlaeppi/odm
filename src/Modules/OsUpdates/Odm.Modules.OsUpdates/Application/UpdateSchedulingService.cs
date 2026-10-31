@@ -15,8 +15,8 @@ public enum RunNowResult
 }
 
 /// <summary>
-/// Plant Update-Läufe: Ist ein Wartungsfenster offen und gilt für das Gerät eine Richtlinie,
-/// wird ein "os-update"-Auftrag an den Agent erteilt (je Gerät und Fenster höchstens einmal).
+/// Schedules update runs: if a maintenance window is open and a policy applies to the device,
+/// an "os-update" job is issued to the agent (at most once per device and window).
 /// </summary>
 public sealed class UpdateSchedulingService(
     OsUpdatesDbContext db,
@@ -36,14 +36,14 @@ public sealed class UpdateSchedulingService(
         var windows = await db.Windows.AsNoTracking().ToDictionaryAsync(w => w.Id, ct);
         if (windows.Count == 0)
         {
-            return; // ohne Wartungsfenster wird nie automatisch aktualisiert
+            return; // without a maintenance window nothing is ever updated automatically
         }
 
         var policies = await db.Policies.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
         var assignments = await db.Assignments.AsNoTracking().OrderBy(a => a.CreatedAt).ToListAsync(ct);
         var groupCache = new Dictionary<Guid, IReadOnlyList<DeviceRef>>();
 
-        // Richtlinie je Gerät: direkte Zuweisung vor Gruppe; bei mehreren Gruppen gewinnt die älteste Zuweisung.
+        // Policy per device: direct assignment before group; with several groups the oldest assignment wins.
         var policyOf = new Dictionary<Guid, (Guid PolicyId, int Priority)>();
         foreach (var a in assignments.Where(a => a.Scope == AssignmentScope.Policy && policies.ContainsKey(a.ParentId)))
         {
@@ -57,7 +57,7 @@ public sealed class UpdateSchedulingService(
             }
         }
 
-        // Fenster je Gerät: direkt zugewiesene Fenster ersetzen die der Gruppen; mehrere Gruppenfenster addieren sich.
+        // Windows per device: directly assigned windows replace those of the groups; several group windows add up.
         var direct = new Dictionary<Guid, HashSet<Guid>>();
         var viaGroup = new Dictionary<Guid, HashSet<Guid>>();
         foreach (var a in assignments.Where(a => a.Scope == AssignmentScope.Window && windows.ContainsKey(a.ParentId)))
@@ -105,14 +105,14 @@ public sealed class UpdateSchedulingService(
                 var jobId = await EnqueueAsync(deviceId, policy, end, ct);
                 if (jobId is null)
                 {
-                    break; // kein Agent registriert
+                    break; // no agent registered
                 }
 
                 db.Runs.Add(UpdateRun.Create(deviceId, windowId, start, jobId.Value, now));
                 await db.SaveChangesAsync(ct);
                 existing.Add((deviceId, windowId, start));
                 started++;
-                break; // ein Lauf je Gerät und Durchgang
+                break; // one run per device and pass
             }
         }
 
@@ -122,7 +122,7 @@ public sealed class UpdateSchedulingService(
         }
     }
 
-    /// <summary>Startet sofort einen Lauf (ausserhalb der Fenster), z. B. zum Testen oder für dringende Patches.</summary>
+    /// <summary>Starts a run immediately (outside the windows), e.g. for testing or urgent patches.</summary>
     public async Task<RunNowResult> RunNowAsync(Guid deviceId, CancellationToken ct)
     {
         var policy = await FindPolicyForDeviceAsync(deviceId, ct);

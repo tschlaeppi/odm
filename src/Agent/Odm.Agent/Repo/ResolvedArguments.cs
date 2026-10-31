@@ -2,12 +2,12 @@ using Odm.Agent.Jobs;
 
 namespace Odm.Agent.Repo;
 
-/// <summary>Zusatzargumente eines Auftrags: zerlegt, Secrets eingesetzt, Secret-Werte für die Ausgabe-Bereinigung.</summary>
+/// <summary>Additional arguments of a job: split, secrets substituted, secret values for output redaction.</summary>
 public sealed record ResolvedArguments(IReadOnlyList<string> Tokens, IReadOnlyCollection<string> SecretValues)
 {
     /// <summary>
-    /// Erst zerlegen, dann ersetzen: so bleibt ein Secret mit Leerzeichen oder Anführungszeichen ein einzelnes Argument.
-    /// Secret-Werte werden erst jetzt beim Server abgeholt, nicht mit dem Auftrag ausgeliefert.
+    /// Split first, then substitute: this way a secret containing spaces or quotation marks stays a single argument.
+    /// Secret values are only fetched from the server now, not delivered with the job.
     /// </summary>
     public static async Task<ResolvedArguments> ResolveAsync(
         string? template, ServerJob job, JobContext context, CancellationToken ct)

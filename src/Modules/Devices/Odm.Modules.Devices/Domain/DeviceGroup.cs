@@ -2,7 +2,7 @@ using Odm.SharedKernel;
 
 namespace Odm.Modules.Devices.Domain;
 
-/// <summary>Eigenschaft eines Geräts, auf die eine Gruppenregel zielt.</summary>
+/// <summary>Device property that a group rule targets.</summary>
 public enum GroupField
 {
     Name = 0,
@@ -24,14 +24,14 @@ public enum MatchOperator
 
 public enum GroupMatchMode
 {
-    /// <summary>Alle Regeln müssen zutreffen.</summary>
+    /// <summary>All rules must match.</summary>
     All = 0,
 
-    /// <summary>Mindestens eine Regel muss zutreffen.</summary>
+    /// <summary>At least one rule must match.</summary>
     Any = 1
 }
 
-/// <summary>Einzelne Regel einer Gruppe (Wertobjekt, gehört der Gruppe).</summary>
+/// <summary>Single rule of a group (value object, owned by the group).</summary>
 public sealed class GroupRule
 {
     public GroupField Field { get; private set; }
@@ -44,7 +44,7 @@ public sealed class GroupRule
         new() { Field = field, Operator = op, Value = value.Trim() };
 }
 
-/// <summary>Dynamische Gerätegruppe: Mitglieder ergeben sich aus den Regeln.</summary>
+/// <summary>Dynamic device group: members result from the rules.</summary>
 public sealed class DeviceGroup : Entity
 {
     private readonly List<GroupRule> _rules = [];

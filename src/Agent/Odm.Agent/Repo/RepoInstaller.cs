@@ -2,7 +2,7 @@ using Odm.Agent.Os;
 
 namespace Odm.Agent.Repo;
 
-/// <summary>Inhalt des Auftrags "install-repo" (Gegenstück zum Server).</summary>
+/// <summary>Content of the job "install-repo" (counterpart of the server).</summary>
 public sealed record InstallRepoPayload(
     string Manager, string Identifier, string? Version, string? Scope, string? Source, string? Remote,
     string? Channel, bool Classic, string? Arguments, int TimeoutMinutes, bool Uninstall = false);
@@ -10,12 +10,12 @@ public sealed record InstallRepoPayload(
 public sealed record RepoResult(bool Success, string Output);
 
 /// <summary>
-/// Installiert oder aktualisiert ein Paket über den Paketmanager des Geräts. Alle Aufrufe sind
-/// nicht interaktiv ("unattended"). Ohne feste Version wird auf die neueste Version gebracht.
+/// Installs or updates a package through the device's package manager. All calls are
+/// non-interactive ("unattended"). Without a pinned version the package is brought to the latest version.
 /// </summary>
 public static class RepoInstaller
 {
-    // Winget: 0x8A15002B = kein anwendbares Update (schon aktuell), 0x8A150061 = bereits installiert.
+    // Winget: 0x8A15002B = no applicable update (already up to date), 0x8A150061 = already installed.
     private static readonly HashSet<int> WingetOk = [0, unchecked((int)0x8A15002B), unchecked((int)0x8A150061), 1641, 3010];
     private static readonly HashSet<int> ChocolateyOk = [0, 1641, 3010];
 
@@ -26,7 +26,7 @@ public static class RepoInstaller
         ["LC_ALL"] = "C"
     };
 
-    // Winget: 0x8A150014 = kein installiertes Paket gefunden (schon entfernt).
+    // Winget: 0x8A150014 = no installed package found (already removed).
     private static readonly HashSet<int> WingetRemoveOk = [0, unchecked((int)0x8A150014), 1641, 3010];
 
     public static Task<RepoResult> RunAsync(
@@ -45,7 +45,7 @@ public static class RepoInstaller
         _ => Task.FromResult(Fail($"Unbekannter Paketmanager '{p.Manager}'."))
     };
 
-    // ---- Argumente (rein, ohne Prozessstart) ----
+    // ---- Arguments (pure, without starting a process) ----
 
     public static List<string> WingetArguments(InstallRepoPayload p, IReadOnlyList<string> extra)
     {
@@ -64,7 +64,7 @@ public static class RepoInstaller
 
     public static List<string> ChocolateyArguments(InstallRepoPayload p, IReadOnlyList<string> extra)
     {
-        // "upgrade" installiert fehlende Pakete und aktualisiert vorhandene
+        // "upgrade" installs missing packages and updates existing ones
         List<string> args = ["upgrade", p.Identifier, "-y", "--no-progress"];
         if (p.Version is not null) args.AddRange(["--version", p.Version, "--allow-downgrade"]);
         if (p.Source is not null) args.AddRange(["--source", p.Source]);
@@ -83,7 +83,7 @@ public static class RepoInstaller
 
     public static List<string> RpmArguments(string manager, bool installed, InstallRepoPayload p, IReadOnlyList<string> extra)
     {
-        // Feste Version: immer "install name-version". Sonst: vorhandenes Paket aktualisieren, fehlendes installieren.
+        // Pinned version: always "install name-version". Otherwise: update an existing package, install a missing one.
         var verb = p.Version is null && installed ? (manager == "yum" ? "update" : "upgrade") : "install";
         List<string> args = ["-y", verb];
         args.AddRange(extra);
@@ -100,7 +100,7 @@ public static class RepoInstaller
 
     public static List<string> FlatpakUpdateArguments(InstallRepoPayload p, IReadOnlyList<string> extra)
     {
-        // Bei Flatpak entspricht eine "Version" einer Commit-ID.
+        // For Flatpak a "version" is a commit ID.
         List<string> args = ["update", "-y", "--noninteractive", ScopeFlag(p)];
         if (p.Version is not null) args.Add($"--commit={p.Version}");
         args.AddRange(extra);
@@ -110,7 +110,7 @@ public static class RepoInstaller
 
     public static List<string> SnapArguments(bool installed, InstallRepoPayload p, IReadOnlyList<string> extra)
     {
-        // Bei Snap entspricht eine "Version" einer Revisionsnummer.
+        // For Snap a "version" is a revision number.
         List<string> args = [installed ? "refresh" : "install", p.Identifier];
         if (p.Channel is not null) args.Add($"--channel={p.Channel}");
         if (p.Version is not null) args.Add($"--revision={p.Version}");
@@ -189,7 +189,7 @@ public static class RepoInstaller
 
     private static string ScopeFlag(InstallRepoPayload p) => p.Scope == "user" ? "--user" : "--system";
 
-    // ---- Ausführung ----
+    // ---- Execution ----
 
     private static async Task<RepoResult> WingetAsync(InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct)
     {
@@ -260,7 +260,7 @@ public static class RepoInstaller
             return Summarize(install, [0]);
         }
 
-        // Feste Version (Commit): nach der Installation auf diesen Stand bringen
+        // Pinned version (commit): bring to that state after installation
         return Summarize(await ProcessRunner.RunAsync(flatpak, FlatpakUpdateArguments(p, []), timeout, ct), [0]);
     }
 

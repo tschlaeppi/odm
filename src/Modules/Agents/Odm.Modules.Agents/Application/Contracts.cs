@@ -4,34 +4,34 @@ public sealed class AgentsOptions
 {
     public const string SectionName = "Agents";
 
-    /// <summary>Intervall, in dem Agents sich melden.</summary>
+    /// <summary>Interval at which agents report in.</summary>
     public int HeartbeatSeconds { get; set; } = 60;
 
-    /// <summary>Verzeichnis mit den vorgebauten Agent-Paketen (relativ zum Content-Root oder absolut).</summary>
+    /// <summary>Directory with the prebuilt agent packages (relative to the content root or absolute).</summary>
     public string PackagesPath { get; set; } = "agent-packages";
 
     /// <summary>
-    /// Öffentliche Basisadresse des Servers für die Installationsskripte (z. B. https://odm.example.com).
-    /// Leer = aus der Anfrage abgeleitet. Hinter einem Proxy sollte sie gesetzt werden.
+    /// Public base address of the server for the install scripts (e.g. https://odm.example.com).
+    /// Empty = derived from the request. Should be set behind a proxy.
     /// </summary>
     public string PublicBaseUrl { get; set; } = "";
 
-    /// <summary>Selbstaktualisierung der Agents (standardmäßig aus).</summary>
+    /// <summary>Self-update of the agents (off by default).</summary>
     public AgentUpdateOptions Update { get; set; } = new();
 
-    /// <summary>Authentisierung der Agents per Client-Zertifikat.</summary>
+    /// <summary>Agent authentication by client certificate.</summary>
     public AgentMtlsOptions Mtls { get; set; } = new();
 }
 
 public enum AgentMtlsMode
 {
-    /// <summary>Keine Zertifikate (nur Agent-Secret).</summary>
+    /// <summary>No certificates (agent secret only).</summary>
     Off,
 
-    /// <summary>Zertifikate werden ausgestellt und geprüft; Agents ohne Zertifikat funktionieren weiter, bis sie eines haben.</summary>
+    /// <summary>Certificates are issued and verified; agents without a certificate keep working until they have one.</summary>
     Optional,
 
-    /// <summary>Wie Optional, aber Agents ohne Zertifikat erhalten nur ein Zertifikat, keine Aufträge oder Pakete.</summary>
+    /// <summary>Like Optional, but agents without a certificate only receive a certificate, no jobs or packages.</summary>
     Required
 }
 
@@ -39,25 +39,25 @@ public sealed class AgentMtlsOptions
 {
     public AgentMtlsMode Mode { get; set; } = AgentMtlsMode.Off;
 
-    /// <summary>Verzeichnis der Agent-CA (ca.crt, ca.key); wird beim ersten Start angelegt. Der Schlüssel liegt dort unverschlüsselt (0600).</summary>
+    /// <summary>Directory of the agent CA (ca.crt, ca.key); created on first start. The key is stored there unencrypted (0600).</summary>
     public string CaDirectory { get; set; } = "pki";
 
-    /// <summary>Gültigkeit ausgestellter Agent-Zertifikate.</summary>
+    /// <summary>Validity of issued agent certificates.</summary>
     public int CertificateValidityDays { get; set; } = 365;
 
-    /// <summary>So viele Tage vor Ablauf fordert der Server den Agent zur Erneuerung auf.</summary>
+    /// <summary>The server asks the agent to renew this many days before expiry.</summary>
     public int RenewBeforeDays { get; set; } = 30;
 }
 
 public enum AgentUpdateMode
 {
-    /// <summary>Der Server bietet keine Updates an.</summary>
+    /// <summary>The server offers no updates.</summary>
     Off,
 
-    /// <summary>Agents erhalten die höchste vorhandene Version (nur Aufwärts).</summary>
+    /// <summary>Agents receive the highest available version (upgrades only).</summary>
     Latest,
 
-    /// <summary>Agents erhalten genau <see cref="AgentUpdateOptions.TargetVersion"/> (auch Rückstufung möglich).</summary>
+    /// <summary>Agents receive exactly <see cref="AgentUpdateOptions.TargetVersion"/> (downgrades are possible).</summary>
     Pinned
 }
 
@@ -65,10 +65,10 @@ public sealed class AgentUpdateOptions
 {
     public AgentUpdateMode Mode { get; set; } = AgentUpdateMode.Off;
 
-    /// <summary>Soll-Version bei <see cref="AgentUpdateMode.Pinned"/>, z. B. 0.4.1.</summary>
+    /// <summary>Target version for <see cref="AgentUpdateMode.Pinned"/>, e.g. 0.4.1.</summary>
     public string TargetVersion { get; set; } = "";
 
-    /// <summary>Anteil der Geräte (0–100), die das Update angeboten bekommen. Stabil je Gerät; schrittweise erhöhen für gestaffelte Verteilung.</summary>
+    /// <summary>Share of devices (0–100) that are offered the update. Stable per device; raise gradually for a staged rollout.</summary>
     public int RolloutPercent { get; set; } = 100;
 }
 
@@ -93,7 +93,7 @@ public sealed record HeartbeatRequest(
 
 public sealed record AgentJobDto(Guid Id, string Type, string? Payload);
 
-/// <summary>Angebot für ein Agent-Update; <c>Url</c> ist relativ zur Server-Adresse.</summary>
+/// <summary>Offer for an agent update; <c>Url</c> is relative to the server address.</summary>
 public sealed record AgentUpdateOfferDto(string Version, string Sha256, long Size, string Url);
 
 public sealed record HeartbeatResponse(
@@ -106,7 +106,7 @@ public sealed record CreateTokenRequest(string? Label, int? ValidHours);
 
 public sealed record TokenDto(Guid Id, string Label, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, DateTimeOffset? UsedAt, string Status);
 
-/// <summary>Einmalige Antwort beim Erstellen: enthält als einzige den Klartext des Tokens.</summary>
+/// <summary>One-time response on creation: the only one that contains the plaintext token.</summary>
 public sealed record TokenCreatedDto(Guid Id, string Label, string Token, DateTimeOffset ExpiresAt);
 
 public sealed record CreateJobRequest(Guid DeviceId, string? Type, string? Payload);

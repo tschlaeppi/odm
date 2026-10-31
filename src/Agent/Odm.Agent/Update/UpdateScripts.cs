@@ -1,9 +1,9 @@
 namespace Odm.Agent.Update;
 
 /// <summary>
-/// Hilfsskripte für den Austausch der eigenen Programmdatei. Ein laufender Agent kann sich nicht selbst ersetzen;
-/// das Skript läuft deshalb als eigener Prozess, beendet den Dienst, tauscht die Datei, startet ihn neu und
-/// stellt die alte Version wieder her, wenn der neue Agent sich nicht innerhalb weniger Minuten meldet.
+/// Helper scripts for replacing the agent's own executable. A running agent cannot replace itself;
+/// the script therefore runs as a separate process, stops the service, swaps the file, restarts it and
+/// restores the old version if the new agent does not report back within a few minutes.
 /// </summary>
 internal static class UpdateScripts
 {

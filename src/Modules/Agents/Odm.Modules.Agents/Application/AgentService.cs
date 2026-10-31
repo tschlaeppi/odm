@@ -21,20 +21,20 @@ public sealed class AgentService(
     private const int MaxResultsPerHeartbeat = 50;
 
     /// <summary>
-    /// Ausgelieferte Aufträge, die der Agent weder als laufend noch als erledigt meldet,
-    /// werden nach dieser Zeit erneut ausgeliefert (z. B. nach Absturz oder Neustart des Agents).
+    /// Delivered jobs that the agent reports neither as running nor as finished
+    /// are delivered again after this time (e.g. after an agent crash or restart).
     /// </summary>
     private static readonly TimeSpan RedeliveryAfter = TimeSpan.FromMinutes(10);
 
     private int HeartbeatSeconds => Math.Clamp(options.Value.HeartbeatSeconds, 10, 3600);
 
-    /// <summary>Registriert einen Agent. Gibt null zurück, wenn das Token ungültig, abgelaufen oder verbraucht ist.</summary>
+    /// <summary>Registers an agent. Returns null if the token is invalid, expired or used up.</summary>
     public async Task<RegisterResponse?> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
         var hash = Secrets.Hash(request.Token);
 
-        // Token atomar "verbrauchen": bei gleichzeitigen Anfragen gewinnt genau eine.
+        // "Consume" the token atomically: with concurrent requests exactly one wins.
         var claimed = await db.Tokens
             .Where(t => t.TokenHash == hash && t.UsedAt == null && t.ExpiresAt > now)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsedAt, now), ct);
@@ -47,15 +47,15 @@ public sealed class AgentService(
             new DeviceReport(request.Hostname, request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion),
             ct);
 
-        // Eine Neuinstallation ersetzt frühere Zugangsdaten desselben Geräts.
+        // A reinstallation replaces earlier credentials of the same device.
         await db.Credentials
             .Where(c => c.DeviceId == deviceId && c.RevokedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.RevokedAt, now), ct);
 
         var (credential, secret) = AgentCredential.Issue(deviceId);
 
-        // Zertifikat gleich bei der Registrierung ausstellen. Eine ungültige CSR darf die Registrierung nicht scheitern
-        // lassen (das Token ist bereits verbraucht); der Agent fordert das Zertifikat dann beim Heartbeat erneut an.
+        // Issue the certificate right at registration. An invalid CSR must not make the registration fail
+        // (the token is already used up); the agent then requests the certificate again with the heartbeat.
         IssuedCertificate? issued = null;
         if (authority.Enabled && !string.IsNullOrWhiteSpace(request.Csr))
         {
@@ -78,7 +78,7 @@ public sealed class AgentService(
             issued?.CertificatePem, issued is null ? null : authority.CaCertificatePem);
     }
 
-    /// <summary>Stellt (erneut) ein Zertifikat für einen bestehenden Agent aus und hinterlegt den neuen Fingerabdruck.</summary>
+    /// <summary>Issues a certificate (again) for an existing agent and stores the new thumbprint.</summary>
     public async Task<CertificateResponse?> IssueCertificateAsync(Guid agentId, string csrPem, CancellationToken ct)
     {
         if (!authority.Enabled)
@@ -103,7 +103,7 @@ public sealed class AgentService(
     {
         var now = DateTimeOffset.UtcNow;
 
-        // 1. Ergebnisse früherer Aufträge übernehmen (nur für Aufträge dieses Geräts)
+        // 1. Take over results of earlier jobs (only for jobs of this device)
         var completed = new List<AgentJob>();
         foreach (var result in (request.Results ?? []).Take(MaxResultsPerHeartbeat))
         {
@@ -114,7 +114,7 @@ public sealed class AgentService(
             }
         }
 
-        // 2. Laufende Aufträge: "Lease" verlängern, damit sie nicht erneut ausgeliefert werden
+        // 2. Running jobs: extend the "lease" so that they are not delivered again
         var running = (request.RunningJobs ?? []).Take(MaxJobsPerHeartbeat * 5).ToList();
         if (running.Count > 0)
         {
@@ -123,7 +123,7 @@ public sealed class AgentService(
                 .ExecuteUpdateAsync(s => s.SetProperty(j => j.DeliveredAt, now), ct);
         }
 
-        // 3. Geräte-Informationen aktualisieren
+        // 3. Update device information
         await devices.ReportAsync(
             deviceId,
             new DeviceReport(request.Hostname ?? "", request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion),
@@ -133,7 +133,7 @@ public sealed class AgentService(
             .Where(c => c.Id == agentId)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.LastSeenAt, now), ct);
 
-        // 4. Fällige Aufträge ausliefern
+        // 4. Deliver due jobs
         var cutoff = now - RedeliveryAfter;
         var due = await db.Jobs
             .Where(j => j.DeviceId == deviceId &&
@@ -149,7 +149,7 @@ public sealed class AgentService(
 
         await db.SaveChangesAsync(ct);
 
-        // 5. Andere Module informieren (erst nachdem der Zustand gespeichert ist)
+        // 5. Notify other modules (only after the state has been saved)
         foreach (var job in completed)
         {
             var completion = new JobCompletion(job.Id, job.DeviceId, job.Type, job.Status == JobStatus.Succeeded, job.Output);

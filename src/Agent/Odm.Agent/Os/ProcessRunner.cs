@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Odm.Agent.Os;
 
-/// <summary>Startet externe Programme ohne Shell (Argumente werden einzeln übergeben, keine Injection).</summary>
+/// <summary>Starts external programs without a shell (arguments are passed individually, no injection).</summary>
 public static class ProcessRunner
 {
     public sealed record Result(int ExitCode, string Output, string Error, bool TimedOut);
@@ -65,7 +65,7 @@ public static class ProcessRunner
             }
             catch (Exception)
             {
-                // Prozess ist bereits beendet
+                // process has already exited
             }
 
             if (ct.IsCancellationRequested)
@@ -76,11 +76,11 @@ public static class ProcessRunner
             return new Result(-1, output.ToString(), error.ToString(), TimedOut: true);
         }
 
-        process.WaitForExit(); // stellt sicher, dass die letzte Ausgabe gelesen wurde
+        process.WaitForExit(); // makes sure the last output has been read
         return new Result(process.ExitCode, output.ToString(), error.ToString(), TimedOut: false);
     }
 
-    /// <summary>Behält nur das Ende der Ausgabe; dort stehen bei Fehlern die relevanten Zeilen.</summary>
+    /// <summary>Keeps only the end of the output; that is where the relevant lines are on errors.</summary>
     private sealed class TailBuffer(int capacity)
     {
         private readonly StringBuilder _text = new();

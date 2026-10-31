@@ -5,8 +5,8 @@ using System.Text;
 namespace Odm.Modules.Agents.Domain;
 
 /// <summary>
-/// Zufällige, hochentropische Geheimnisse (Registrierungs-Token, Agent-Secret).
-/// Wegen der hohen Entropie genügt ein schneller Hash (SHA-256); PBKDF2 ist nur für Passwörter nötig.
+/// Random, high-entropy secrets (registration token, agent secret).
+/// Because of the high entropy a fast hash (SHA-256) is sufficient; PBKDF2 is only needed for passwords.
 /// </summary>
 public static class Secrets
 {

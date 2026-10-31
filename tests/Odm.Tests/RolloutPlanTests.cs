@@ -102,7 +102,7 @@ public class RolloutPlanTests
         var assignment = Guid.NewGuid();
         var released = Enumerable.Range(0, 2000).Count(_ => plan.IsReleased(assignment, Guid.NewGuid(), TimeSpan.Zero));
 
-        Assert.InRange(released, 450, 750); // 30 % von 2000 = 600
+        Assert.InRange(released, 450, 750); // 30 % of 2000 = 600
     }
 
     [Fact]

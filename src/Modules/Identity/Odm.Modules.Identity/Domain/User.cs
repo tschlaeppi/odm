@@ -9,7 +9,7 @@ public enum UserRole
     Admin = 2
 }
 
-/// <summary>Lokaler ODM-Benutzer (Anmeldung an der Verwaltungsoberfläche).</summary>
+/// <summary>Local ODM user (sign-in to the management UI).</summary>
 public sealed class User : Entity
 {
     public string UserName { get; private set; } = "";

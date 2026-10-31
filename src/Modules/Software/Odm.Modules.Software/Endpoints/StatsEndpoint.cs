@@ -9,7 +9,7 @@ using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.Software.Endpoints;
 
-/// <summary>Kennzahlen zur Softwareverteilung (Dashboard).</summary>
+/// <summary>Key figures about software distribution (dashboard).</summary>
 internal static class StatsEndpoint
 {
     private const int MaxFailures = 25;

@@ -7,7 +7,7 @@ public sealed class AuthService(IEnumerable<IAuthenticationProvider> providers, 
         var name = userName.Trim();
         var list = providers.ToList();
 
-        // Gehört der Name einem Verfahren (z. B. einem lokalen Konto), entscheidet nur dieses.
+        // If the name belongs to a method (e.g. a local account), only that method decides.
         foreach (var provider in list)
         {
             if (await provider.OwnsUserAsync(name, ct))

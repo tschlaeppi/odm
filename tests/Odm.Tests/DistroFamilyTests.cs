@@ -30,7 +30,7 @@ public class DistroFamilyTests
     [InlineData(PackageKind.Rpm, "Fedora Linux", true)]
     [InlineData(PackageKind.Rpm, "Ubuntu", false)]
     [InlineData(PackageKind.Rpm, "Linux Mint", false)]
-    [InlineData(PackageKind.Apt, "Arch Linux", true)] // unbekannt: zulassen, der Agent meldet einen klaren Fehler
+    [InlineData(PackageKind.Apt, "Arch Linux", true)] // unknown: allow, the agent reports a clear error
     [InlineData(PackageKind.Rpm, "Arch Linux", true)]
     [InlineData(PackageKind.Flatpak, "Ubuntu", true)]
     [InlineData(PackageKind.Snap, "Rocky Linux", true)]

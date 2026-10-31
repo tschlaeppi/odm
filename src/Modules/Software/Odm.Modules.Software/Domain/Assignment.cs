@@ -2,7 +2,7 @@ using Odm.SharedKernel;
 
 namespace Odm.Modules.Software.Domain;
 
-/// <summary>Reihenfolge = Vorrang, wenn dasselbe Paket einem Gerät mehrfach zugewiesen ist (Gerät vor Benutzer vor Gruppe).</summary>
+/// <summary>Order = precedence when the same package is assigned to a device several times (device before user before group).</summary>
 public enum TargetKind
 {
     Device = 0,
@@ -12,29 +12,29 @@ public enum TargetKind
 
 public enum VersionPolicy
 {
-    /// <summary>Immer die neueste hochgeladene Version (automatische Verteilung neuer Versionen).</summary>
+    /// <summary>Always the latest uploaded version (automatic rollout of new versions).</summary>
     Latest = 0,
 
-    /// <summary>Feste Version; ein Wechsel erfolgt bewusst durch Ändern der Zuweisung (manuell).</summary>
+    /// <summary>Pinned version; changing it is a deliberate (manual) change of the assignment.</summary>
     Pinned = 1
 }
 
 public enum AssignmentIntent
 {
-    /// <summary>Das Paket soll auf den Zielgeräten installiert sein.</summary>
+    /// <summary>The package should be installed on the target devices.</summary>
     Install = 0,
 
-    /// <summary>Das Paket soll von den Zielgeräten entfernt werden (nur wo es von ODM installiert wurde).</summary>
+    /// <summary>The package should be removed from the target devices (only where ODM installed it).</summary>
     Uninstall = 1
 }
 
-/// <summary>Soll-Zustand: "dieses Paket gehört auf (bzw. weg von) diese(n) Geräte(n)".</summary>
+/// <summary>Desired state: "this package belongs on (or off) these device(s)".</summary>
 public sealed class Assignment : Entity
 {
     public Guid PackageId { get; private set; }
     public TargetKind TargetKind { get; private set; }
 
-    /// <summary>Geräte-/Gruppen-ID (kleingeschrieben, Format "D") bzw. Benutzername (kleingeschrieben).</summary>
+    /// <summary>Device/group ID (lowercase, format "D") or user name (lowercase).</summary>
     public string Target { get; private set; } = "";
 
     public VersionPolicy VersionPolicy { get; private set; }
@@ -42,7 +42,7 @@ public sealed class Assignment : Entity
     public Guid? PinnedVersionId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
-    /// <summary>Optionaler Tranchenplan (JSON); Start ist <see cref="CreatedAt"/>.</summary>
+    /// <summary>Optional tranche plan (JSON); the start is <see cref="CreatedAt"/>.</summary>
     public string? RolloutJson { get; private set; }
 
     private Assignment() { }

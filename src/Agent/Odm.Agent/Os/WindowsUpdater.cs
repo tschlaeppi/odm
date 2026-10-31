@@ -3,8 +3,8 @@ using System.Text.Json;
 namespace Odm.Agent.Os;
 
 /// <summary>
-/// Windows-Updates über die Windows-Update-Agent-API (COM, Microsoft.Update.Session) – ohne Zusatzmodule.
-/// Läuft als SYSTEM; "SecurityOnly" installiert Sicherheits- und kritische Updates.
+/// Windows updates through the Windows Update Agent API (COM, Microsoft.Update.Session) – without additional modules.
+/// Runs as SYSTEM; "SecurityOnly" installs security and critical updates.
 /// </summary>
 public sealed class WindowsUpdater : IOsUpdater
 {
@@ -79,7 +79,7 @@ public sealed class WindowsUpdater : IOsUpdater
                 $"Windows Update failed (exit code {result.ExitCode}). {Tail(result.Error.Length > 0 ? result.Error : result.Output)}");
         }
 
-        // Die letzte JSON-Zeile der Ausgabe ist das Ergebnis; davor können Warnungen stehen.
+        // The last JSON line of the output is the result; warnings may precede it.
         var line = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .LastOrDefault(l => l.StartsWith('{'));
         var parsed = line is null ? null : JsonSerializer.Deserialize<ScriptOutput>(line, Json);

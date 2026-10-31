@@ -5,7 +5,7 @@ using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.OsUpdates.Application;
 
-/// <summary>Übernimmt das vom Agent gemeldete Ergebnis eines Update-Laufs.</summary>
+/// <summary>Takes over the result of an update run reported by the agent.</summary>
 public sealed class UpdateRunListener(OsUpdatesDbContext db) : IJobResultListener
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -30,7 +30,7 @@ public sealed class UpdateRunListener(OsUpdatesDbContext db) : IJobResultListene
         }
         catch (JsonException)
         {
-            // Ausgabe ist kein JSON (z. B. Fehlermeldung des Agents): als Text übernehmen
+            // Output is not JSON (e.g. an error message from the agent): take it over as text
         }
 
         var message = output?.Message ??

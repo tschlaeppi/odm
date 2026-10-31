@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Odm.Modules.Identity.Infrastructure.Ldap;
 
-/// <summary>Stabile Benutzer-ID für Konten aus externen Verzeichnissen (sie haben keine Zeile in der lokalen Datenbank).</summary>
+/// <summary>Stable user ID for accounts from external directories (they have no row in the local database).</summary>
 public static class ExternalUserIds
 {
     public static Guid Create(string provider, string normalizedUserName)

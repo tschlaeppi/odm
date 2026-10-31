@@ -4,8 +4,8 @@ using Odm.Modules.Software.Domain;
 namespace Odm.Modules.Software.Application;
 
 /// <summary>
-/// Prüft und normalisiert Paketeinstellungen. Bezeichner und Versionen beginnen immer mit einem Buchstaben oder
-/// einer Ziffer, damit sie nicht als Option des Paketmanagers gedeutet werden können.
+/// Validates and normalizes package settings. Identifiers and versions always start with a letter or
+/// a digit so that they cannot be interpreted as an option of the package manager.
 /// </summary>
 public static partial class PackageSpecValidator
 {

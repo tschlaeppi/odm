@@ -1,11 +1,11 @@
 namespace Odm.SharedKernel;
 
-/// <summary>Namen der Autorisierungs-Richtlinien. Definiert im Identity-Modul, genutzt von allen Modulen.</summary>
+/// <summary>Names of the authorization policies. Defined in the Identity module, used by all modules.</summary>
 public static class Policies
 {
     public const string Operator = "Operator";
     public const string Admin = "Admin";
 
-    /// <summary>Authentisierter Agent (eigenes Schema, nicht für Benutzer).</summary>
+    /// <summary>Authenticated agent (own scheme, not for users).</summary>
     public const string Agent = "Agent";
 }

@@ -6,19 +6,19 @@ namespace Odm.Modules.Software.Domain;
 
 public enum RolloutMode
 {
-    /// <summary>Stufen mit Prozentwerten, z. B. 20 % nach 5 Tagen, 40 % nach 10 Tagen, 100 % nach 15 Tagen.</summary>
+    /// <summary>Stages with percentages, e.g. 20 % after 5 days, 40 % after 10 days, 100 % after 15 days.</summary>
     Percent = 0,
 
-    /// <summary>Stufen mit Untergruppen: jede Untergruppe wird nach ihrer Wartezeit freigegeben.</summary>
+    /// <summary>Stages with subgroups: each subgroup is released after its waiting time.</summary>
     Groups = 1
 }
 
-/// <summary>Eine Stufe: ab <see cref="AfterDays"/> Tagen nach der Zuweisung gilt sie. Je nach Modus mit Prozentwert oder Untergruppe.</summary>
+/// <summary>A stage: applies from <see cref="AfterDays"/> days after the assignment. Depending on the mode with a percentage or a subgroup.</summary>
 public sealed record RolloutStage(int AfterDays, int? Percent, Guid? GroupId);
 
 /// <summary>
-/// Tranchenplan einer Zuweisung. Bestimmt, ab wann ein Gerät die Software erhalten darf.
-/// Die Freigabe wirkt nur auf Geräte ohne bestehende Installation: Wer das Paket schon hat, wird nicht ausgebremst.
+/// Tranche plan of an assignment. Determines from when a device may receive the software.
+/// The release only affects devices without an existing installation: whoever already has the package is not held back.
 /// </summary>
 public sealed class RolloutPlan
 {
@@ -39,7 +39,7 @@ public sealed class RolloutPlan
         Stages = stages;
     }
 
-    /// <summary>Prüft die Stufen und liefert den Plan oder eine Fehlermeldung.</summary>
+    /// <summary>Validates the stages and returns the plan or an error message.</summary>
     public static (RolloutPlan? Plan, string? Error) Create(RolloutMode mode, IEnumerable<RolloutStage> stages)
     {
         var list = stages.OrderBy(s => s.AfterDays).ToList();
@@ -105,21 +105,21 @@ public sealed class RolloutPlan
 
     public string ToJson() => JsonSerializer.Serialize(new Stored(Mode, Stages.ToList()), Json);
 
-    /// <summary>Anzahl der Stufen, deren Wartezeit abgelaufen ist.</summary>
+    /// <summary>Number of stages whose waiting time has elapsed.</summary>
     public int StagesReached(TimeSpan elapsed) => Stages.Count(s => elapsed >= TimeSpan.FromDays(s.AfterDays));
 
-    /// <summary>Aktuell freigegebener Anteil in Prozent (nur im Prozentmodus, sonst null).</summary>
+    /// <summary>Currently released share in percent (percent mode only, otherwise null).</summary>
     public int? ReleasedPercent(TimeSpan elapsed) =>
         Mode == RolloutMode.Percent
             ? Stages.Where(s => elapsed >= TimeSpan.FromDays(s.AfterDays)).Select(s => s.Percent ?? 0).DefaultIfEmpty(0).Max()
             : null;
 
     /// <summary>
-    /// Darf das Gerät jetzt beginnen? Prozentmodus: stabiler Zufallswert 0–99 je Zuweisung und Gerät,
-    /// so bleibt die Auswahl über alle Abgleichsläufe gleich und wächst nur. Untergruppenmodus: Mitglieder einer Untergruppe
-    /// ab deren Wartezeit; Geräte ausserhalb aller Untergruppen erst nach der letzten Stufe.
+    /// May the device start now? Percent mode: stable random value 0–99 per assignment and device,
+    /// so the selection stays the same across all reconciliation runs and only grows. Subgroup mode: members of a subgroup
+    /// after its waiting time; devices outside all subgroups only after the last stage.
     /// </summary>
-    /// <param name="isMember">Prüft, ob ein Gerät zu einer Untergruppe gehört (nur im Untergruppenmodus gebraucht).</param>
+    /// <param name="isMember">Checks whether a device belongs to a subgroup (only needed in subgroup mode).</param>
     public bool IsReleased(Guid assignmentId, Guid deviceId, TimeSpan elapsed, Func<Guid, Guid, bool>? isMember = null)
     {
         if (Mode == RolloutMode.Percent)
@@ -143,7 +143,7 @@ public sealed class RolloutPlan
         return !matched && elapsed >= TimeSpan.FromDays(Stages[^1].AfterDays);
     }
 
-    /// <summary>Stabiler Wert 0–99 aus Zuweisung und Gerät.</summary>
+    /// <summary>Stable value 0–99 from assignment and device.</summary>
     public static int Bucket(Guid assignmentId, Guid deviceId)
     {
         Span<byte> input = stackalloc byte[32];

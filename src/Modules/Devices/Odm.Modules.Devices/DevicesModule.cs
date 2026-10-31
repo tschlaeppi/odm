@@ -59,12 +59,12 @@ public sealed class DevicesModule : IModule
         if (!await db.Groups.AnyAsync(ct))
         {
             db.Groups.AddRange(
-                DeviceGroup.Create("Windows 11 Clients", "Alle Windows-11-Arbeitsplätze", GroupMatchMode.All,
+                DeviceGroup.Create("Windows 11 Clients", "All Windows 11 workstations", GroupMatchMode.All,
                 [
                     GroupRule.Create(GroupField.OsFamily, MatchOperator.Is, "Windows"),
                     GroupRule.Create(GroupField.OsName, MatchOperator.Contains, "Windows 11")
                 ]),
-                DeviceGroup.Create("Server", "Name beginnt mit SRV oder enthält -srv-", GroupMatchMode.Any,
+                DeviceGroup.Create("Server", "Name starts with SRV or contains -srv-", GroupMatchMode.Any,
                 [
                     GroupRule.Create(GroupField.Name, MatchOperator.StartsWith, "SRV"),
                     GroupRule.Create(GroupField.Name, MatchOperator.Contains, "-srv-")

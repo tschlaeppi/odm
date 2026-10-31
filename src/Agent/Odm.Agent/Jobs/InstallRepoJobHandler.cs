@@ -3,7 +3,7 @@ using Odm.Agent.Repo;
 
 namespace Odm.Agent.Jobs;
 
-/// <summary>Installiert bzw. aktualisiert Pakete aus Repositories (Winget, Chocolatey, APT, RPM, Flatpak, Snap).</summary>
+/// <summary>Installs or updates packages from repositories (Winget, Chocolatey, APT, RPM, Flatpak, Snap).</summary>
 public sealed class InstallRepoJobHandler(ILogger<InstallRepoJobHandler> logger) : IJobHandler
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -37,7 +37,7 @@ public sealed class InstallRepoJobHandler(ILogger<InstallRepoJobHandler> logger)
         ResolvedArguments arguments;
         try
         {
-            // Zusatzargumente gelten für die Installation, nicht für die Deinstallation.
+            // Additional arguments apply to installation, not to uninstallation.
             arguments = await ResolvedArguments.ResolveAsync(payload.Uninstall ? null : payload.Arguments, job, context, ct);
         }
         catch (Exception ex) when (ex is FormatException or InvalidOperationException)
@@ -45,7 +45,7 @@ public sealed class InstallRepoJobHandler(ILogger<InstallRepoJobHandler> logger)
             return new JobOutcome(false, ex.Message);
         }
 
-        // Befehl und Argumente werden bewusst nicht protokolliert: sie können Secrets enthalten.
+        // Command and arguments are deliberately not logged: they may contain secrets.
         logger.LogInformation("{Action} {Identifier} with {Manager}.", payload.Uninstall ? "Uninstalling" : "Installing", payload.Identifier, payload.Manager);
         var timeout = TimeSpan.FromMinutes(Math.Clamp(payload.TimeoutMinutes, 1, 24 * 60));
         var result = await RepoInstaller.RunAsync(payload, arguments.Tokens, timeout, ct);

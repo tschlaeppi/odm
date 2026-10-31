@@ -4,7 +4,7 @@ namespace Odm.Modules.Identity.Infrastructure.Ldap;
 
 public enum LdapSecurity
 {
-    /// <summary>Verschlüsselt von Anfang an (LDAPS, meist Port 636).</summary>
+    /// <summary>Encrypted from the start (LDAPS, usually port 636).</summary>
     Ldaps = 0,
 
     /// <summary>Normale Verbindung (meist Port 389), danach sofort auf TLS umgestellt.</summary>
@@ -12,8 +12,8 @@ public enum LdapSecurity
 }
 
 /// <summary>
-/// Anmeldung gegen ein Verzeichnis (Active Directory, OpenLDAP u. a.). Passwörter gehen nie unverschlüsselt über
-/// das Netz: es gibt bewusst keine Einstellung für eine Verbindung ohne TLS.
+/// Sign-in against a directory (Active Directory, OpenLDAP and others). Passwords never travel unencrypted over
+/// the network: there is deliberately no setting for a connection without TLS.
 /// </summary>
 public sealed class LdapOptions
 {
@@ -25,20 +25,20 @@ public sealed class LdapOptions
     public LdapSecurity Security { get; set; } = LdapSecurity.Ldaps;
     public string BaseDn { get; set; } = "";
 
-    /// <summary>Dienstkonto zum Suchen des Benutzers; leer = anonyme Suche (nur wenn das Verzeichnis sie erlaubt).</summary>
+    /// <summary>Service account for searching the user; empty = anonymous search (only if the directory allows it).</summary>
     public string BindDn { get; set; } = "";
 
     public string BindPassword { get; set; } = "";
 
-    /// <summary>Suchfilter, <c>{0}</c> steht für den eingegebenen (maskierten) Benutzernamen. AD: <c>(sAMAccountName={0})</c>, OpenLDAP: <c>(uid={0})</c>.</summary>
+    /// <summary>Search filter, <c>{0}</c> stands for the entered (escaped) user name. AD: <c>(sAMAccountName={0})</c>, OpenLDAP: <c>(uid={0})</c>.</summary>
     public string UserFilter { get; set; } = "(sAMAccountName={0})";
 
     public string DisplayNameAttribute { get; set; } = "displayName";
 
-    /// <summary>Attribut mit den Gruppen des Benutzers (DNs). AD und OpenLDAP mit memberOf-Overlay: <c>memberOf</c>.</summary>
+    /// <summary>Attribute with the user's groups (DNs). AD and OpenLDAP with the memberOf overlay: <c>memberOf</c>.</summary>
     public string GroupAttribute { get; set; } = "memberOf";
 
-    /// <summary>Gruppen-DNs je Rolle. Ohne passende Gruppe wird die Anmeldung abgelehnt.</summary>
+    /// <summary>Group DNs per role. Without a matching group the sign-in is rejected.</summary>
     public string AdminGroup { get; set; } = "";
 
     public string OperatorGroup { get; set; } = "";
@@ -46,7 +46,7 @@ public sealed class LdapOptions
 
     public int TimeoutSeconds { get; set; } = 10;
 
-    /// <summary>Beschreibt das erste Problem der Konfiguration oder liefert null.</summary>
+    /// <summary>Describes the first problem of the configuration or returns null.</summary>
     public string? Problem()
     {
         if (string.IsNullOrWhiteSpace(Host)) return "Host fehlt.";
@@ -65,22 +65,22 @@ public sealed class LdapOptions
     }
 }
 
-/// <summary>Ein Benutzer aus dem Verzeichnis: DN, Anzeigename und Gruppen-DNs.</summary>
+/// <summary>A user from the directory: DN, display name and group DNs.</summary>
 public sealed record LdapUser(string Dn, string? DisplayName, IReadOnlyList<string> Groups);
 
-/// <summary>Zugriff auf das Verzeichnis; austauschbar, damit die Anmeldelogik ohne Server testbar ist.</summary>
+/// <summary>Access to the directory; replaceable so that the sign-in logic can be tested without a server.</summary>
 public interface ILdapDirectory
 {
-    /// <summary>Sucht genau einen Benutzer; bei keinem oder mehreren Treffern null.</summary>
+    /// <summary>Finds exactly one user; null for no match or several matches.</summary>
     Task<LdapUser?> FindUserAsync(string userName, CancellationToken ct);
 
-    /// <summary>Prüft das Passwort mit einer Anmeldung als der Benutzer.</summary>
+    /// <summary>Verifies the password by signing in as the user.</summary>
     Task<bool> VerifyPasswordAsync(string userDn, string password, CancellationToken ct);
 }
 
 public static class LdapRoleMapper
 {
-    /// <summary>Höchste Rolle, für die der Benutzer in einer konfigurierten Gruppe ist; null = keine.</summary>
+    /// <summary>Highest role for which the user is in a configured group; null = none.</summary>
     public static UserRole? Map(IEnumerable<string> userGroups, LdapOptions options)
     {
         var groups = userGroups.Select(NormalizeDn).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -93,7 +93,7 @@ public static class LdapRoleMapper
         return null;
     }
 
-    /// <summary>Vergleichsform eines DN: ohne Leerraum um Kommas und Gleichheitszeichen.</summary>
+    /// <summary>Comparison form of a DN: without whitespace around commas and equals signs.</summary>
     public static string NormalizeDn(string dn) =>
         string.Join(',', dn.Split(',').Select(part =>
         {
@@ -104,7 +104,7 @@ public static class LdapRoleMapper
 
 public static class LdapFilter
 {
-    /// <summary>Maskiert Sonderzeichen nach RFC 4515, damit Eingaben nie den Filter verändern (LDAP-Injection).</summary>
+    /// <summary>Escapes special characters per RFC 4515 so that input never alters the filter (LDAP injection).</summary>
     public static string Escape(string value)
     {
         var sb = new System.Text.StringBuilder(value.Length);

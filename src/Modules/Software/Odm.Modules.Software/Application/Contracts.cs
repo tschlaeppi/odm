@@ -1,6 +1,6 @@
 namespace Odm.Modules.Software.Application;
 
-/// <summary>Einstellungen eines Pakets; welche Felder gelten, hängt von der Art ab.</summary>
+/// <summary>Settings of a package; which fields apply depends on the kind.</summary>
 public sealed record PackageSpecDto(
     string? Identifier, string? Version, string? Scope, string? Source, string? Remote, string? Channel,
     bool Classic, string? Arguments);
@@ -19,12 +19,12 @@ public sealed record PackageDetailDto(
     Guid Id, string Name, string? Description, string Kind, DateTimeOffset CreatedAt,
     PackageSpecDto Spec, IReadOnlyList<VersionDto> Versions);
 
-/// <summary>Tranchenplan. Modus "Percent" (Stufen mit Prozent) oder "Groups" (Stufen mit Untergruppe).</summary>
+/// <summary>Tranche plan. Mode "Percent" (stages with percentages) or "Groups" (stages with a subgroup).</summary>
 public sealed record RolloutStageDto(int AfterDays, int? Percent, Guid? GroupId);
 
 public sealed record RolloutDto(string? Mode, IReadOnlyList<RolloutStageDto>? Stages);
 
-/// <summary>Stand der Tranchen: erreichte Stufen und (im Prozentmodus) der freigegebene Anteil.</summary>
+/// <summary>State of the tranches: stages reached and (in percent mode) the released share.</summary>
 public sealed record RolloutStatusDto(int StagesReached, int StagesTotal, int? ReleasedPercent);
 
 public sealed record AssignmentRequest(
@@ -92,7 +92,7 @@ public sealed record InstallPsadtPayload(
     Guid VersionId, string PackageName, string Version, string Sha256, long SizeBytes, int TimeoutMinutes,
     string? Arguments, bool Uninstall = false);
 
-/// <summary>Inhalt des Auftrags "install-repo": installiert bzw. aktualisiert ein Paket über den Paketmanager des Geräts.</summary>
+/// <summary>Content of the job "install-repo": installs or updates a package through the device's package manager.</summary>
 public sealed record InstallRepoPayload(
     string Manager, string Identifier, string? Version, string? Scope, string? Source, string? Remote,
     string? Channel, bool Classic, string? Arguments, int TimeoutMinutes, bool Uninstall = false);

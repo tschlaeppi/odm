@@ -10,22 +10,22 @@ public sealed record OidcProviderDto(string Id, string DisplayName);
 
 public sealed record LoginResponse(string Token, DateTimeOffset ExpiresAt, UserDto User);
 
-/// <summary>Ergebnis einer erfolgreichen Authentisierung, unabhängig vom Provider.</summary>
+/// <summary>Result of a successful authentication, independent of the provider.</summary>
 public sealed record AuthenticatedUser(Guid Id, string UserName, string DisplayName, UserRole Role)
 {
     public UserDto ToDto() => new(Id, UserName, DisplayName, Role.ToString());
 }
 
 /// <summary>
-/// Erweiterungspunkt für Anmeldeverfahren: lokale Datenbank, LDAP und weitere.
+/// Extension point for sign-in methods: local database, LDAP and more.
 /// </summary>
 public interface IAuthenticationProvider
 {
     string Name { get; }
 
     /// <summary>
-    /// Ist der Benutzername bei diesem Verfahren vergeben? Dann entscheidet nur dieses Verfahren: ein lokales Konto
-    /// mit falschem Passwort darf nicht von einem gleichnamigen Konto im Verzeichnis "gerettet" werden.
+    /// Is the user name taken by this method? Then only this method decides: a local account
+    /// with a wrong password must not be "rescued" by an account of the same name in the directory.
     /// </summary>
     Task<bool> OwnsUserAsync(string userName, CancellationToken ct) => Task.FromResult(false);
 

@@ -8,7 +8,7 @@ using Odm.Modules.Agents.Application;
 
 namespace Odm.Modules.Agents.Endpoints;
 
-/// <summary>Anonyme Endpunkte für die Agent-Installation: Skripte, Paketliste und Downloads.</summary>
+/// <summary>Anonymous endpoints for agent installation: scripts, package list and downloads.</summary>
 internal static class InstallEndpoints
 {
     public const string RateLimitPolicy = "agent-install";
@@ -39,7 +39,7 @@ internal static class InstallEndpoints
 
         group.MapGet("/download/{platform}", (string platform, string? version, AgentPackageCatalog catalog) =>
         {
-            // Die Version wird nur als Suchschlüssel verwendet; der Dateiname stammt immer aus dem Paketverzeichnis.
+            // The version is only used as a lookup key; the file name always comes from the package directory.
             var package = string.IsNullOrEmpty(version) ? catalog.Find(platform) : catalog.Find(platform, version);
             return package is null
                 ? Results.NotFound()

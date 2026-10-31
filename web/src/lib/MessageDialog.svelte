@@ -18,7 +18,7 @@
       await navigator.clipboard.writeText(text)
       copied = true
     } catch {
-      /* Zwischenablage nicht verfügbar */
+      /* clipboard not available */
     }
   }
 </script>

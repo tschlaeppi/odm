@@ -7,13 +7,13 @@ public sealed class AgentOptions
     /// <summary>Basis-URL des ODM-Servers, z. B. https://odm.example.org</summary>
     public string ServerUrl { get; set; } = "";
 
-    /// <summary>Einmal-Token aus der Web-Oberfläche; wird nur bei der ersten Registrierung benötigt.</summary>
+    /// <summary>One-time token from the web UI; only needed for the first registration.</summary>
     public string RegistrationToken { get; set; } = "";
 
-    /// <summary>Nur für Tests: erlaubt http:// statt https://.</summary>
+    /// <summary>Tests only: allows http:// instead of https://.</summary>
     public bool AllowInsecureHttp { get; set; }
 
-    /// <summary>Ablageort der Zugangsdaten. Leer = Standard je Betriebssystem.</summary>
+    /// <summary>Location of the credentials. Empty = default per operating system.</summary>
     public string StateDirectory { get; set; } = "";
 
     public string? Validate()

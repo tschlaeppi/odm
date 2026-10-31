@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 namespace Odm.Agent;
 
 /// <summary>
-/// Schreibt Logeinträge in <c>agent.log</c> und rotiert bei Erreichen der Maximalgröße (agent.1.log … agent.N.log).
-/// Fehler beim Schreiben (z. B. fehlende Rechte) dürfen den Agent nie beeinträchtigen.
+/// Writes log entries to <c>agent.log</c> and rotates when the maximum size is reached (agent.1.log … agent.N.log).
+/// Errors while writing (e.g. missing permissions) must never affect the agent.
 /// </summary>
 public sealed class FileLoggerProvider : ILoggerProvider
 {

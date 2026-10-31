@@ -11,12 +11,12 @@ namespace Odm.Modules.Identity.Infrastructure.Oidc;
 
 public sealed record OidcStart(string AuthorizationUrl, string StateCookie);
 
-/// <summary>Ergebnis der Rückkehr vom Anbieter: Anmeldung oder Fehlerart ("denied" = keine Rolle, "failed" = sonst).</summary>
+/// <summary>Result of the return from the provider: sign-in or kind of error ("denied" = no role, "failed" = anything else).</summary>
 public sealed record OidcResult(LoginResponse? Response, string? Error);
 
 /// <summary>
-/// Authorization-Code-Ablauf mit PKCE. Der Server holt die Tokens selbst über den Token-Endpoint ab
-/// (Rückkanal, nicht über den Browser) und stellt danach ein ODM-Token aus.
+/// Authorization code flow with PKCE. The server fetches the tokens itself from the token endpoint
+/// (back channel, not through the browser) and then issues an ODM token.
 /// </summary>
 public sealed class OidcService(
     IOptions<OidcOptions> options,
@@ -89,7 +89,7 @@ public sealed class OidcService(
             var identity = await OidcIdTokenValidator.ValidateAsync(idToken, discovery, provider, saved.Nonce);
             if (identity is null)
             {
-                // Mögliche Schlüsselrotation beim Anbieter: Schlüssel neu laden und einmal erneut prüfen.
+                // Possible key rotation at the provider: reload the keys and validate once more.
                 _managers[provider.Id].RequestRefresh();
                 discovery = await ConfigurationAsync(provider, ct);
                 identity = await OidcIdTokenValidator.ValidateAsync(idToken, discovery, provider, saved.Nonce);
@@ -154,7 +154,7 @@ public sealed class OidcService(
 
         if (!response.IsSuccessStatusCode)
         {
-            // Nur den Fehlercode des Anbieters protokollieren, nie den ganzen Inhalt.
+            // Log only the provider's error code, never the whole content.
             logger.LogWarning("Token endpoint of '{Provider}' responded with {Status} ({Error}).",
                 provider.Id, (int)response.StatusCode, ErrorCode(body));
             return null;

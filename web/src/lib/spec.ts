@@ -1,6 +1,6 @@
 import type { PackageKind, PackageSpec } from './api'
 
-/** Formularzustand: leere Felder als '' (Eingabefelder), für den Server wieder als null. */
+/** Form state: empty fields as '' (inputs), back to null for the server. */
 export interface SpecForm {
   identifier: string
   version: string

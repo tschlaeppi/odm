@@ -90,7 +90,7 @@ internal static class GroupEndpoints
             })
             .RequireAuthorization(Policies.Operator);
 
-        // Vorschau beim Bearbeiten: welche Geräte würden die Regeln treffen? (Name nicht erforderlich)
+        // Preview while editing: which devices would the rules match? (name not required)
         group.MapPost("/preview", async (GroupRequest request, DevicesDbContext db, CancellationToken ct) =>
             {
                 if (!GroupRequestParser.TryParse(request, requireName: false, out var input, out var errors))

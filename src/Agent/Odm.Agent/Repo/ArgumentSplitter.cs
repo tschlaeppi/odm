@@ -3,8 +3,8 @@ using System.Text;
 namespace Odm.Agent.Repo;
 
 /// <summary>
-/// Zerlegt eine Argumentzeile wie eine Shell in einzelne Argumente (Leerzeichen, '...' und "..."),
-/// ohne eine Shell zu starten. Backslashes bleiben erhalten (Windows-Pfade); nur \" gilt in "..." als Anführungszeichen.
+/// Splits an argument line into single arguments like a shell would (spaces, '...' and "..."),
+/// without starting a shell. Backslashes are kept (Windows paths); only \" counts as a quotation mark inside "...".
 /// </summary>
 public static class ArgumentSplitter
 {

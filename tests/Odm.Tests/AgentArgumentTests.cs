@@ -59,7 +59,7 @@ public class SecretSubstitutionTests
     [Fact]
     public void A_secret_with_spaces_stays_one_argument()
     {
-        // Erst zerlegen, dann ersetzen
+        // Split first, then substitute
         var tokens = ArgumentSplitter.Split("--password {{secret:PW}}").Select(t => SecretSubstitution.Apply(t, Secrets)).ToList();
 
         Assert.Equal(Arr("--password", "mein pass wort"), tokens);
@@ -77,7 +77,7 @@ public class SecretSubstitutionTests
     public void Redact_removes_values_longest_first_and_skips_very_short_ones()
     {
         Assert.Equal("*** ***", SecretSubstitution.Redact("abcdef abc", ["abc", "abcdef"]));
-        Assert.Equal("a b ab", SecretSubstitution.Redact("a b ab", ["a", "b"])); // unter 3 Zeichen: nicht ersetzen
+        Assert.Equal("a b ab", SecretSubstitution.Redact("a b ab", ["a", "b"])); // under 3 characters: do not replace
         Assert.Equal("", SecretSubstitution.Redact(null, ["abc"]));
     }
 }
@@ -190,6 +190,6 @@ public class RepoInstallerArgumentTests
         var refresh = RepoInstaller.SnapArguments(installed: true, Payload("Snap", "code", version: "5", classic: true), []);
         Assert.Equal("refresh", refresh[0]);
         Assert.Contains("--revision=5", refresh);
-        Assert.DoesNotContain("--classic", refresh); // Classic gilt nur bei der Installation
+        Assert.DoesNotContain("--classic", refresh); // classic only applies to installation
     }
 }

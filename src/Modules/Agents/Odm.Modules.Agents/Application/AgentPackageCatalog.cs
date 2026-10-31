@@ -6,12 +6,12 @@ using Microsoft.Extensions.Options;
 
 namespace Odm.Modules.Agents.Application;
 
-/// <summary>Ein vorgebautes, eigenständiges Agent-Paket für eine Plattform.</summary>
+/// <summary>A prebuilt, self-contained agent package for one platform.</summary>
 public sealed record AgentPackage(string Platform, string Version, string FileName, string FullPath, long Size, string Sha256);
 
 /// <summary>
-/// Findet die vom Server angebotenen Agent-Pakete (<c>odm-agent-{version}-{plattform}.zip|tar.gz</c>) und wählt je Plattform
-/// die höchste Version. Dateinamen kommen ausschließlich aus dem Verzeichnis, nie aus Benutzereingaben.
+/// Finds the agent packages offered by the server (<c>odm-agent-{version}-{platform}.zip|tar.gz</c>) and picks the
+/// highest version per platform. File names come exclusively from the directory, never from user input.
 /// </summary>
 public sealed partial class AgentPackageCatalog(IOptions<AgentsOptions> options, IHostEnvironment environment)
 {
@@ -31,7 +31,7 @@ public sealed partial class AgentPackageCatalog(IOptions<AgentsOptions> options,
         }
     }
 
-    /// <summary>Zerlegt einen Dateinamen; <c>null</c>, wenn er nicht dem Schema entspricht oder die Endung nicht zur Plattform passt.</summary>
+    /// <summary>Parses a file name; <c>null</c> if it does not match the scheme or the extension does not fit the platform.</summary>
     public static (string Version, string Platform)? ParseFileName(string fileName)
     {
         var m = FileNamePattern().Match(fileName);
@@ -45,7 +45,7 @@ public sealed partial class AgentPackageCatalog(IOptions<AgentsOptions> options,
         return m.Groups["e"].Value == expected ? (m.Groups["v"].Value, platform) : null;
     }
 
-    /// <summary>Vergleich nach SemVer (Vorabversionen sind kleiner als die Release-Version).</summary>
+    /// <summary>SemVer comparison (prerelease versions are lower than the release version).</summary>
     public static int CompareVersions(string a, string b)
     {
         static (Version Core, bool Pre) Split(string v)
@@ -65,7 +65,7 @@ public sealed partial class AgentPackageCatalog(IOptions<AgentsOptions> options,
         return pa == pb ? string.CompareOrdinal(a, b) : (pa ? -1 : 1);
     }
 
-    /// <summary>Alle gültig benannten Pakete (auch ältere Versionen), je Plattform absteigend nach Version.</summary>
+    /// <summary>All validly named packages (including older versions), per platform in descending version order.</summary>
     public IReadOnlyList<AgentPackage> ListAll()
     {
         if (!System.IO.Directory.Exists(Directory))

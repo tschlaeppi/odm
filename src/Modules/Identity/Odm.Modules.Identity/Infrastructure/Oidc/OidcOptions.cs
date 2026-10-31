@@ -4,8 +4,8 @@ using Odm.Modules.Identity.Domain;
 namespace Odm.Modules.Identity.Infrastructure.Oidc;
 
 /// <summary>
-/// Anmeldung über OpenID Connect (Microsoft Entra ID, authentik, Keycloak, Google u. a.).
-/// Mehrere Anbieter gleichzeitig sind möglich; jeder erscheint als eigener Knopf auf der Anmeldeseite.
+/// Sign-in through OpenID Connect (Microsoft Entra ID, authentik, Keycloak, Google and others).
+/// Several providers at once are possible; each appears as its own button on the sign-in page.
 /// </summary>
 public sealed partial class OidcOptions
 {
@@ -14,7 +14,7 @@ public sealed partial class OidcOptions
     [GeneratedRegex("^[a-z0-9-]{1,32}$")]
     private static partial Regex IdPattern();
 
-    /// <summary>Öffentliche Adresse von ODM, z. B. https://odm.example.org. Daraus entsteht die Rückleite-Adresse (Redirect URI).</summary>
+    /// <summary>Public address of ODM, e.g. https://odm.example.org. The redirect URI is derived from it.</summary>
     public string PublicBaseUrl { get; set; } = "";
 
     public List<OidcProviderOptions> Providers { get; set; } = [];
@@ -23,7 +23,7 @@ public sealed partial class OidcOptions
 
     public bool SecureCookies => PublicBaseUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Beschreibt das erste Problem der Konfiguration oder liefert null. Ohne Anbieter ist alles in Ordnung.</summary>
+    /// <summary>Describes the first problem of the configuration or returns null. Without a provider everything is fine.</summary>
     public string? Problem()
     {
         if (Providers.Count == 0)
@@ -52,7 +52,7 @@ public sealed partial class OidcOptions
         return null;
     }
 
-    /// <summary>Erlaubt https; http nur für localhost (Entwicklung).</summary>
+    /// <summary>Allows https; http only for localhost (development).</summary>
     public static bool IsAllowedUrl(string value) =>
         Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
         (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback));
@@ -64,35 +64,35 @@ public sealed class OidcProviderOptions
 {
     private static readonly string[] DefaultScopes = ["openid", "profile", "email"];
 
-    /// <summary>Kurzname für die Adresse, nur a–z, 0–9 und Bindestrich (z. B. "entra").</summary>
+    /// <summary>Short name for the address, only a–z, 0–9 and hyphen (e.g. "entra").</summary>
     public string Id { get; set; } = "";
 
     public string DisplayName { get; set; } = "";
 
     /// <summary>
-    /// Aussteller-Adresse. Entra: https://login.microsoftonline.com/&lt;Verzeichnis-ID&gt;/v2.0 (nicht "common");
+    /// Issuer address. Entra: https://login.microsoftonline.com/&lt;directory-id&gt;/v2.0 (not "common");
     /// authentik: https://auth.example.org/application/o/&lt;slug&gt;/.
     /// </summary>
     public string Authority { get; set; } = "";
 
     public string ClientId { get; set; } = "";
 
-    /// <summary>Leer = öffentlicher Client (nur PKCE). Für Entra und authentik ist ein Client-Secret üblich.</summary>
+    /// <summary>Empty = public client (PKCE only). A client secret is common for Entra and authentik.</summary>
     public string ClientSecret { get; set; } = "";
 
-    /// <summary>Zusätzliche Berechtigungsbereiche; "openid" ist immer dabei, ohne Angabe auch profile und email.</summary>
+    /// <summary>Additional scopes; "openid" is always included, without a value also profile and email.</summary>
     public List<string> Scopes { get; set; } = [];
 
     public string UserNameClaim { get; set; } = "preferred_username";
     public string DisplayNameClaim { get; set; } = "name";
 
     /// <summary>
-    /// Anspruch mit den Gruppen oder Rollen des Benutzers. authentik: "groups" (Gruppennamen).
-    /// Entra: am besten "roles" (App-Rollen); "groups" liefert Objekt-IDs und ist bei sehr vielen Gruppen unvollständig.
+    /// Claim with the user's groups or roles. authentik: "groups" (group names).
+    /// Entra: preferably "roles" (app roles); "groups" returns object IDs and is incomplete with very many groups.
     /// </summary>
     public string GroupsClaim { get; set; } = "groups";
 
-    /// <summary>Werte des Gruppen-Anspruchs je ODM-Rolle. Ohne passenden Wert wird die Anmeldung abgelehnt.</summary>
+    /// <summary>Values of the group claim per ODM role. Without a matching value the sign-in is rejected.</summary>
     public List<string> AdminValues { get; set; } = [];
 
     public List<string> OperatorValues { get; set; } = [];
@@ -124,7 +124,7 @@ public sealed class OidcProviderOptions
 
 public static class OidcRoleMapper
 {
-    /// <summary>Höchste Rolle, für die einer der Werte konfiguriert ist; null = keine (Anmeldung abgelehnt).</summary>
+    /// <summary>Highest role for which one of the values is configured; null = none (sign-in rejected).</summary>
     public static UserRole? Map(IEnumerable<string> values, OidcProviderOptions provider)
     {
         var set = values.Select(v => v.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);

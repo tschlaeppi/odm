@@ -11,8 +11,8 @@ using Odm.SharedKernel;
 namespace Odm.Modules.Software.Endpoints;
 
 /// <summary>
-/// Paket-Download für Agents. Der Server reicht die Datei aus dem Speicher durch, damit Agents
-/// nur den ODM-Server erreichen müssen (kein direkter Zugriff auf S3, keine Zugangsdaten auf dem Gerät).
+/// Package download for agents. The server passes the file through from storage so that agents
+/// only need to reach the ODM server (no direct access to S3, no credentials on the device).
 /// </summary>
 internal static class AgentDownloadEndpoint
 {
@@ -23,7 +23,7 @@ internal static class AgentDownloadEndpoint
             {
                 var deviceId = Guid.Parse(principal.FindFirstValue("device_id")!);
 
-                // Nur Geräte, für die gerade ein Installationsauftrag mit genau dieser Version läuft.
+                // Only devices for which an installation job with exactly this version is currently running.
                 var allowed = await db.Installations.AnyAsync(
                     i => i.DeviceId == deviceId && i.JobVersionId == versionId && i.Status == InstallStatus.Running, ct);
                 if (!allowed)

@@ -49,7 +49,7 @@ public sealed class IdentityModule : IModule
         services.AddScoped<IAuthenticationProvider, LocalAuthenticationProvider>();
         services.AddScoped<AuthService>();
 
-        // Optional: Anmeldung gegen ein Verzeichnis. Lokale Konten gehen vor (siehe IAuthenticationProvider.OwnsUserAsync).
+        // Optional: sign-in against a directory. Local accounts take precedence (see IAuthenticationProvider.OwnsUserAsync).
         services.AddOptions<LdapOptions>()
             .Bind(configuration.GetSection(LdapOptions.SectionName))
             .Validate(o => !o.Enabled || o.Problem() is null,
@@ -62,7 +62,7 @@ public sealed class IdentityModule : IModule
             services.AddScoped<IAuthenticationProvider, LdapAuthenticationProvider>();
         }
 
-        // Optional: Anmeldung über OpenID Connect (Entra ID, authentik, Keycloak ...). Ohne Anbieter passiert nichts.
+        // Optional: sign-in through OpenID Connect (Entra ID, authentik, Keycloak ...). Nothing happens without a provider.
         services.AddOptions<OidcOptions>()
             .Bind(configuration.GetSection(OidcOptions.SectionName))
             .Validate(o => o.Problem() is null,
@@ -152,7 +152,7 @@ public sealed class IdentityModule : IModule
                 Results.Ok(oidc.Providers.Select(p => new OidcProviderDto(p.Id, p.DisplayName))))
             .AllowAnonymous();
 
-        // Start: Browser wird zum Anbieter geschickt. Der Anmeldezustand liegt in einem kurzlebigen, signierten Cookie.
+        // Start: the browser is sent to the provider. The sign-in state lives in a short-lived, signed cookie.
         group.MapGet("/oidc/{provider:regex(^[a-z0-9-]{{1,32}}$)}/login", async (
                 string provider, OidcService oidc, IOptions<OidcOptions> options, HttpContext http, CancellationToken ct) =>
             {
@@ -167,7 +167,7 @@ public sealed class IdentityModule : IModule
                 {
                     HttpOnly = true,
                     Secure = options.Value.SecureCookies,
-                    SameSite = SameSiteMode.Lax, // die Rückkehr vom Anbieter ist eine Navigation von aussen
+                    SameSite = SameSiteMode.Lax, // returning from the provider is a navigation from outside
                     Path = OidcCookiePath,
                     MaxAge = TimeSpan.FromMinutes(10),
                     IsEssential = true
@@ -177,8 +177,8 @@ public sealed class IdentityModule : IModule
             .AllowAnonymous()
             .RequireRateLimiting("login");
 
-        // Rückkehr: Code gegen Token tauschen, prüfen, ODM-Token ausstellen. Das Token reist im Fragment (#) der
-        // Adresse zurück zur Oberfläche; ein Fragment wird nie an einen Server gesendet. Die Oberfläche entfernt es sofort.
+        // Return: exchange the code for a token, validate, issue an ODM token. The token travels in the fragment (#) of the
+        // address back to the UI; a fragment is never sent to a server. The UI removes it immediately.
         group.MapGet("/oidc/callback", async (
                 string? code, string? state, string? error, OidcService oidc, IOptions<OidcOptions> options,
                 HttpContext http, CancellationToken ct) =>

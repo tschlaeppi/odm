@@ -5,9 +5,9 @@ using Microsoft.Extensions.Options;
 namespace Odm.Modules.Identity.Infrastructure.Ldap;
 
 /// <summary>
-/// Verzeichniszugriff über System.DirectoryServices.Protocols (offiziell, ohne Zusatzpakete von Dritten).
-/// Unter Linux wird libldap gebraucht; die Prüfung des Serverzertifikats richtet sich nach dem System
-/// (z. B. /etc/ldap/ldap.conf, TLS_CACERT) und wird hier nicht abgeschaltet.
+/// Directory access through System.DirectoryServices.Protocols (official, no third-party packages).
+/// On Linux libldap is required; validation of the server certificate follows the system settings
+/// (e.g. /etc/ldap/ldap.conf, TLS_CACERT) and is not switched off here.
 /// </summary>
 public sealed class SystemLdapDirectory(IOptions<LdapOptions> options) : ILdapDirectory
 {
@@ -46,7 +46,7 @@ public sealed class SystemLdapDirectory(IOptions<LdapOptions> options) : ILdapDi
         var response = (SearchResponse)connection.SendRequest(request);
         if (response.Entries.Count != 1)
         {
-            return null; // kein Treffer oder mehrdeutig
+            return null; // no match or ambiguous
         }
 
         var entry = response.Entries[0];

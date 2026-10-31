@@ -4,8 +4,8 @@ using Odm.Modules.Identity.Application;
 namespace Odm.Modules.Identity.Infrastructure;
 
 /// <summary>
-/// PBKDF2-HMAC-SHA256 mit zufälligem Salt. Format: v1.{iterationen}.{salt}.{hash} (Base64).
-/// Die Iterationszahl steckt im Hash, damit sie später erhöht werden kann.
+/// PBKDF2-HMAC-SHA256 with random salt. Format: v1.{iterations}.{salt}.{hash} (Base64).
+/// The iteration count is stored in the hash so that it can be raised later.
 /// </summary>
 public sealed class Pbkdf2PasswordHasher : IPasswordHasher
 {

@@ -4,20 +4,20 @@ namespace Odm.Modules.Software.Domain;
 
 public enum InstallStatus
 {
-    /// <summary>Soll installiert werden, Auftrag noch nicht eingereiht.</summary>
+    /// <summary>Should be installed, job not yet queued.</summary>
     Pending = 0,
 
-    /// <summary>Auftrag ist eingereiht oder läuft auf dem Gerät.</summary>
+    /// <summary>Job is queued or running on the device.</summary>
     Running = 1,
 
     Installed = 2,
     Failed = 3,
 
-    /// <summary>Deinstallation erfolgreich; der Eintrag wird beim nächsten Abgleich gelöscht.</summary>
+    /// <summary>Uninstall succeeded; the entry is deleted at the next reconciliation.</summary>
     Removed = 4
 }
 
-/// <summary>Ist-/Soll-Zustand eines Pakets auf einem Gerät (je Gerät und Paket genau ein Eintrag).</summary>
+/// <summary>Actual/desired state of a package on a device (exactly one entry per device and package).</summary>
 public sealed class Installation : Entity
 {
     public const int MaxAttempts = 3;
@@ -31,13 +31,13 @@ public sealed class Installation : Entity
     public Guid TargetVersionId { get; private set; }
     public Guid? InstalledVersionId { get; private set; }
 
-    /// <summary>Version, für die der aktuelle bzw. letzte Auftrag erteilt wurde.</summary>
+    /// <summary>Version for which the current or last job was issued.</summary>
     public Guid? JobVersionId { get; private set; }
 
     public Guid? JobId { get; private set; }
     public InstallStatus Status { get; private set; }
 
-    /// <summary>Das Paket soll von diesem Gerät entfernt werden (Status beschreibt dann die Deinstallation).</summary>
+    /// <summary>The package should be removed from this device (the status then describes the uninstall).</summary>
     public bool Removal { get; private set; }
     public int Attempts { get; private set; }
     public string? Message { get; private set; }
@@ -54,8 +54,8 @@ public sealed class Installation : Entity
         UpdatedAt = now
     };
 
-    /// <summary>Gleicht den Zustand mit der gewünschten Version ab (wird bei jedem Abgleichslauf aufgerufen).</summary>
-    /// <param name="refreshAfter">Bei automatisch aktualisierten Repo-Paketen: nach dieser Zeit erneut "installieren/aktualisieren".</param>
+    /// <summary>Reconciles the state with the desired version (called on every reconciliation run).</summary>
+    /// <param name="refreshAfter">For automatically updated repo packages: "install/update" again after this time.</param>
     public void Evaluate(Guid target, DateTimeOffset now, TimeSpan? refreshAfter = null)
     {
         TargetVersionId = target;
@@ -91,8 +91,8 @@ public sealed class Installation : Entity
     }
 
     /// <summary>
-    /// Gleicht mit der Absicht "deinstallieren" ab. Gibt false zurück, wenn es nichts zu entfernen gibt
-    /// (nie erfolgreich installiert): der Eintrag kann dann gelöscht werden.
+    /// Reconciles with the intent "uninstall". Returns false if there is nothing to remove
+    /// (never installed successfully): the entry can then be deleted.
     /// </summary>
     public bool EvaluateRemoval(DateTimeOffset now)
     {
@@ -104,7 +104,7 @@ public sealed class Installation : Entity
         if (!Removal)
         {
             Removal = true;
-            TargetVersionId = installed; // mit der installierten Version entfernen (bei PSADT das passende ZIP)
+            TargetVersionId = installed; // remove with the installed version (for PSADT the matching ZIP)
             Requeue(now, resetAttempts: true);
         }
         else if (Status == InstallStatus.Failed && Attempts < MaxAttempts && now - UpdatedAt >= RetryAfter)
@@ -151,7 +151,7 @@ public sealed class Installation : Entity
         }
     }
 
-    /// <summary>Manueller Neustart nach Fehlschlag.</summary>
+    /// <summary>Manual restart after a failure.</summary>
     public void Retry(DateTimeOffset now) => Requeue(now, resetAttempts: true);
 
     private void Requeue(DateTimeOffset now, bool resetAttempts)

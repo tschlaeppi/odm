@@ -5,7 +5,7 @@ using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.Software.Application;
 
-/// <summary>Übernimmt das vom Agent gemeldete Ergebnis eines Installationsauftrags.</summary>
+/// <summary>Takes over the result of an installation job reported by the agent.</summary>
 public sealed class DeploymentJobListener(SoftwareDbContext db, DeploymentTrigger trigger) : IJobResultListener
 {
     public async Task OnJobCompletedAsync(JobCompletion completion, CancellationToken ct)
@@ -24,7 +24,7 @@ public sealed class DeploymentJobListener(SoftwareDbContext db, DeploymentTrigge
         installation.Complete(completion.Success, completion.Output, DateTimeOffset.UtcNow);
         await db.SaveChangesAsync(ct);
 
-        // Wurde inzwischen eine neuere Version gewünscht, soll der Abgleich das sofort aufgreifen.
+        // If a newer version has been requested in the meantime, the reconciliation should pick that up immediately.
         trigger.Request();
     }
 }

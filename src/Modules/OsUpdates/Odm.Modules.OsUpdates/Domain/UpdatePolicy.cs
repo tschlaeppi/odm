@@ -4,10 +4,10 @@ namespace Odm.Modules.OsUpdates.Domain;
 
 public enum UpdateMode
 {
-    /// <summary>Nur Sicherheits- und kritische Updates.</summary>
+    /// <summary>Security and critical updates only.</summary>
     SecurityOnly = 0,
 
-    /// <summary>Alle verfügbaren Updates.</summary>
+    /// <summary>All available updates.</summary>
     All = 1
 }
 
@@ -15,11 +15,11 @@ public enum RebootBehavior
 {
     Never = 0,
 
-    /// <summary>Neustart nach Updates, aber nur innerhalb des Wartungsfensters.</summary>
+    /// <summary>Restart after updates, but only within the maintenance window.</summary>
     IfRequired = 1
 }
 
-/// <summary>Was installiert wird und wie mit Neustarts umgegangen wird. Das "Wann" bestimmen Wartungsfenster.</summary>
+/// <summary>What is installed and how restarts are handled. The "when" is determined by maintenance windows.</summary>
 public sealed class UpdatePolicy : Entity
 {
     public string Name { get; private set; } = "";

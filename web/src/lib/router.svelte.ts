@@ -1,4 +1,4 @@
-// Minimaler Hash-Router: kein externes Paket nötig.
+// Minimal hash router: no external package needed.
 function current(): string {
   return location.hash.replace(/^#/, '') || '/dashboard'
 }
@@ -14,7 +14,7 @@ class Router {
     location.hash = path
   }
 
-  /** Ersetzt die aktuelle Adresse, ohne einen Verlaufseintrag anzulegen (z. B. um ein Token aus der Adresse zu entfernen). */
+  /** Replaces the current address without adding a history entry (e.g. to remove a token from the address). */
   replace(path: string) {
     history.replaceState(null, '', `${location.pathname}${location.search}#${path}`)
     this.path = path

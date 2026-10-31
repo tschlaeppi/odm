@@ -20,7 +20,7 @@
   try {
     collapsed = localStorage.getItem('odm.sidebar') === 'collapsed'
   } catch {
-    // Speicher nicht verfügbar
+    // Storage not available
   }
 
   function toggleSidebar() {

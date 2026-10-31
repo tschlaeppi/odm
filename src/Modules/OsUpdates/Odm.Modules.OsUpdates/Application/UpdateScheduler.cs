@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Odm.Modules.OsUpdates.Application;
 
-/// <summary>Prüft regelmässig, ob für Geräte ein Wartungsfenster offen ist.</summary>
+/// <summary>Regularly checks whether a maintenance window is open for devices.</summary>
 public sealed class UpdateScheduler(
     IServiceScopeFactory scopes,
     IConfiguration configuration,
