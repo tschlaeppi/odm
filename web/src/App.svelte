@@ -6,6 +6,8 @@
   import Inventory from './lib/Inventory.svelte'
   import Notifications from './lib/Notifications.svelte'
   import Audit from './lib/Audit.svelte'
+  import PasswordDialog from './lib/PasswordDialog.svelte'
+  import Users from './lib/Users.svelte'
   import Enrollment from './lib/Enrollment.svelte'
   import GroupEditor from './lib/GroupEditor.svelte'
   import Groups from './lib/Groups.svelte'
@@ -41,6 +43,7 @@
   const packageId = $derived(router.path.startsWith('/software/') ? router.path.slice('/software/'.length) : null)
   const profileId = $derived(router.path.startsWith('/profiles/') ? router.path.slice('/profiles/'.length) : null)
   let info = $state<SystemInfoDto | null>(null)
+  let passwordDialog: PasswordDialog
   $effect(() => {
     if (auth.isAuthenticated && auth.isAdmin) {
       api.systemInfo().then((i) => (info = i), () => (info = null))
@@ -64,6 +67,8 @@
               ? 'inventory'
               : router.path.startsWith('/enrollment')
               ? 'enrollment'
+              : router.path.startsWith('/users')
+              ? 'users'
               : router.path.startsWith('/audit')
                 ? 'audit'
                 : router.path.startsWith('/notifications')
@@ -86,7 +91,7 @@
       {theme.current === 'dark' ? '☀' : '☾'}
     </button>
     {#if auth.isAuthenticated}
-      <span class="user">{auth.user?.displayName}</span>
+      <button class="ghost user" onclick={() => passwordDialog.open()} title={i18n.t('password.change')}>{auth.user?.displayName}</button>
       <button class="ghost" onclick={() => auth.logout()}>{i18n.t('logout')}</button>
     {/if}
   </header>
@@ -134,6 +139,10 @@
         <a href="#/notifications" title={collapsed ? i18n.t('nav.notifications') : undefined} class:active={section === 'notifications'}>
           <svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg>
           <span class="label">{i18n.t('nav.notifications')}</span>
+        </a>
+        <a href="#/users" title={collapsed ? i18n.t('nav.users') : undefined} class:active={section === 'users'}>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" /></svg>
+          <span class="label">{i18n.t('nav.users')}</span>
         </a>
         <a href="#/audit" title={collapsed ? i18n.t('nav.audit') : undefined} class:active={section === 'audit'}>
           <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 13h7M9 17h7" /></svg>
@@ -187,6 +196,8 @@
         <Enrollment />
       {:else if section === 'notifications' && auth.isAdmin}
         <Notifications />
+      {:else if section === 'users' && auth.isAdmin}
+        <Users />
       {:else if section === 'audit' && auth.isAdmin}
         <Audit />
       {:else if deviceId}
@@ -200,6 +211,7 @@
   {:else}
     <Login />
   {/if}
+  {#if auth.isAuthenticated}<PasswordDialog bind:this={passwordDialog} />{/if}
 </div>
 
 <style>

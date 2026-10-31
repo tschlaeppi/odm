@@ -6,6 +6,17 @@ public sealed record LoginRequest(string UserName, string Password);
 
 public sealed record UserDto(Guid Id, string UserName, string DisplayName, string Role);
 
+public sealed record ManagedUserDto(
+    Guid Id, string UserName, string DisplayName, string Role, bool IsActive, DateTimeOffset CreatedAt);
+
+public sealed record CreateUserRequest(string? UserName, string? DisplayName, string? Password, string? Role);
+
+public sealed record UpdateUserRequest(string? DisplayName, string? Role, bool? IsActive);
+
+public sealed record SetPasswordRequest(string? Password);
+
+public sealed record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
+
 public sealed record OidcProviderDto(string Id, string DisplayName);
 
 public sealed record LoginResponse(string Token, DateTimeOffset ExpiresAt, UserDto User);

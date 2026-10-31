@@ -6,6 +6,15 @@ export interface UserDto {
   role: string
 }
 
+export interface ManagedUserDto {
+  id: string
+  userName: string
+  displayName: string
+  role: 'ReadOnly' | 'Operator' | 'Admin'
+  isActive: boolean
+  createdAt: string
+}
+
 export interface OidcProviderDto {
   id: string
   displayName: string
@@ -590,6 +599,16 @@ export const api = {
   login: (userName: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ userName, password }) }),
   me: () => request<UserDto>('/auth/me'),
+  users: () => request<ManagedUserDto[]>('/users'),
+  createUser: (userName: string, displayName: string, password: string, role: string) =>
+    request<ManagedUserDto>('/users', { method: 'POST', body: JSON.stringify({ userName, displayName, password, role }) }),
+  updateUser: (id: string, displayName: string, role: string, isActive: boolean) =>
+    request<ManagedUserDto>(`/users/${id}`, { method: 'PUT', body: JSON.stringify({ displayName, role, isActive }) }),
+  setUserPassword: (id: string, password: string) =>
+    request<void>(`/users/${id}/password`, { method: 'POST', body: JSON.stringify({ password }) }),
+  deleteUser: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<void>('/auth/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
   oidcProviders: () => request<OidcProviderDto[]>('/auth/oidc/providers'),
   /** User for a freshly obtained token (the session is not set yet at this point). */
   meWithToken: async (token: string): Promise<UserDto> => {

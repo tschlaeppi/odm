@@ -2,6 +2,16 @@
 // Patterns may contain {placeholders} which are carried over to the translation.
 
 const de: [string, string][] = [
+  ["User name is required (letters, digits and . _ @ -, at most 128 characters).", "Benutzername ist erforderlich (Buchstaben, Ziffern und . _ @ -, höchstens 128 Zeichen)."],
+  ["Password must be 10 to 256 characters long.", "Das Passwort muss 10 bis 256 Zeichen lang sein."],
+  ["Invalid role.", "Ungültige Rolle."],
+  ["Display name must be at most 256 characters.", "Der Anzeigename darf höchstens 256 Zeichen lang sein."],
+  ["A user with this name already exists.", "Ein Benutzer mit diesem Namen existiert bereits."],
+  ["You cannot change your own role or deactivate yourself.", "Sie können Ihre eigene Rolle nicht ändern und sich nicht selbst deaktivieren."],
+  ["You cannot delete yourself.", "Sie können sich nicht selbst löschen."],
+  ["The last active administrator cannot be removed, demoted or deactivated.", "Der letzte aktive Administrator kann nicht entfernt, herabgestuft oder deaktiviert werden."],
+  ["Password change is only available for local users.", "Die Passwortänderung ist nur für lokale Benutzer möglich."],
+  ["The current password is wrong.", "Das aktuelle Passwort ist falsch."],
   ["The ZIP contains no PSADT script (Invoke-AppDeployToolkit.ps1 or Deploy-Application.ps1).", "Das ZIP enthält kein PSADT-Skript (Invoke-AppDeployToolkit.ps1 oder Deploy-Application.ps1)."],
   ["Only PSADT packages have files; repository packages are changed through their settings.", "Nur PSADT-Pakete haben Dateien; Repo-Pakete werden über ihre Einstellungen geändert."],
   ["winget was not found (App Installer is missing or not available to the SYSTEM account).", "winget wurde nicht gefunden (App-Installer fehlt oder ist für das SYSTEM-Konto nicht verfügbar)."],

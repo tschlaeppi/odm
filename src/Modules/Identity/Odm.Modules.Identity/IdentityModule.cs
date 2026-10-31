@@ -132,6 +132,7 @@ public sealed class IdentityModule : IModule
             .RequireRateLimiting("login");
 
         MapOidc(group);
+        Endpoints.UserEndpoints.Map(endpoints);
 
         group.MapGet("/me", (ClaimsPrincipal principal) =>
             {

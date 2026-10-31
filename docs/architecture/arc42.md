@@ -262,6 +262,7 @@ flowchart LR
 | ADR-35 | Scope *user* is executed by the agent in the context of the active console user (Windows: user token of the console session; Linux: `runuser` for the first seat session) instead of installing as SYSTEM/root | the user's own package state, no new component on the device; the agent already runs with the needed privileges | accepted |
 | ADR-36 | The project is licensed under Apache-2.0 | permissive, widely accepted by companies, explicit patent grant; keeps adoption easy; a later move to a stricter licence stays possible, a more permissive one would need all contributors' consent | accepted |
 | ADR-37 | Registration tokens can be reusable: a use limit (default 1, at most 1000) and a validity of up to one year; no approval step for new devices | lab and provisioning setups need automatic enrolment; the counter is incremented atomically and an exhausted, expired or deleted token stops working; devices registered with it appear immediately | accepted |
+| ADR-38 | Local users are managed in the UI by administrators (list, create, role, deactivate, set password, delete) and every local user can change the own password; protections against self-lockout live in `UserRules` | no CLI or database access should be needed for daily user work; the last active administrator and the own account cannot be removed or demoted; no migration was needed because the `users` table already had all columns | accepted |
 
 ## 10. Quality requirements
 

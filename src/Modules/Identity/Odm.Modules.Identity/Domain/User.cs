@@ -21,6 +21,19 @@ public sealed class User : Entity
 
     private User() { }
 
+    public void Update(string displayName, UserRole role, bool isActive)
+    {
+        DisplayName = string.IsNullOrWhiteSpace(displayName) ? UserName : displayName.Trim();
+        Role = role;
+        IsActive = isActive;
+    }
+
+    public void SetPasswordHash(string passwordHash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash);
+        PasswordHash = passwordHash;
+    }
+
     public static string Normalize(string userName) => userName.Trim().ToLowerInvariant();
 
     public static User Create(string userName, string displayName, string passwordHash, UserRole role)

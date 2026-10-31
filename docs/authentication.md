@@ -3,6 +3,21 @@
 ODM supports local accounts, LDAP / Active Directory and OpenID Connect side by side. Local accounts always keep working
 (including the bootstrap administrator as emergency access). Roles: `Admin`, `Operator`, `ReadOnly`.
 
+## Local users
+
+Administrators manage local accounts under **System → Users**: create, change display name and role, deactivate,
+set a new password (forgotten password) and delete. User names consist of letters, digits and `. _ @ -`; passwords have
+10 to 256 characters. Users from LDAP or OIDC are not listed there.
+
+Safeguards: you cannot change your own role, deactivate or delete yourself, and the last active administrator cannot be
+removed, demoted or deactivated.
+
+Every local user can change the own password by clicking the name in the top bar (the current password is required;
+failed attempts are rate limited and audited, passwords are never logged).
+
+Sessions are stateless JWTs ([ADR-07](architecture/arc42.md)): a changed role, a deactivation or a new password affects
+sessions that are already open only when their token expires (`Identity:Jwt:ExpiryMinutes`, default 60).
+
 ## LDAP / Active Directory
 
 Disabled by default (`Identity:Ldap:Enabled=false`).
