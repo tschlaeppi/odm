@@ -260,6 +260,7 @@ flowchart LR
 | ADR-33 | Notifications are a module; other modules contribute alerts through `IAlertSource` (read only), alerts are de-duplicated by an occurrence key stored in the database and sent as one digest per round | modules stay decoupled, no flood and no repeats after restarts; configuration only (no UI), SMTP without implicit TLS | accepted |
 | ADR-34 | Inventory is pushed by the agent (`POST /api/agent/v1/inventory`, every `Agent:InventoryHours`, default 24) and stored per device in the Devices module (latest state only, replaced on each report); the Agents module forwards it through `IDeviceInventory` | pull model stays intact, no history to grow, modules stay decoupled | accepted |
 | ADR-35 | Scope *user* is executed by the agent in the context of the active console user (Windows: user token of the console session; Linux: `runuser` for the first seat session) instead of installing as SYSTEM/root | the user's own package state, no new component on the device; the agent already runs with the needed privileges | accepted |
+| ADR-36 | The project is licensed under Apache-2.0 | permissive, widely accepted by companies, explicit patent grant; keeps adoption easy; a later move to a stricter licence stays possible, a more permissive one would need all contributors' consent | accepted |
 
 ## 10. Quality requirements
 

@@ -42,6 +42,10 @@ Details, S3 storage, migrations and tests: [docs/development.md](docs/developmen
 | [docs/os-updates.md](docs/os-updates.md) | operators | update policies, maintenance windows, how the agent updates |
 | [docs/architecture/arc42.md](docs/architecture/arc42.md) | everyone | architecture following arc42, including the decision log (ADR table) |
 
+## License
+
+Open Device Manager is licensed under the [Apache License 2.0](LICENSE) (see also [NOTICE](NOTICE)).
+
 ## Repository layout
 
 ```
