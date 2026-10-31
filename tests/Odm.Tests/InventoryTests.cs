@@ -71,4 +71,61 @@ public class InventoryTests
         Assert.Null(hardware.MemoryBytes);
         Assert.Equal(100, hardware.DiskTotalBytes);
     }
+
+    [Fact]
+    public void Last_output_gives_first_real_user_with_time()
+    {
+        const string output =
+            "reboot   system boot  6.8.0 2026-10-31T13:12:00+01:00   still running\n" +
+            "localadmin tty2 tty2 2026-10-31T09:10:00+01:00 still logged in\n" +
+            "anna     pts/0 10.0.0.5 2026-10-30T08:00:00+01:00 - 2026-10-30T09:00:00+01:00  (01:00)\n";
+
+        var (user, at) = InventoryCollector.ParseLast(output);
+
+        Assert.Equal("localadmin", user);
+        Assert.Equal(DateTimeOffset.Parse("2026-10-31T08:10:00Z"), at);
+        Assert.Equal((null, null), InventoryCollector.ParseLast("wtmp begins Fri Oct 31 2026\n"));
+    }
+
+    [Fact]
+    public void Windows_last_login_takes_name_from_sign_in_screen_and_time_from_profile()
+    {
+        var old = DateTimeOffset.Parse("2026-10-01T10:00:00Z");
+        var recent = DateTimeOffset.Parse("2026-10-30T10:00:00Z");
+        var profiles = new[] { ("anna.CORP", old), ("tom", recent), ("anna", recent.AddDays(-5)) };
+
+        var (user, at) = InventoryCollector.PickLastLogin(@"CORP\anna", profiles);
+
+        Assert.Equal(@"CORP\anna", user);
+        Assert.Equal(recent.AddDays(-5), at);
+        Assert.Equal(("tom", recent), InventoryCollector.PickLastLogin(null, profiles));
+        Assert.Equal((null, null), InventoryCollector.PickLastLogin(null, []));
+    }
+
+    [Fact]
+    public void Uptime_and_mac_parsing()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(3600.5), InventoryCollector.ParseUptime("3600.50 12000.00\n"));
+        Assert.Null(InventoryCollector.ParseUptime("x"));
+        Assert.Equal("00:11:22:AA:BB:CC", InventoryCollector.FormatMac("001122AABBCC"));
+        Assert.Null(InventoryCollector.FormatMac("000000000000"));
+    }
+
+    [Fact]
+    public void Hardware_keeps_network_disks_and_login_and_drops_implausible_values()
+    {
+        var hardware = DeviceHardware.Create(Guid.NewGuid());
+        var now = DateTimeOffset.UtcNow;
+
+        hardware.Apply(
+            now, "Dell", "XPS", "cpu", 8, 1, "X64", 100, 50, "  anna ", now.AddDays(-1), now.AddDays(30),
+            [new Odm.SharedKernel.Contracts.NetworkAdapterInfo("eth0", "00:11:22:33:44:55", ["10.0.0.5", "fe80::1"])],
+            [new Odm.SharedKernel.Contracts.DiskInfo("/", 1000, 400), new Odm.SharedKernel.Contracts.DiskInfo("bad", -1, 0)]);
+
+        Assert.Equal("anna", hardware.LastUser);
+        Assert.NotNull(hardware.LastLoginAt);
+        Assert.Null(hardware.BootTime); // in the future
+        Assert.Equal("10.0.0.5", Assert.Single(hardware.Adapters).Addresses[0]);
+        Assert.Equal("/", Assert.Single(hardware.Volumes).Name);
+    }
 }

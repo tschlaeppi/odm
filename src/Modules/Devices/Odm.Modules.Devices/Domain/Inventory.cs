@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Odm.SharedKernel;
+using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.Devices.Domain;
 
@@ -15,6 +17,18 @@ public sealed class DeviceHardware
     public string? Architecture { get; private set; }
     public long? DiskTotalBytes { get; private set; }
     public long? DiskFreeBytes { get; private set; }
+    public string? LastUser { get; private set; }
+    public DateTimeOffset? LastLoginAt { get; private set; }
+    public DateTimeOffset? BootTime { get; private set; }
+
+    /// <summary>JSON list of network adapters (name, MAC, addresses) and of volumes (name, total, free).</summary>
+    public string? NetworkJson { get; private set; }
+    public string? DisksJson { get; private set; }
+
+    private const int MaxAdapters = 16;
+    private const int MaxAddressesPerAdapter = 8;
+    private const int MaxDisks = 32;
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     private DeviceHardware() { }
 
@@ -22,7 +36,9 @@ public sealed class DeviceHardware
 
     public void Apply(
         DateTimeOffset now, string? manufacturer, string? model, string? cpu, int? cpuCores, long? memoryBytes,
-        string? architecture, long? diskTotalBytes, long? diskFreeBytes)
+        string? architecture, long? diskTotalBytes, long? diskFreeBytes,
+        string? lastUser = null, DateTimeOffset? lastLoginAt = null, DateTimeOffset? bootTime = null,
+        IReadOnlyList<NetworkAdapterInfo>? network = null, IReadOnlyList<DiskInfo>? disks = null)
     {
         CollectedAt = now;
         Manufacturer = Cut(manufacturer, 128);
@@ -33,6 +49,47 @@ public sealed class DeviceHardware
         Architecture = Cut(architecture, 32);
         DiskTotalBytes = diskTotalBytes is >= 0 ? diskTotalBytes : null;
         DiskFreeBytes = diskFreeBytes is >= 0 ? diskFreeBytes : null;
+        LastUser = Cut(lastUser, 256);
+        LastLoginAt = lastLoginAt is { } login && login > DateTimeOffset.UnixEpoch && login <= now.AddDays(1) ? login : null;
+        BootTime = bootTime is { } boot && boot > DateTimeOffset.UnixEpoch && boot <= now.AddDays(1) ? boot : null;
+
+        var adapters = (network ?? [])
+            .Select(a => new NetworkAdapterInfo(
+                Cut(a.Name, 128) ?? "", Cut(a.MacAddress, 32),
+                a.Addresses.Select(x => Cut(x, 64)).OfType<string>().Take(MaxAddressesPerAdapter).ToList()))
+            .Where(a => a.Name.Length > 0)
+            .Take(MaxAdapters)
+            .ToList();
+        NetworkJson = adapters.Count == 0 ? null : JsonSerializer.Serialize(adapters, Json);
+
+        var volumes = (disks ?? [])
+            .Where(d => d.TotalBytes >= 0 && d.FreeBytes >= 0)
+            .Select(d => new DiskInfo(Cut(d.Name, 128) ?? "", d.TotalBytes, d.FreeBytes))
+            .Where(d => d.Name.Length > 0)
+            .Take(MaxDisks)
+            .ToList();
+        DisksJson = volumes.Count == 0 ? null : JsonSerializer.Serialize(volumes, Json);
+    }
+
+    public IReadOnlyList<NetworkAdapterInfo> Adapters => Parse<NetworkAdapterInfo>(NetworkJson);
+
+    public IReadOnlyList<DiskInfo> Volumes => Parse<DiskInfo>(DisksJson);
+
+    private static List<T> Parse<T>(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<T>>(json, Json) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 
     internal static string? Cut(string? value, int max)

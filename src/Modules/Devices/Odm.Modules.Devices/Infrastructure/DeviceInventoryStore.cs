@@ -33,7 +33,8 @@ internal sealed class DeviceInventoryStore(DevicesDbContext db) : IDeviceInvento
 
         row.Apply(
             DateTimeOffset.UtcNow, hardware.Manufacturer, hardware.Model, hardware.Cpu, hardware.CpuCores, hardware.MemoryBytes,
-            hardware.Architecture, hardware.DiskTotalBytes, hardware.DiskFreeBytes);
+            hardware.Architecture, hardware.DiskTotalBytes, hardware.DiskFreeBytes,
+            hardware.LastUser, hardware.LastLoginAt, hardware.BootTime, hardware.Network, hardware.Disks);
 
         await db.Software.Where(s => s.DeviceId == deviceId).ExecuteDeleteAsync(ct);
         db.Software.AddRange(programs);

@@ -25,11 +25,14 @@ internal static class InventoryEndpoints
                 return Results.NotFound();
             }
 
-            var hardware = await db.Hardware.AsNoTracking().Where(h => h.DeviceId == id)
-                .Select(h => new HardwareDto(
-                    h.CollectedAt, h.Manufacturer, h.Model, h.Cpu, h.CpuCores, h.MemoryBytes, h.Architecture,
-                    h.DiskTotalBytes, h.DiskFreeBytes))
-                .SingleOrDefaultAsync(ct);
+            var row = await db.Hardware.AsNoTracking().SingleOrDefaultAsync(h => h.DeviceId == id, ct);
+            var hardware = row is null
+                ? null
+                : new HardwareDto(
+                    row.CollectedAt, row.Manufacturer, row.Model, row.Cpu, row.CpuCores, row.MemoryBytes, row.Architecture,
+                    row.DiskTotalBytes, row.DiskFreeBytes, row.LastUser, row.LastLoginAt, row.BootTime,
+                    row.Adapters.Select(a => new NetworkAdapterDto(a.Name, a.MacAddress, a.Addresses)).ToList(),
+                    row.Volumes.Select(d => new DiskDto(d.Name, d.TotalBytes, d.FreeBytes)).ToList());
             var software = await db.Software.AsNoTracking().Where(s => s.DeviceId == id)
                 .OrderBy(s => s.Name)
                 .Select(s => new InstalledProgramDto(s.Name, s.Version, s.Publisher))

@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
@@ -9,9 +12,15 @@ namespace Odm.Agent.Inventory;
 
 // ---- Protocol (/api/agent/v1/inventory), counterpart of the server contracts ----
 
+public sealed record AdapterReport(string Name, string? MacAddress, IReadOnlyList<string> Addresses);
+
+public sealed record DiskReport(string Name, long TotalBytes, long FreeBytes);
+
 public sealed record HardwareReport(
     string? Manufacturer, string? Model, string? Cpu, int? CpuCores, long? MemoryBytes,
-    string? Architecture, long? DiskTotalBytes, long? DiskFreeBytes);
+    string? Architecture, long? DiskTotalBytes, long? DiskFreeBytes,
+    string? LastUser = null, DateTimeOffset? LastLoginAt = null, DateTimeOffset? BootTime = null,
+    IReadOnlyList<AdapterReport>? Network = null, IReadOnlyList<DiskReport>? Disks = null);
 
 public sealed record ProgramReport(string Name, string? Version, string? Publisher);
 
@@ -28,7 +37,14 @@ public sealed partial class InventoryCollector(ILogger<InventoryCollector> logge
 
     public async Task<InventoryRequest> CollectAsync(CancellationToken ct)
     {
-        var hardware = CollectHardware();
+        var hardware = CollectHardware() with
+        {
+            Network = CollectNetwork(),
+            Disks = CollectVolumes(),
+            BootTime = ReadBootTime()
+        };
+        var (lastUser, lastLogin) = await CollectLastLoginAsync(ct);
+        hardware = hardware with { LastUser = lastUser, LastLoginAt = lastLogin };
         var software = await CollectSoftwareAsync(ct);
         return new InventoryRequest(hardware, software);
     }
@@ -67,6 +83,225 @@ public sealed partial class InventoryCollector(ILogger<InventoryCollector> logge
         return new HardwareReport(
             Clean(manufacturer), Clean(model), Clean(cpu), Environment.ProcessorCount, memory,
             RuntimeInformation.OSArchitecture.ToString(), diskTotal, diskFree);
+    }
+
+    // ---- Network, volumes, uptime, last login ----
+
+    private static readonly string[] VirtualAdapterPrefixes = ["veth", "docker", "br-", "virbr", "cni", "flannel", "cali", "lo"];
+
+    private IReadOnlyList<AdapterReport> CollectNetwork()
+    {
+        try
+        {
+            var result = new List<AdapterReport>();
+            foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (adapter.OperationalStatus != OperationalStatus.Up ||
+                    adapter.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel ||
+                    VirtualAdapterPrefixes.Any(p => adapter.Name.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                var addresses = adapter.GetIPProperties().UnicastAddresses
+                    .Select(a => a.Address)
+                    .Where(a => a.AddressFamily == AddressFamily.InterNetwork ||
+                                (a.AddressFamily == AddressFamily.InterNetworkV6 && !a.IsIPv6LinkLocal && !a.IsIPv6Multicast))
+                    .Select(a => a.ToString())
+                    .ToList();
+                if (addresses.Count == 0)
+                {
+                    continue;
+                }
+
+                var mac = adapter.GetPhysicalAddress().ToString();
+                result.Add(new AdapterReport(
+                    adapter.Name, FormatMac(mac), addresses.OrderBy(a => a.Contains(':')).ToList()));
+            }
+
+            return result;
+        }
+        catch (Exception ex) when (ex is NetworkInformationException or UnauthorizedAccessException or IOException)
+        {
+            logger.LogDebug(ex, "Network adapters could not be read.");
+            return [];
+        }
+    }
+
+    public static string? FormatMac(string? raw)
+    {
+        if (string.IsNullOrEmpty(raw) || raw.Length != 12 || raw.All(c => c == '0'))
+        {
+            return null;
+        }
+
+        return string.Join(':', Enumerable.Range(0, 6).Select(i => raw.Substring(i * 2, 2)));
+    }
+
+    private static readonly string[] LinuxFileSystems = ["ext2", "ext3", "ext4", "xfs", "btrfs", "zfs", "f2fs", "jfs", "ntfs", "exfat", "vfat"];
+
+    private IReadOnlyList<DiskReport> CollectVolumes()
+    {
+        try
+        {
+            var drives = OperatingSystem.IsWindows()
+                ? DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady)
+                : DriveInfo.GetDrives().Where(d =>
+                    d.IsReady && LinuxFileSystems.Contains(d.DriveFormat, StringComparer.OrdinalIgnoreCase) &&
+                    !d.Name.StartsWith("/snap", StringComparison.Ordinal) && !d.Name.StartsWith("/var/lib/", StringComparison.Ordinal));
+            return drives
+                .Where(d => d.TotalSize > 0)
+                .DistinctBy(d => d.Name)
+                .Select(d => new DiskReport(d.Name, d.TotalSize, d.AvailableFreeSpace))
+                .ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Time of the last start; the server shows the uptime derived from it.</summary>
+    private static DateTimeOffset? ReadBootTime()
+    {
+        try
+        {
+            TimeSpan? uptime = null;
+            if (OperatingSystem.IsLinux())
+            {
+                uptime = ParseUptime(ReadFile("/proc/uptime", 200));
+            }
+            else if (Environment.TickCount64 > 0)
+            {
+                uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+            }
+
+            return uptime is { } up ? DateTimeOffset.UtcNow - up : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Content of /proc/uptime: seconds since the start and idle time.</summary>
+    public static TimeSpan? ParseUptime(string? text)
+    {
+        var first = text?.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return double.TryParse(first, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds) && seconds >= 0
+            ? TimeSpan.FromSeconds(seconds)
+            : null;
+    }
+
+    private async Task<(string? User, DateTimeOffset? At)> CollectLastLoginAsync(CancellationToken ct)
+    {
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return ReadWindowsLastLogin();
+            }
+
+            if (OperatingSystem.IsLinux() && ToolLocator.Linux("last") is { } last)
+            {
+                var result = await ProcessRunner.RunAsync(
+                    last, ["-w", "-F", "--time-format", "iso", "-n", "50"], CommandTimeout, ct,
+                    new Dictionary<string, string> { ["LC_ALL"] = "C" });
+                return result.ExitCode == 0 ? ParseLast(result.Output) : (null, null);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogDebug(ex, "The last login could not be determined.");
+        }
+
+        return (null, null);
+    }
+
+    private static readonly string[] NotUsers = ["reboot", "shutdown", "runlevel", "wtmp", "btmp"];
+
+    /// <summary>Output of <c>last -w -F --time-format iso</c>: first line with a real user and an ISO timestamp.</summary>
+    public static (string? User, DateTimeOffset? At) ParseLast(string output)
+    {
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var tokens = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length < 2 || NotUsers.Contains(tokens[0], StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            foreach (var token in tokens.Skip(1))
+            {
+                if (token.Length >= 19 && char.IsDigit(token[0]) && token[4] == '-' && token[10] == 'T' &&
+                    DateTimeOffset.TryParse(token, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var at))
+                {
+                    return (tokens[0], at.ToUniversalTime());
+                }
+            }
+        }
+
+        return (null, null);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static (string? User, DateTimeOffset? At) ReadWindowsLastLogin()
+    {
+        const string logonUi = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI";
+        var sam = ReadRegistry(logonUi, "LastLoggedOnSAMUser") ?? ReadRegistry(logonUi, "LastLoggedOnUser");
+
+        var profiles = new List<(string Leaf, DateTimeOffset At)>();
+        using var list = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList");
+        foreach (var sid in list?.GetSubKeyNames() ?? [])
+        {
+            if (!sid.StartsWith("S-1-5-21-", StringComparison.Ordinal) && !sid.StartsWith("S-1-12-1-", StringComparison.Ordinal))
+            {
+                continue; // local users, domain users and Entra ID users; no service accounts
+            }
+
+            using var entry = list!.OpenSubKey(sid);
+            var path = entry?.GetValue("ProfileImagePath")?.ToString();
+            if (path is null || entry!.GetValue("LocalProfileLoadTimeHigh") is not int high ||
+                entry.GetValue("LocalProfileLoadTimeLow") is not int low)
+            {
+                continue;
+            }
+
+            var fileTime = ((long)(uint)high << 32) | (uint)low;
+            if (fileTime > 0)
+            {
+                profiles.Add((Path.GetFileName(path.TrimEnd('\\')), new DateTimeOffset(DateTime.FromFileTimeUtc(fileTime), TimeSpan.Zero)));
+            }
+        }
+
+        return PickLastLogin(sam, profiles);
+    }
+
+    /// <summary>
+    /// The name comes from the last user shown on the sign-in screen; the time is the last load of that user's profile
+    /// (profile folders of domain users may carry a suffix such as <c>name.DOMAIN</c>). Without a name the newest profile counts.
+    /// </summary>
+    public static (string? User, DateTimeOffset? At) PickLastLogin(string? samUser, IReadOnlyCollection<(string Leaf, DateTimeOffset At)> profiles)
+    {
+        var name = string.IsNullOrWhiteSpace(samUser) ? null : samUser.Trim();
+        var shortName = name is null ? null : name[(name.LastIndexOf('\\') + 1)..];
+
+        if (shortName is not null)
+        {
+            var matches = profiles
+                .Where(p => p.Leaf.Equals(shortName, StringComparison.OrdinalIgnoreCase) ||
+                            p.Leaf.StartsWith(shortName + ".", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            return (name, matches.Count == 0 ? null : matches.Max(p => p.At));
+        }
+
+        if (profiles.Count == 0)
+        {
+            return (null, null);
+        }
+
+        var newest = profiles.MaxBy(p => p.At);
+        return (newest.Leaf, newest.At);
     }
 
     private static (long? Total, long? Free) ReadDisks()

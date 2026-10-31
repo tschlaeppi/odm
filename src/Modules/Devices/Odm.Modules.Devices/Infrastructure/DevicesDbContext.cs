@@ -41,6 +41,9 @@ public sealed class DevicesDbContext(DbContextOptions<DevicesDbContext> options)
             b.Property(h => h.Model).HasMaxLength(128);
             b.Property(h => h.Cpu).HasMaxLength(256);
             b.Property(h => h.Architecture).HasMaxLength(32);
+            b.Property(h => h.LastUser).HasMaxLength(256);
+            b.Property(h => h.NetworkJson).HasMaxLength(8000);
+            b.Property(h => h.DisksJson).HasMaxLength(8000);
         });
 
         modelBuilder.Entity<InstalledSoftware>(b =>

@@ -218,7 +218,7 @@ migrations are applied on start). Test a restore before you need it.
 
 ## Inventory
 
-Agents (version 0.7.0 or later) report hardware and installed programs once a day (`Agent:InventoryHours` in the agent
+Agents (version 0.7.0 or later) report hardware and installed programs every 6 hours (`Agent:InventoryHours` in the agent
 configuration). Until an agent has updated itself no inventory is shown for its device. API: `GET /api/inventory/devices/{id}`,
 `GET /api/inventory/software/missing?name=` (devices without a program), `GET /api/software/compliance?reason=` (deviations from the assignments; each report also as `.csv`),
 `GET /api/inventory/software/summary?name=`, `GET /api/inventory/software?name=&version=` and `.../software.csv`.

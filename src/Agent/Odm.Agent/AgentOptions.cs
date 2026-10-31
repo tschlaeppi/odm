@@ -17,7 +17,7 @@ public sealed class AgentOptions
     public string StateDirectory { get; set; } = "";
 
     /// <summary>How often the inventory (hardware, installed programs) is sent. 0 = never.</summary>
-    public int InventoryHours { get; set; } = 24;
+    public int InventoryHours { get; set; } = 6;
 
     public string? Validate()
     {

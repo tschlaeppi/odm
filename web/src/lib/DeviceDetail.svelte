@@ -85,6 +85,17 @@
     { key: 'version', label: i18n.t('inv.version'), value: (p) => p.version },
     { key: 'publisher', label: i18n.t('inv.publisher'), value: (p) => p.publisher, muted: true },
   ])
+
+  /** Uptime from the boot time of the last report; the age of the report is included. */
+  function uptimeText(bootTime: string) {
+    const minutes = Math.max(0, Math.floor((Date.now() - new Date(bootTime).getTime()) / 60000))
+    const days = Math.floor(minutes / 1440)
+    const hours = Math.floor((minutes % 1440) / 60)
+    const rest = minutes % 60
+    return days > 0
+      ? i18n.t('inv.uptime.dhm', { d: days, h: hours, m: rest })
+      : i18n.t('inv.uptime.hm', { h: hours, m: rest })
+  }
 </script>
 
 {#snippet groupName(g: DeviceGroupRefDto)}
@@ -164,8 +175,43 @@
           <dt>{i18n.t('inv.disk')}</dt>
           <dd>{h.diskTotalBytes ? `${formatSize(h.diskFreeBytes ?? 0)} / ${formatSize(h.diskTotalBytes)}` : '–'}</dd>
         </div>
+        <div>
+          <dt>{i18n.t('inv.lastUser')}</dt>
+          <dd>
+            {h.lastUser ?? '–'}
+            {#if h.lastUser && h.lastLoginAt}<span class="muted"> · {i18n.formatDate(h.lastLoginAt)}</span>{/if}
+          </dd>
+        </div>
+        <div>
+          <dt>{i18n.t('inv.uptime')}</dt>
+          <dd>{h.bootTime ? uptimeText(h.bootTime) : '–'}</dd>
+        </div>
         <div><dt>{i18n.t('inv.collected')}</dt><dd>{i18n.formatDate(h.collectedAt)}</dd></div>
       </dl>
+
+      {#if h.network?.length}
+        <h3>{i18n.t('inv.network')}</h3>
+        <dl class="card facts">
+          {#each h.network as adapter (adapter.name)}
+            <div>
+              <dt>{adapter.name}{adapter.macAddress ? ` · ${adapter.macAddress}` : ''}</dt>
+              <dd>{#each adapter.addresses as address}<div>{address}</div>{/each}</dd>
+            </div>
+          {/each}
+        </dl>
+      {/if}
+
+      {#if h.disks?.length}
+        <h3>{i18n.t('inv.volumes')}</h3>
+        <dl class="card facts">
+          {#each h.disks as disk (disk.name)}
+            <div>
+              <dt>{disk.name}</dt>
+              <dd>{formatSize(disk.freeBytes)} / {formatSize(disk.totalBytes)} {i18n.t('inv.free')}</dd>
+            </div>
+          {/each}
+        </dl>
+      {/if}
     {:else}
       <p class="muted">{i18n.t('inv.none')}</p>
     {/if}
@@ -200,6 +246,11 @@
   h2 {
     font-size: 1rem;
     margin: 1.5rem 0 0.5rem;
+  }
+  h3 {
+    font-size: 0.9rem;
+    margin: 1rem 0 0.4rem;
+    color: var(--muted);
   }
   .facts {
     display: grid;

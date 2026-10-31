@@ -484,8 +484,25 @@ export interface DeviceGroupRefDto {
   description: string | null
 }
 
+export interface NetworkAdapterDto {
+  name: string
+  macAddress: string | null
+  addresses: string[]
+}
+
+export interface DiskDto {
+  name: string
+  totalBytes: number
+  freeBytes: number
+}
+
 export interface HardwareDto {
   collectedAt: string
+  lastUser?: string | null
+  lastLoginAt?: string | null
+  bootTime?: string | null
+  network?: NetworkAdapterDto[]
+  disks?: DiskDto[]
   manufacturer: string | null
   model: string | null
   cpu: string | null

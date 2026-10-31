@@ -81,10 +81,14 @@ Only an idle agent updates. An agent that no longer starts must be repaired with
 
 ## Inventory
 
-Every `Agent:InventoryHours` (default 24) and after start the agent reports hardware (manufacturer, model, CPU, memory, architecture,
-total and free system disk) and the installed programs (name, version, publisher). Windows reads the uninstall registry keys
+Every `Agent:InventoryHours` (default 6) and after start the agent reports hardware (manufacturer, model, CPU, memory, architecture,
+total and free system disk, free space per volume, network adapters with IP and MAC addresses, boot time for the uptime, last signed-in user with time) and the installed programs (name, version, publisher). Windows reads the uninstall registry keys
 (64 and 32 bit), Linux asks dpkg or rpm. The server keeps the latest report per device; it is shown on the device page and
 in *Inventory*, where the device list for a program and version can be exported as CSV.
+
+The **last user** is read on Windows from the user last shown on the sign-in screen (time: last load of that user's profile,
+therefore approximate); on Linux from `last` (`/var/log/wtmp`). Virtual adapters (docker, veth, bridges), loopback and adapters without an
+address are not listed; on Linux only local file systems are listed as volumes.
 
 ## Logging
 

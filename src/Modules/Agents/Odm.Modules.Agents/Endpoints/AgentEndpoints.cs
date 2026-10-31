@@ -79,7 +79,13 @@ internal static class AgentEndpoints
 
                 var deviceId = Guid.Parse(principal.FindFirstValue("device_id")!);
                 var hardware = request.Hardware is { } h
-                    ? new InventoryHardware(h.Manufacturer, h.Model, h.Cpu, h.CpuCores, h.MemoryBytes, h.Architecture, h.DiskTotalBytes, h.DiskFreeBytes)
+                    ? new InventoryHardware(
+                        h.Manufacturer, h.Model, h.Cpu, h.CpuCores, h.MemoryBytes, h.Architecture, h.DiskTotalBytes, h.DiskFreeBytes,
+                        h.LastUser, h.LastLoginAt, h.BootTime,
+                        (h.Network ?? []).Where(a => !string.IsNullOrWhiteSpace(a.Name))
+                            .Select(a => new NetworkAdapterInfo(a.Name!, a.MacAddress, a.Addresses ?? [])).ToList(),
+                        (h.Disks ?? []).Where(d => !string.IsNullOrWhiteSpace(d.Name))
+                            .Select(d => new DiskInfo(d.Name!, d.TotalBytes, d.FreeBytes)).ToList())
                     : new InventoryHardware(null, null, null, null, null, null, null, null);
                 var software = (request.Software ?? [])
                     .Where(p => !string.IsNullOrWhiteSpace(p.Name))

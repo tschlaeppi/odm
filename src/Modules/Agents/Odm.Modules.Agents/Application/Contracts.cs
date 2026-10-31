@@ -41,9 +41,15 @@ public enum AgentMtlsMode
     Required
 }
 
+public sealed record InventoryAdapterDto(string? Name, string? MacAddress, List<string>? Addresses);
+
+public sealed record InventoryDiskDto(string? Name, long TotalBytes, long FreeBytes);
+
 public sealed record InventoryHardwareDto(
     string? Manufacturer, string? Model, string? Cpu, int? CpuCores, long? MemoryBytes,
-    string? Architecture, long? DiskTotalBytes, long? DiskFreeBytes);
+    string? Architecture, long? DiskTotalBytes, long? DiskFreeBytes,
+    string? LastUser = null, DateTimeOffset? LastLoginAt = null, DateTimeOffset? BootTime = null,
+    List<InventoryAdapterDto>? Network = null, List<InventoryDiskDto>? Disks = null);
 
 public sealed record InventoryProgramDto(string? Name, string? Version, string? Publisher);
 
