@@ -42,13 +42,14 @@ internal static class InventoryEndpoints
         group.MapGet("/software/summary", async (DevicesDbContext db, string? name, int? take, CancellationToken ct) =>
         {
             var query = FilterByName(db.Software.AsNoTracking(), name);
-            var summary = await query
+            // Aggregate into an anonymous type first and map afterwards: EF cannot order by a DTO built around an aggregate.
+            var groups = await query
                 .GroupBy(s => new { s.Name, s.Version })
-                .Select(g => new SoftwareSummaryDto(g.Key.Name, g.Key.Version, g.Select(s => s.DeviceId).Distinct().Count()))
-                .OrderBy(s => s.Name).ThenBy(s => s.Version)
+                .Select(g => new { g.Key.Name, g.Key.Version, Devices = g.Select(s => s.DeviceId).Distinct().Count() })
+                .OrderBy(g => g.Name).ThenBy(g => g.Version)
                 .Take(Math.Clamp(take ?? 500, 1, 2000))
                 .ToListAsync(ct);
-            return Results.Ok(summary);
+            return Results.Ok(groups.Select(g => new SoftwareSummaryDto(g.Name, g.Version, g.Devices)));
         });
 
         // Devices per program: filter by name (contains) and exact version.
@@ -106,9 +107,9 @@ internal static class InventoryEndpoints
         var matching = FilterByName(db.Software.AsNoTracking(), name).Select(s => s.DeviceId);
         return db.Hardware.AsNoTracking()
             .Where(h => !matching.Contains(h.DeviceId))
-            .Join(db.Devices.AsNoTracking(), h => h.DeviceId, d => d.Id,
-                (h, d) => new MissingSoftwareDto(d.Id, d.Name, d.OsName, h.CollectedAt))
-            .OrderBy(r => r.DeviceName);
+            .Join(db.Devices.AsNoTracking(), h => h.DeviceId, d => d.Id, (h, d) => new { Hardware = h, Device = d })
+            .OrderBy(x => x.Device.Name)
+            .Select(x => new MissingSoftwareDto(x.Device.Id, x.Device.Name, x.Device.OsName, x.Hardware.CollectedAt));
     }
 
     private static IQueryable<Domain.InstalledSoftware> FilterByName(IQueryable<Domain.InstalledSoftware> query, string? name)
@@ -132,8 +133,8 @@ internal static class InventoryEndpoints
         }
 
         return query
-            .Join(db.Devices.AsNoTracking(), s => s.DeviceId, d => d.Id,
-                (s, d) => new SoftwareRowDto(d.Id, d.Name, s.Name, s.Version, s.Publisher))
-            .OrderBy(r => r.Name).ThenBy(r => r.Version).ThenBy(r => r.DeviceName);
+            .Join(db.Devices.AsNoTracking(), s => s.DeviceId, d => d.Id, (s, d) => new { Software = s, Device = d })
+            .OrderBy(x => x.Software.Name).ThenBy(x => x.Software.Version).ThenBy(x => x.Device.Name)
+            .Select(x => new SoftwareRowDto(x.Device.Id, x.Device.Name, x.Software.Name, x.Software.Version, x.Software.Publisher));
     }
 }
