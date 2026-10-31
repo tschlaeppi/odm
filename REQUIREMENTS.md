@@ -182,11 +182,11 @@ Implemented as configuration (no UI): see operations.md. Not covered: per-user s
 - Configurable retention for finished jobs, update runs and audit entries; a background job removes old data
 - The documentation describes backup and restore of database, package storage, secrets key and agent CA; backup and restore scripts exist for Docker Compose with PostgreSQL
 
-### 3.14 Inventory and reporting *(partly implemented)*
+### 3.14 Inventory and reporting *(implemented)*
 
 - Hardware and software inventory per device (installed programs and versions, not only packages distributed by ODM) *(implemented)*
-- Reports and CSV export: devices per installed software and version *(implemented)*; devices without a required package *(open)*
-- Compliance view: devices that deviate from their assignments *(open)*
+- Reports and CSV export: devices per installed software and version *(implemented)*; devices without a given program *(implemented; by program name, not by ODM package)*
+- Compliance view: devices that deviate from their assignments *(implemented: failed, pending, running, wrong version, outstanding removal)*
 
 ### 3.15 Kubernetes
 

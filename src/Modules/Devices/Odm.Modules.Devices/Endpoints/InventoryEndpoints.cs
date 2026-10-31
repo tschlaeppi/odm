@@ -1,11 +1,11 @@
 using System.Globalization;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Odm.Modules.Devices.Application;
 using Odm.Modules.Devices.Infrastructure;
+using Odm.SharedKernel.Text;
 
 namespace Odm.Modules.Devices.Endpoints;
 
@@ -66,15 +66,49 @@ internal static class InventoryEndpoints
         {
             var rows = await Rows(db, name, version).Take(MaxCsvRows).ToListAsync(ct);
 
-            var csv = new StringBuilder("﻿Device,Software,Version,Publisher\r\n");
-            foreach (var row in rows)
+            var file = $"odm-software-{DateTime.UtcNow.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture)}.csv";
+            return Results.File(
+                CsvFormat.Build(
+                    ["Device", "Software", "Version", "Publisher"],
+                    rows.Select(r => new[] { r.DeviceName, r.Name, r.Version, r.Publisher })),
+                "text/csv; charset=utf-8", file);
+        });
+
+        // Devices that reported an inventory but have no program whose name contains the search term.
+        group.MapGet("/software/missing", async (DevicesDbContext db, string? name, int? take, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(name))
             {
-                csv.Append(string.Join(',', Cell(row.DeviceName), Cell(row.Name), Cell(row.Version), Cell(row.Publisher))).Append("\r\n");
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Program name is required."] });
             }
 
-            var file = $"odm-software-{DateTime.UtcNow.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture)}.csv";
-            return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv; charset=utf-8", file);
+            return Results.Ok(await Missing(db, name).Take(Math.Clamp(take ?? 500, 1, 2000)).ToListAsync(ct));
         });
+
+        group.MapGet("/software/missing.csv", async (DevicesDbContext db, string? name, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Program name is required."] });
+            }
+
+            var rows = await Missing(db, name).Take(MaxCsvRows).ToListAsync(ct);
+            var file = $"odm-missing-{DateTime.UtcNow.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture)}.csv";
+            return Results.File(
+                CsvFormat.Build(["Device", "Operating system", "Inventory collected"],
+                    rows.Select(r => new[] { r.DeviceName, r.OsName, r.CollectedAt.ToString("u", CultureInfo.InvariantCulture) })),
+                "text/csv; charset=utf-8", file);
+        });
+    }
+
+    private static IQueryable<MissingSoftwareDto> Missing(DevicesDbContext db, string name)
+    {
+        var matching = FilterByName(db.Software.AsNoTracking(), name).Select(s => s.DeviceId);
+        return db.Hardware.AsNoTracking()
+            .Where(h => !matching.Contains(h.DeviceId))
+            .Join(db.Devices.AsNoTracking(), h => h.DeviceId, d => d.Id,
+                (h, d) => new MissingSoftwareDto(d.Id, d.Name, d.OsName, h.CollectedAt))
+            .OrderBy(r => r.DeviceName);
     }
 
     private static IQueryable<Domain.InstalledSoftware> FilterByName(IQueryable<Domain.InstalledSoftware> query, string? name)
@@ -101,19 +135,5 @@ internal static class InventoryEndpoints
             .Join(db.Devices.AsNoTracking(), s => s.DeviceId, d => d.Id,
                 (s, d) => new SoftwareRowDto(d.Id, d.Name, s.Name, s.Version, s.Publisher))
             .OrderBy(r => r.Name).ThenBy(r => r.Version).ThenBy(r => r.DeviceName);
-    }
-
-    /// <summary>CSV cell; values starting with a formula character are neutralised (CSV injection in spreadsheets).</summary>
-    internal static string Cell(string? value)
-    {
-        var text = value ?? "";
-        if (text.Length > 0 && "=+-@\t\r".Contains(text[0]))
-        {
-            text = "'" + text;
-        }
-
-        return text.Contains(',') || text.Contains('"') || text.Contains('\n') || text.Contains('\r')
-            ? "\"" + text.Replace("\"", "\"\"") + "\""
-            : text;
     }
 }

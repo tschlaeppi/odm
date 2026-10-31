@@ -96,3 +96,11 @@ public sealed record InstallPsadtPayload(
 public sealed record InstallRepoPayload(
     string Manager, string Identifier, string? Version, string? Scope, string? Source, string? Remote,
     string? Channel, bool Classic, string? Arguments, int TimeoutMinutes, bool Uninstall = false);
+
+public sealed record ComplianceRowDto(
+    Guid DeviceId, string DeviceName, Guid PackageId, string PackageName, string Reason,
+    string? TargetVersion, string? InstalledVersion, int Attempts, DateTimeOffset UpdatedAt);
+
+/// <summary>Installations in total, how many deviate, deviations per reason and the (filtered) rows.</summary>
+public sealed record ComplianceDto(
+    int Total, int Deviating, IReadOnlyDictionary<string, int> ByReason, IReadOnlyList<ComplianceRowDto> Rows);

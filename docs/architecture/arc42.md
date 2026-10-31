@@ -284,7 +284,7 @@ flowchart LR
 | Forwarded client certificate not tested end to end | header formats and proxy settings (Caddy, ingress-nginx) are covered by unit tests only | integration test with Caddy and a real agent; verify the ingress-nginx settings on a cluster |
 | Backup / restore not tested end to end; retention deletes not tested on a real database | scripts and `ExecuteDelete` cleanups are only syntax / unit checked; a failing restore would be found too late | automated restore test on an empty environment (PostgreSQL and SQL Server), integration test for the cleanup jobs |
 | Notification channels not tested against a real SMTP server / webhook; no UI for notification settings or history | misconfiguration is found only through `POST /api/notifications/test` | integration test with a test SMTP server; settings and history page |
-| Inventory holds the latest state only; no compliance view, no "devices without a required package" report, no history | cannot answer "what changed" or list deviations from assignments | compliance view from assignments vs. inventory; optional history with retention |
+| Inventory holds the latest state only, no history; compliance is derived from ODM's own installation state, not compared against the reported inventory | cannot answer "what changed"; a program removed by hand is not noticed until the next package check | optional history with retention; reconcile installation state against inventory |
 | No load test | behaviour with thousands of agents (heartbeats, job delivery, reconciler, dashboard queries) is assumed, not measured | load test with simulated agents; derive sizing guidance and tune indexes / intervals |
 
 ## 12. Glossary

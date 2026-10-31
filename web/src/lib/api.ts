@@ -508,6 +508,32 @@ export interface SoftwareRowDto {
   publisher: string | null
 }
 
+export interface MissingSoftwareDto {
+  deviceId: string
+  deviceName: string
+  osName: string
+  collectedAt: string
+}
+
+export interface ComplianceRowDto {
+  deviceId: string
+  deviceName: string
+  packageId: string
+  packageName: string
+  reason: string
+  targetVersion: string | null
+  installedVersion: string | null
+  attempts: number
+  updatedAt: string
+}
+
+export interface ComplianceDto {
+  total: number
+  deviating: number
+  byReason: Record<string, number>
+  rows: ComplianceRowDto[]
+}
+
 export const api = {
   audit: (filter: { from?: string; actor?: string; outcome?: string; text?: string }) => {
     const query = new URLSearchParams({ take: '500' })
@@ -521,6 +547,8 @@ export const api = {
     if (version) query.set('version', version)
     return request<SoftwareRowDto[]>(`/inventory/software?${query}`)
   },
+  softwareMissing: (name: string) => request<MissingSoftwareDto[]>(`/inventory/software/missing?${new URLSearchParams({ name, take: '500' })}`),
+  compliance: (reason: string) => request<ComplianceDto>(`/software/compliance?${new URLSearchParams(reason ? { reason } : {})}`),
   device: (id: string) => request<DeviceDto>(`/devices/${id}`),
   deviceGroups: (id: string) => request<DeviceGroupRefDto[]>(`/devices/${id}/groups`),
   deviceInstallations: (id: string) => request<InstallationDto[]>(`/software/installations/by-device?deviceId=${id}`),
@@ -660,12 +688,12 @@ export const api = {
     request<PagedResult<DeviceDto>>('/groups/preview', { method: 'POST', body: JSON.stringify(input) }),
 }
 
-/** Downloads the installed-software report as CSV (the Authorization header rules out a plain link). */
-export async function downloadSoftwareCsv(name: string, version: string | null): Promise<void> {
-  const query = new URLSearchParams({ name })
-  if (version) query.set('version', version)
+/** Downloads a report as CSV (the Authorization header rules out a plain link). */
+export async function downloadCsv(path: string, params: Record<string, string | null | undefined>, fileName: string): Promise<void> {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) if (value) query.set(key, value)
   const token = tokenProvider()
-  const response = await fetch(`/api/inventory/software.csv?${query}`, {
+  const response = await fetch(`/api${path}?${query}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (response.status === 401 && token) unauthorizedHandler()
@@ -673,7 +701,10 @@ export async function downloadSoftwareCsv(name: string, version: string | null):
   const url = URL.createObjectURL(await response.blob())
   const link = document.createElement('a')
   link.href = url
-  link.download = 'installed-software.csv'
+  link.download = fileName
   link.click()
   URL.revokeObjectURL(url)
 }
+
+export const downloadSoftwareCsv = (name: string, version: string | null) =>
+  downloadCsv('/inventory/software.csv', { name, version }, 'installed-software.csv')

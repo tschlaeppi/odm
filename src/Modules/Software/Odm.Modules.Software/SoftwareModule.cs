@@ -62,6 +62,7 @@ public sealed class SoftwareModule : IModule
         AgentDownloadEndpoint.Map(endpoints);
         SecretEndpoints.Map(endpoints);
         StatsEndpoint.Map(endpoints);
+        ComplianceEndpoint.Map(endpoints);
     }
 
     public async Task InitializeAsync(IServiceProvider services, CancellationToken ct)

@@ -13,3 +13,6 @@ public sealed record SoftwareSummaryDto(string Name, string? Version, int Device
 
 /// <summary>One installation of a program on one device.</summary>
 public sealed record SoftwareRowDto(Guid DeviceId, string DeviceName, string Name, string? Version, string? Publisher);
+
+/// <summary>A device that reported its inventory but does not have a given program.</summary>
+public sealed record MissingSoftwareDto(Guid DeviceId, string DeviceName, string OsName, DateTimeOffset CollectedAt);
