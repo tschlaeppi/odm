@@ -2,6 +2,7 @@
   import DeviceDetail from './lib/DeviceDetail.svelte'
   import Devices from './lib/Devices.svelte'
   import Dashboard from './lib/Dashboard.svelte'
+  import Inventory from './lib/Inventory.svelte'
   import Audit from './lib/Audit.svelte'
   import Enrollment from './lib/Enrollment.svelte'
   import GroupEditor from './lib/GroupEditor.svelte'
@@ -48,7 +49,9 @@
           ? 'profiles'
           : router.path.startsWith('/os-updates')
             ? 'os-updates'
-            : router.path.startsWith('/enrollment')
+            : router.path.startsWith('/inventory')
+              ? 'inventory'
+              : router.path.startsWith('/enrollment')
               ? 'enrollment'
               : router.path.startsWith('/audit')
                 ? 'audit'
@@ -95,6 +98,10 @@
       <a href="#/profiles" title={collapsed ? i18n.t('nav.profiles') : undefined} class:active={section === 'profiles'}>
         <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="1.5" /><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h4" /></svg>
         <span class="label">{i18n.t('nav.profiles')}</span>
+      </a>
+      <a href="#/inventory" title={collapsed ? i18n.t('nav.inventory') : undefined} class:active={section === 'inventory'}>
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5" /><path d="M8 9h8M8 13h8M8 17h5" /></svg>
+        <span class="label">{i18n.t('nav.inventory')}</span>
       </a>
       <a href="#/os-updates" title={collapsed ? i18n.t('nav.osUpdates') : undefined} class:active={section === 'os-updates'}>
         <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7" /><path d="M20 4v5h-5" /></svg>
@@ -152,6 +159,8 @@
         {/key}
       {:else if section === 'profiles'}
         <Profiles />
+      {:else if section === 'inventory'}
+        <Inventory />
       {:else if section === 'os-updates'}
         <OsUpdates />
       {:else if section === 'enrollment' && auth.canEdit}

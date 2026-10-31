@@ -15,6 +15,7 @@ public sealed class AgentWorker(
     JobExecutor executor,
     AgentUpdater updater,
     ClientCertificateStore certificates,
+    Inventory.InventoryCollector inventory,
     ILogger<AgentWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -147,7 +148,36 @@ public sealed class AgentWorker(
             await updater.TryUpdateAsync(offer, ct);
         }
 
+        await SendInventoryIfDueAsync(state, ct);
+
         return TimeSpan.FromSeconds(Math.Max(10, response.NextHeartbeatSeconds));
+    }
+
+    private DateTimeOffset _nextInventory = DateTimeOffset.MinValue;
+
+    /// <summary>
+    /// Sends the inventory after start and then every <c>Agent:InventoryHours</c> hours. Only when the agent is idle;
+    /// a failure is logged and retried in an hour, it never affects the heartbeat.
+    /// </summary>
+    private async Task SendInventoryIfDueAsync(AgentState state, CancellationToken ct)
+    {
+        var hours = options.Value.InventoryHours;
+        if (hours <= 0 || DateTimeOffset.UtcNow < _nextInventory || executor.ActiveJobIds().Count > 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await server.SendInventoryAsync(state, await inventory.CollectAsync(ct), ct);
+            _nextInventory = DateTimeOffset.UtcNow.AddHours(hours);
+            logger.LogInformation("Inventory sent.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _nextInventory = DateTimeOffset.UtcNow.AddHours(1);
+            logger.LogWarning(ex, "The inventory could not be sent. Next attempt in one hour.");
+        }
     }
 
     private DateTimeOffset _lastCertificateAttempt = DateTimeOffset.MinValue;

@@ -63,6 +63,13 @@ The helper stops the service, replaces the program and restarts it. If the new a
 the old version is restored, and the failed version is not retried on that device (`update-failed` in the state directory).
 Only an idle agent updates. An agent that no longer starts must be repaired with the install command.
 
+## Inventory
+
+Every `Agent:InventoryHours` (default 24) and after start the agent reports hardware (manufacturer, model, CPU, memory, architecture,
+total and free system disk) and the installed programs (name, version, publisher). Windows reads the uninstall registry keys
+(64 and 32 bit), Linux asks dpkg or rpm. The server keeps the latest report per device; it is shown on the device page and
+in *Inventory*, where the device list for a program and version can be exported as CSV.
+
 ## Logging
 
 The agent writes a rotating log file `agent.log` (5 × 5 MB) to `C:\ProgramData\OpenDeviceManager\logs` or

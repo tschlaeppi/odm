@@ -8,12 +8,15 @@ using System.Security.Cryptography;
 using Odm.Modules.Agents.Infrastructure;
 using Odm.Modules.Agents.Application;
 using Odm.SharedKernel;
+using Odm.SharedKernel.Contracts;
 
 namespace Odm.Modules.Agents.Endpoints;
 
 /// <summary>Protocol between agent and server (versioned under /api/agent/v1).</summary>
 internal static class AgentEndpoints
 {
+    private const int MaxInventoryPrograms = 5000;
+
     private static readonly string[] OsFamilies = ["Windows", "Linux"];
 
     public static void Map(IEndpointRouteBuilder endpoints)
@@ -62,6 +65,29 @@ internal static class AgentEndpoints
 
                 var response = await service.HeartbeatAsync(agentId, deviceId, request, ct);
                 return Results.Ok(response with { CertificateRequested = CertificateWanted(http, principal, authority, certificates, options.Value.Mtls) });
+            })
+            .RequireAuthorization(Policies.Agent);
+
+        // Hardware and installed programs; replaces the device's previous snapshot. Limits protect the database.
+        group.MapPost("/inventory", async (
+                ClaimsPrincipal principal, InventoryRequest request, IDeviceInventory inventory, CancellationToken ct) =>
+            {
+                if (request.Software is { Count: > MaxInventoryPrograms })
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["software"] = ["Too many entries."] });
+                }
+
+                var deviceId = Guid.Parse(principal.FindFirstValue("device_id")!);
+                var hardware = request.Hardware is { } h
+                    ? new InventoryHardware(h.Manufacturer, h.Model, h.Cpu, h.CpuCores, h.MemoryBytes, h.Architecture, h.DiskTotalBytes, h.DiskFreeBytes)
+                    : new InventoryHardware(null, null, null, null, null, null, null, null);
+                var software = (request.Software ?? [])
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Name))
+                    .Select(p => new InventoryProgram(p.Name!, p.Version, p.Publisher))
+                    .ToList();
+
+                await inventory.ReplaceAsync(deviceId, hardware, software, ct);
+                return Results.NoContent();
             })
             .RequireAuthorization(Policies.Agent);
 

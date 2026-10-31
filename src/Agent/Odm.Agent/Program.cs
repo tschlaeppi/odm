@@ -60,6 +60,7 @@ builder.Services.AddSingleton<Odm.Agent.Update.AgentUpdater>();
 builder.Services.AddSingleton<AgentStateStore>();
 builder.Services.AddSingleton<ClientCertificateStore>();
 builder.Services.AddSingleton<SystemInfoProvider>();
+builder.Services.AddSingleton<Odm.Agent.Inventory.InventoryCollector>();
 builder.Services.AddSingleton<IJobHandler, PingJobHandler>();
 builder.Services.AddSingleton<IJobHandler, InstallPsadtJobHandler>();
 builder.Services.AddSingleton<IJobHandler, InstallRepoJobHandler>();

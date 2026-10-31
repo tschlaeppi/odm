@@ -22,6 +22,7 @@ public sealed class DevicesModule : IModule
     {
         services.AddScoped<IDeviceRegistry, DeviceRegistry>();
         services.AddScoped<IDeviceDirectory, DeviceDirectory>();
+        services.AddScoped<IDeviceInventory, DeviceInventoryStore>();
         services.AddScoped<IAlertSource, DeviceAlertSource>();
         services.AddDbContext<DevicesDbContext>((sp, o) =>
             o.UseOdmDatabase(sp.GetRequiredService<IOptions<DatabaseOptions>>().Value, DevicesDbContext.Schema));
@@ -31,6 +32,7 @@ public sealed class DevicesModule : IModule
     {
         DeviceEndpoints.Map(endpoints);
         GroupEndpoints.Map(endpoints);
+        InventoryEndpoints.Map(endpoints);
     }
 
     public async Task InitializeAsync(IServiceProvider services, CancellationToken ct)

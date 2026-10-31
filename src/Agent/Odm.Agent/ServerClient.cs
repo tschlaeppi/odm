@@ -102,6 +102,19 @@ public sealed class ServerClient(HttpClient http)
         return body?.Secrets ?? new Dictionary<string, string>();
     }
 
+    /// <summary>Sends hardware and installed programs; the server replaces the previous snapshot of this device.</summary>
+    public async Task SendInventoryAsync(AgentState state, Inventory.InventoryRequest request, CancellationToken ct)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/agent/v1/inventory")
+        {
+            Content = JsonContent.Create(request, options: Json)
+        };
+        Authorize(message, state);
+
+        using var response = await http.SendAsync(message, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     private static void Authorize(HttpRequestMessage message, AgentState state) =>
         message.Headers.Authorization = new AuthenticationHeaderValue("Agent", $"{state.AgentId}.{state.Secret}");
 }

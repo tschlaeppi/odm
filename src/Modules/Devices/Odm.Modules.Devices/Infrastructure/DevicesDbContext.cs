@@ -11,6 +11,8 @@ public sealed class DevicesDbContext(DbContextOptions<DevicesDbContext> options)
 
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceGroup> Groups => Set<DeviceGroup>();
+    public DbSet<DeviceHardware> Hardware => Set<DeviceHardware>();
+    public DbSet<InstalledSoftware> Software => Set<InstalledSoftware>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +31,27 @@ public sealed class DevicesDbContext(DbContextOptions<DevicesDbContext> options)
             b.Property(d => d.PrimaryUserOrgUnit).HasMaxLength(256);
             b.Property(d => d.CostCenter).HasMaxLength(64);
             b.Property(d => d.AgentVersion).HasMaxLength(32);
+        });
+
+        modelBuilder.Entity<DeviceHardware>(b =>
+        {
+            b.ToTable("device_hardware");
+            b.HasKey(h => h.DeviceId);
+            b.Property(h => h.Manufacturer).HasMaxLength(128);
+            b.Property(h => h.Model).HasMaxLength(128);
+            b.Property(h => h.Cpu).HasMaxLength(256);
+            b.Property(h => h.Architecture).HasMaxLength(32);
+        });
+
+        modelBuilder.Entity<InstalledSoftware>(b =>
+        {
+            b.ToTable("installed_software");
+            b.HasKey(s => s.Id);
+            b.HasIndex(s => s.DeviceId);
+            b.HasIndex(s => s.Name);
+            b.Property(s => s.Name).HasMaxLength(InstalledSoftware.MaxName).IsRequired();
+            b.Property(s => s.Version).HasMaxLength(128);
+            b.Property(s => s.Publisher).HasMaxLength(256);
         });
 
         modelBuilder.Entity<DeviceGroup>(b =>

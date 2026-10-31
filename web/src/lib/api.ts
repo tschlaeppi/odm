@@ -471,11 +471,55 @@ export interface DeviceGroupRefDto {
   description: string | null
 }
 
+export interface HardwareDto {
+  collectedAt: string
+  manufacturer: string | null
+  model: string | null
+  cpu: string | null
+  cpuCores: number | null
+  memoryBytes: number | null
+  architecture: string | null
+  diskTotalBytes: number | null
+  diskFreeBytes: number | null
+}
+
+export interface InstalledProgramDto {
+  name: string
+  version: string | null
+  publisher: string | null
+}
+
+export interface DeviceInventoryDto {
+  hardware: HardwareDto | null
+  software: InstalledProgramDto[]
+}
+
+export interface SoftwareSummaryDto {
+  name: string
+  version: string | null
+  devices: number
+}
+
+export interface SoftwareRowDto {
+  deviceId: string
+  deviceName: string
+  name: string
+  version: string | null
+  publisher: string | null
+}
+
 export const api = {
   audit: (filter: { from?: string; actor?: string; outcome?: string; text?: string }) => {
     const query = new URLSearchParams({ take: '500' })
     for (const [key, value] of Object.entries(filter)) if (value) query.set(key, value)
     return request<AuditPageDto>(`/audit?${query}`)
+  },
+  deviceInventory: (id: string) => request<DeviceInventoryDto>(`/inventory/devices/${id}`),
+  softwareSummary: (name: string) => request<SoftwareSummaryDto[]>(`/inventory/software/summary?${new URLSearchParams({ name, take: '500' })}`),
+  softwareRows: (name: string, version: string | null) => {
+    const query = new URLSearchParams({ name, take: '500' })
+    if (version) query.set('version', version)
+    return request<SoftwareRowDto[]>(`/inventory/software?${query}`)
   },
   device: (id: string) => request<DeviceDto>(`/devices/${id}`),
   deviceGroups: (id: string) => request<DeviceGroupRefDto[]>(`/devices/${id}/groups`),
@@ -614,4 +658,22 @@ export const api = {
   deleteGroup: (id: string) => request<void>(`/groups/${id}`, { method: 'DELETE' }),
   previewGroup: (input: GroupInput) =>
     request<PagedResult<DeviceDto>>('/groups/preview', { method: 'POST', body: JSON.stringify(input) }),
+}
+
+/** Downloads the installed-software report as CSV (the Authorization header rules out a plain link). */
+export async function downloadSoftwareCsv(name: string, version: string | null): Promise<void> {
+  const query = new URLSearchParams({ name })
+  if (version) query.set('version', version)
+  const token = tokenProvider()
+  const response = await fetch(`/api/inventory/software.csv?${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (response.status === 401 && token) unauthorizedHandler()
+  if (!response.ok) throw new ApiError(response.status)
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'installed-software.csv'
+  link.click()
+  URL.revokeObjectURL(url)
 }

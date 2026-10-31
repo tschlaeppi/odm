@@ -41,6 +41,14 @@ public enum AgentMtlsMode
     Required
 }
 
+public sealed record InventoryHardwareDto(
+    string? Manufacturer, string? Model, string? Cpu, int? CpuCores, long? MemoryBytes,
+    string? Architecture, long? DiskTotalBytes, long? DiskFreeBytes);
+
+public sealed record InventoryProgramDto(string? Name, string? Version, string? Publisher);
+
+public sealed record InventoryRequest(InventoryHardwareDto? Hardware, List<InventoryProgramDto>? Software);
+
 public sealed class AgentMtlsOptions
 {
     public AgentMtlsMode Mode { get; set; } = AgentMtlsMode.Off;

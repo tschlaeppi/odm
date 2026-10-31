@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { api, ApiError, type DeviceDto, type DeviceGroupRefDto, type InstallationDto } from './api'
+  import { api, ApiError, type DeviceDto, type DeviceGroupRefDto, type DeviceInventoryDto, type InstallationDto, type InstalledProgramDto } from './api'
   import { auth } from './auth.svelte'
   import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
   import MessageDialog from './MessageDialog.svelte'
+  import { formatSize } from './format'
   import { isOnline } from './status'
 
   let { id }: { id: string } = $props()
@@ -12,6 +13,7 @@
   let device = $state<DeviceDto | null>(null)
   let groups = $state<DeviceGroupRefDto[]>([])
   let installations = $state<InstallationDto[]>([])
+  let inventory = $state<DeviceInventoryDto | null>(null)
   let loading = $state(true)
   let notFound = $state(false)
   let failed = $state(false)
@@ -38,10 +40,16 @@
 
   async function load() {
     try {
-      const [d, g, i] = await Promise.all([api.device(id), api.deviceGroups(id), api.deviceInstallations(id)])
+      const [d, g, i, inv] = await Promise.all([
+        api.device(id),
+        api.deviceGroups(id),
+        api.deviceInstallations(id),
+        api.deviceInventory(id).catch(() => null),
+      ])
       device = d
       groups = g
       installations = i
+      inventory = inv
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) notFound = true
       else failed = true
@@ -70,6 +78,12 @@
     { key: 'attempts', label: i18n.t('dev.detail.attempts'), value: (i) => i.attempts, align: 'right', filter: 'none' },
     { key: 'updated', label: i18n.t('dev.detail.updated'), value: (i) => i.updatedAt, cell: updated, filter: 'none' },
     { key: 'message', label: i18n.t('dev.detail.message'), value: (i) => i.message, cell: message, muted: true },
+  ])
+
+  const programColumns = $derived<Column<InstalledProgramDto>[]>([
+    { key: 'name', label: i18n.t('inv.name'), value: (p) => p.name, strong: true },
+    { key: 'version', label: i18n.t('inv.version'), value: (p) => p.version },
+    { key: 'publisher', label: i18n.t('inv.publisher'), value: (p) => p.publisher, muted: true },
   ])
 </script>
 
@@ -138,6 +152,24 @@
       </div>
     {/if}
 
+    <h2>{i18n.t('inv.hardware')}</h2>
+    {#if inventory?.hardware}
+      {@const h = inventory.hardware}
+      <dl class="card facts">
+        <div><dt>{i18n.t('inv.model')}</dt><dd>{[h.manufacturer, h.model].filter(Boolean).join(' ') || '–'}</dd></div>
+        <div><dt>{i18n.t('inv.cpu')}</dt><dd>{h.cpu ?? '–'}{h.cpuCores ? ` (${h.cpuCores})` : ''}</dd></div>
+        <div><dt>{i18n.t('inv.arch')}</dt><dd>{h.architecture ?? '–'}</dd></div>
+        <div><dt>{i18n.t('inv.memory')}</dt><dd>{h.memoryBytes ? formatSize(h.memoryBytes) : '–'}</dd></div>
+        <div>
+          <dt>{i18n.t('inv.disk')}</dt>
+          <dd>{h.diskTotalBytes ? `${formatSize(h.diskFreeBytes ?? 0)} / ${formatSize(h.diskTotalBytes)}` : '–'}</dd>
+        </div>
+        <div><dt>{i18n.t('inv.collected')}</dt><dd>{i18n.formatDate(h.collectedAt)}</dd></div>
+      </dl>
+    {:else}
+      <p class="muted">{i18n.t('inv.none')}</p>
+    {/if}
+
     <h2>{i18n.t('dev.detail.groups')} ({groups.length})</h2>
     <DataTable rows={groups} columns={groupColumns} rowKey={(g) => g.id} emptyText={i18n.t('dev.detail.groupsEmpty')} pageSize={25} />
 
@@ -148,6 +180,15 @@
       rowKey={(i) => i.id}
       actions={softwareActions}
       emptyText={i18n.t('dev.detail.softwareEmpty')}
+      pageSize={25}
+    />
+
+    <h2>{i18n.t('inv.programs')} ({inventory?.software.length ?? 0})</h2>
+    <DataTable
+      rows={inventory?.software ?? []}
+      columns={programColumns}
+      rowKey={(p) => `${p.name}\u0000${p.version ?? ''}`}
+      emptyText={i18n.t('inv.none')}
       pageSize={25}
     />
   {/if}
