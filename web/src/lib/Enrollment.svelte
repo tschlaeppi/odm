@@ -4,7 +4,7 @@
   import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
 
-  const validities = [1, 24, 72, 168]
+  const validities = [1, 24, 72, 168, 720, 2160, 8760]
 
   let tokens = $state<TokenDto[]>([])
   let loading = $state(true)
@@ -12,6 +12,7 @@
 
   let label = $state('')
   let validHours = $state(24)
+  let maxUses = $state(1)
   let busy = $state(false)
   let errorKey = $state<MessageKey | null>(null)
 
@@ -61,7 +62,7 @@
     errorKey = null
     copied = false
     try {
-      created = await api.createRegistrationToken(label.trim(), validHours)
+      created = await api.createRegistrationToken(label.trim(), validHours, Math.max(1, Math.floor(maxUses) || 1))
       label = ''
       await load()
     } catch {
@@ -89,6 +90,7 @@
   const columns = $derived<Column<TokenDto>[]>([
     { key: 'label', label: i18n.t('groups.name'), value: (t) => t.label, strong: true },
     { key: 'status', label: i18n.t('enroll.status'), value: (t) => i18n.t(`enroll.status.${t.status}` as MessageKey), filter: 'select' },
+    { key: 'uses', label: i18n.t('enroll.uses'), value: (t) => `${t.useCount}/${t.maxUses}`, filter: 'none' },
     { key: 'created', label: i18n.t('enroll.createdAt'), value: (t) => t.createdAt, cell: createdCell, filter: 'none' },
     { key: 'expires', label: i18n.t('enroll.expires'), value: (t) => t.expiresAt, cell: expiresCell, filter: 'none' },
   ])
@@ -124,9 +126,16 @@
           {/each}
         </select>
       </label>
+      <label>
+        <span>{i18n.t('enroll.maxUses')}</span>
+        <input type="number" min="1" max="1000" step="1" bind:value={maxUses} required style="width: 7rem" />
+      </label>
       <button class="primary" type="submit" disabled={busy}>{i18n.t('enroll.create')}</button>
     </div>
 
+    {#if maxUses > 1}
+      <p class="muted small">{i18n.t('enroll.reusableHint')}</p>
+    {/if}
     <p class="muted small">{i18n.t('enroll.serverUrl')}: <code>{location.origin}</code></p>
 
     {#if errorKey}

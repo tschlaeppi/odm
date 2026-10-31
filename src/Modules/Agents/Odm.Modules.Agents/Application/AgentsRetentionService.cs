@@ -61,7 +61,7 @@ public sealed class AgentsRetentionService(
         {
             var cutoff = now.AddDays(-settings.TokenRetentionDays);
             tokens = await db.Tokens
-                .Where(t => t.ExpiresAt < cutoff || t.UsedAt < cutoff)
+                .Where(t => t.ExpiresAt < cutoff || (t.UsedAt < cutoff && (t.UseCount >= t.MaxUses || t.MaxUses == 1)))
                 .ExecuteDeleteAsync(ct);
         }
 

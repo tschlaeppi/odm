@@ -66,6 +66,8 @@ export interface TokenDto {
   expiresAt: string
   usedAt: string | null
   status: 'Active' | 'Used' | 'Expired'
+  maxUses: number
+  useCount: number
 }
 
 export interface TokenCreatedDto {
@@ -612,8 +614,8 @@ export const api = {
   softwareStats: () => request<SoftwareStatsDto>('/software/stats'),
 
   registrationTokens: () => request<TokenDto[]>('/agents/tokens'),
-  createRegistrationToken: (label: string, validHours: number) =>
-    request<TokenCreatedDto>('/agents/tokens', { method: 'POST', body: JSON.stringify({ label, validHours }) }),
+  createRegistrationToken: (label: string, validHours: number, maxUses: number) =>
+    request<TokenCreatedDto>('/agents/tokens', { method: 'POST', body: JSON.stringify({ label, validHours, maxUses }) }),
   deleteRegistrationToken: (id: string) => request<void>(`/agents/tokens/${id}`, { method: 'DELETE' }),
 
   resetDeviceCertificate: (deviceId: string) =>

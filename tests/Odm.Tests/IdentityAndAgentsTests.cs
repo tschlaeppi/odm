@@ -72,6 +72,28 @@ public class AgentSecretsTests
     }
 
     [Fact]
+    public void Registration_token_is_single_use_by_default_and_reusable_on_request()
+    {
+        var (single, _) = RegistrationToken.Issue("one", TimeSpan.FromHours(1));
+        var (many, _) = RegistrationToken.Issue("many", TimeSpan.FromHours(1), maxUses: 5);
+
+        Assert.Equal(1, single.MaxUses);
+        Assert.Equal(5, many.MaxUses);
+        Assert.False(many.IsUsedUp);
+        Assert.Equal("Active", many.StatusAt(DateTimeOffset.UtcNow));
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(-5, 1)]
+    [InlineData(5000, RegistrationToken.MaxUsesLimit)]
+    public void Registration_token_use_limit_is_clamped(int requested, int expected)
+    {
+        var (token, _) = RegistrationToken.Issue("x", TimeSpan.FromHours(1), requested);
+        Assert.Equal(expected, token.MaxUses);
+    }
+
+    [Fact]
     public void Agent_credential_secret_matches_its_hash()
     {
         var (credential, secret) = AgentCredential.Issue(Guid.NewGuid());

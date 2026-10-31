@@ -23,6 +23,7 @@ public sealed class AgentsDbContext(DbContextOptions<AgentsDbContext> options) :
             b.HasKey(t => t.Id);
             b.Property(t => t.Label).HasMaxLength(128).IsRequired();
             b.Property(t => t.TokenHash).HasMaxLength(32).IsRequired();
+            b.Property(t => t.MaxUses).HasDefaultValue(1);
             b.HasIndex(t => t.TokenHash).IsUnique();
         });
 

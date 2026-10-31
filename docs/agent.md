@@ -1,13 +1,13 @@
 # Agent
 
 The agent is a self-contained .NET worker service for Windows (x64, ARM64) and Linux (x64, ARM64; DEB and RPM based).
-It registers once with a one-time token, then polls the server (heartbeat), runs jobs and reports results. The server never
+It registers once with a registration token (single-use by default, optionally reusable), then polls the server (heartbeat), runs jobs and reports results. The server never
 connects to the agent.
 
 ## Installation
 
 ODM serves prebuilt agent packages and install scripts itself, so clients need no internet access. In **Enrollment**
-create a one-time token; the page then shows the ready-to-copy command:
+create a token; the page then shows the ready-to-copy command:
 
 ```powershell
 # Windows (PowerShell as administrator)
@@ -23,6 +23,16 @@ The scripts detect the architecture, verify the SHA-256 checksum of the download
 (`C:\Program Files\OpenDeviceManager` or `/opt/odm-agent`), set up a service (restart on failure) and start it.
 Running a script again updates the agent to the server's version; the registration is kept (no token needed then).
 The token is only briefly stored in `agent.json` in the protected state directory and removed by the agent after registration.
+
+### Automated provisioning (reusable token)
+
+For VMs that are set up by a script or image, create a token with several **uses** (up to 1000) and a longer validity (up to 1 year)
+and pass it to the install command in your provisioning (cloud-init, Ansible, a first-boot script). Each VM registers itself and
+appears in the device list; there is no approval step. The token is counted per registration and stops working when it is used
+up, expired or deleted. Recommendations: as few uses and as short a validity as the lab needs, one token per environment,
+delete it afterwards, and use HTTPS only. A leaked reusable token lets anyone who can reach the server register devices until then.
+The same install command works for every VM; a device that registers again (reinstall) replaces its earlier credentials.
+
 Without HTTPS scripts and agent refuse to connect (testing only: `-AllowInsecureHttp` / `--allow-insecure-http`).
 Direct downloads with checksums: `GET /api/agent/packages`, `GET /api/agent/download/{platform}`.
 

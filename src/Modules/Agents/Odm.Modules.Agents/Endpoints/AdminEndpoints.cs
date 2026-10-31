@@ -22,7 +22,8 @@ internal static class AdminEndpoints
             var now = DateTimeOffset.UtcNow;
             var rows = await db.Tokens.AsNoTracking().OrderByDescending(t => t.CreatedAt).Take(200).ToListAsync(ct);
             return Results.Ok(rows.Select(t =>
-                new TokenDto(t.Id, t.Label, t.CreatedAt, t.ExpiresAt, t.UsedAt, t.StatusAt(now))));
+                new TokenDto(
+                    t.Id, t.Label, t.CreatedAt, t.ExpiresAt, t.UsedAt, t.StatusAt(now), t.MaxUses, Math.Max(t.UseCount, t.IsUsedUp && t.MaxUses == 1 ? 1 : 0))));
         });
 
         tokens.MapPost("/", async (CreateTokenRequest request, AgentsDbContext db, CancellationToken ct) =>
@@ -36,8 +37,8 @@ internal static class AdminEndpoints
                 });
             }
 
-            var hours = Math.Clamp(request.ValidHours ?? 24, 1, 24 * 30);
-            var (token, plain) = RegistrationToken.Issue(label, TimeSpan.FromHours(hours));
+            var hours = Math.Clamp(request.ValidHours ?? 24, 1, 24 * 365);
+            var (token, plain) = RegistrationToken.Issue(label, TimeSpan.FromHours(hours), request.MaxUses ?? 1);
             db.Tokens.Add(token);
             await db.SaveChangesAsync(ct);
 

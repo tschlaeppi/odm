@@ -36,8 +36,10 @@ public sealed class AgentService(
 
         // "Consume" the token atomically: with concurrent requests exactly one wins.
         var claimed = await db.Tokens
-            .Where(t => t.TokenHash == hash && t.UsedAt == null && t.ExpiresAt > now)
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsedAt, now), ct);
+            .Where(t => t.TokenHash == hash && t.UseCount < t.MaxUses && (t.MaxUses > 1 || t.UsedAt == null) && t.ExpiresAt > now)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(t => t.UseCount, t => t.UseCount + 1)
+                .SetProperty(t => t.UsedAt, now), ct);
         if (claimed != 1)
         {
             return null;

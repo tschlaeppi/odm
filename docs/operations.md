@@ -245,7 +245,7 @@ Administrators see the server version in the top bar of the UI (tooltip: .NET ru
 
 - Passwords: PBKDF2-HMAC-SHA256 (600 000 iterations, random salt); sign-in is rate limited (10 attempts per minute and IP)
   with uniform response time for unknown users.
-- Agent registration: one-time token (stored as SHA-256 hash, limited validity, consumed atomically), rate limited.
+- Agent registration: token (single-use by default, optionally reusable for provisioning; stored as SHA-256 hash, limited validity, use counter consumed atomically), rate limited.
 - Agent operation: random 256-bit secret per agent, stored as a hash on the server; reinstalling revokes the old credentials.
 - The web UI keeps its token in `sessionStorage` (per tab).
 - Secrets are stored encrypted (AES-256-GCM) and never shown again; see [software-distribution.md](software-distribution.md#secrets).

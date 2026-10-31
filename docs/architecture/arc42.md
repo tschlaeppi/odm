@@ -82,7 +82,7 @@ flowchart LR
 | Goal | Approach |
 |---|---|
 | Maintainability | modular monolith; modules depend only on the shared kernel and talk through contracts |
-| Security | pull-based agents (no inbound ports), hashed one-time tokens and agent secrets, optional mTLS with own CA, AES-GCM for secrets |
+| Security | pull-based agents (no inbound ports), hashed registration tokens (single-use or counted reusable) and agent secrets, optional mTLS with own CA, AES-GCM for secrets |
 | Scalability of rollouts | declarative desired state plus a reconciliation loop instead of imperative per-device commands |
 | Operability | single image (UI, server, agent packages), configuration by environment, migrations applied on start |
 | Portability | provider switch for the database with provider-specific migration sets |
@@ -261,6 +261,7 @@ flowchart LR
 | ADR-34 | Inventory is pushed by the agent (`POST /api/agent/v1/inventory`, every `Agent:InventoryHours`, default 24) and stored per device in the Devices module (latest state only, replaced on each report); the Agents module forwards it through `IDeviceInventory` | pull model stays intact, no history to grow, modules stay decoupled | accepted |
 | ADR-35 | Scope *user* is executed by the agent in the context of the active console user (Windows: user token of the console session; Linux: `runuser` for the first seat session) instead of installing as SYSTEM/root | the user's own package state, no new component on the device; the agent already runs with the needed privileges | accepted |
 | ADR-36 | The project is licensed under Apache-2.0 | permissive, widely accepted by companies, explicit patent grant; keeps adoption easy; a later move to a stricter licence stays possible, a more permissive one would need all contributors' consent | accepted |
+| ADR-37 | Registration tokens can be reusable: a use limit (default 1, at most 1000) and a validity of up to one year; no approval step for new devices | lab and provisioning setups need automatic enrolment; the counter is incremented atomically and an exhausted, expired or deleted token stops working; devices registered with it appear immediately | accepted |
 
 ## 10. Quality requirements
 

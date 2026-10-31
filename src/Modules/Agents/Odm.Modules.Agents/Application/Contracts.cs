@@ -123,9 +123,11 @@ public sealed record HeartbeatResponse(
 
 // ---- Verwaltung (Web-UI) ----
 
-public sealed record CreateTokenRequest(string? Label, int? ValidHours);
+public sealed record CreateTokenRequest(string? Label, int? ValidHours, int? MaxUses = null);
 
-public sealed record TokenDto(Guid Id, string Label, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, DateTimeOffset? UsedAt, string Status);
+public sealed record TokenDto(
+    Guid Id, string Label, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, DateTimeOffset? UsedAt, string Status,
+    int MaxUses = 1, int UseCount = 0);
 
 /// <summary>One-time response on creation: the only one that contains the plaintext token.</summary>
 public sealed record TokenCreatedDto(Guid Id, string Label, string Token, DateTimeOffset ExpiresAt);
