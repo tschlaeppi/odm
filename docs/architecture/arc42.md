@@ -277,6 +277,9 @@ flowchart LR
 | Winget with *user* scope installs for SYSTEM | not for signed-in users | user-context execution |
 | No data migration between PostgreSQL and SQL Server | switching databases loses data | export / import tool if needed |
 | Pending EF model changes stop the server | forgotten migrations are noticed at start | documented in [development](../development.md) |
+| SQL Server provider not tested end to end | SQL Server migrations and queries are only covered by unit tests; provider differences may surface in operation | integration test run against SQL Server (Testcontainers or CI service) covering migrations, startup and the main flows |
+| Helm chart not tested on a cluster | template or configuration errors appear only at the first `helm install` | `helm lint` / `helm template` in CI, deployment test on a test cluster (e.g. kind) |
+| No load test | behaviour with thousands of agents (heartbeats, job delivery, reconciler, dashboard queries) is assumed, not measured | load test with simulated agents; derive sizing guidance and tune indexes / intervals |
 
 ## 12. Glossary
 
