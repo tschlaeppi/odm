@@ -7,7 +7,7 @@ set -euo pipefail
 name="${1:?Give the migration name, e.g. Initial}"
 shift
 modules=("$@")
-if [ ${#modules[@]} -eq 0 ]; then modules=(Identity Audit Devices Agents Software OsUpdates); fi
+if [ ${#modules[@]} -eq 0 ]; then modules=(Identity Audit Notifications Devices Agents Software OsUpdates); fi
 
 export ODM_DB_PROVIDER=SqlServer
 # No database is needed to create migrations; the connection string only serves the model.

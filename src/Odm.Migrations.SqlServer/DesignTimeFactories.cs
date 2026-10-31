@@ -4,6 +4,7 @@ using Odm.Modules.Agents.Infrastructure;
 using Odm.Modules.Audit.Infrastructure;
 using Odm.Modules.Devices.Infrastructure;
 using Odm.Modules.Identity.Infrastructure;
+using Odm.Modules.Notifications.Infrastructure;
 using Odm.Modules.OsUpdates.Infrastructure;
 using Odm.Modules.Software.Infrastructure;
 using Odm.SharedKernel.Persistence;
@@ -47,4 +48,10 @@ internal sealed class AuditFactory : IDesignTimeDbContextFactory<AuditDbContext>
 {
     public AuditDbContext CreateDbContext(string[] args) =>
         new(DatabaseExtensions.CreateDesignTimeOptions<AuditDbContext>(AuditDbContext.Schema, DatabaseProvider.SqlServer));
+}
+
+internal sealed class NotificationsFactory : IDesignTimeDbContextFactory<NotificationsDbContext>
+{
+    public NotificationsDbContext CreateDbContext(string[] args) =>
+        new(DatabaseExtensions.CreateDesignTimeOptions<NotificationsDbContext>(NotificationsDbContext.Schema, DatabaseProvider.SqlServer));
 }

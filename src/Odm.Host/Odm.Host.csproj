@@ -3,6 +3,7 @@
     <ProjectReference Include="..\Odm.SharedKernel\Odm.SharedKernel.csproj" />
     <ProjectReference Include="..\Modules\Identity\Odm.Modules.Identity\Odm.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\Audit\Odm.Modules.Audit\Odm.Modules.Audit.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Odm.Modules.Notifications\Odm.Modules.Notifications.csproj" />
     <ProjectReference Include="..\Modules\Devices\Odm.Modules.Devices\Odm.Modules.Devices.csproj" />
     <ProjectReference Include="..\Modules\Agents\Odm.Modules.Agents\Odm.Modules.Agents.csproj" />
     <ProjectReference Include="..\Modules\Software\Odm.Modules.Software\Odm.Modules.Software.csproj" />

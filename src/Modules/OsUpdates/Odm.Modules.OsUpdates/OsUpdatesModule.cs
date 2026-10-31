@@ -22,6 +22,7 @@ public sealed class OsUpdatesModule : IModule
             o.UseOdmDatabase(sp.GetRequiredService<IOptions<DatabaseOptions>>().Value, OsUpdatesDbContext.Schema));
 
         services.AddScoped<UpdateSchedulingService>();
+        services.AddScoped<IAlertSource, UpdateRunAlertSource>();
         services.AddScoped<IJobResultListener, UpdateRunListener>();
         services.AddHostedService<UpdateScheduler>();
         services.AddHostedService<UpdateRunRetentionService>();

@@ -49,6 +49,7 @@ public sealed class SoftwareModule : IModule
         services.AddSingleton<IPackageStorage, S3PackageStorage>();
         services.AddSingleton<DeploymentTrigger>();
         services.AddScoped<DeploymentService>();
+        services.AddScoped<IAlertSource, InstallationAlertSource>();
         services.AddScoped<IJobResultListener, DeploymentJobListener>();
         services.AddHostedService<DeploymentReconciler>();
     }

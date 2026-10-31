@@ -22,6 +22,7 @@ public sealed class DevicesModule : IModule
     {
         services.AddScoped<IDeviceRegistry, DeviceRegistry>();
         services.AddScoped<IDeviceDirectory, DeviceDirectory>();
+        services.AddScoped<IAlertSource, DeviceAlertSource>();
         services.AddDbContext<DevicesDbContext>((sp, o) =>
             o.UseOdmDatabase(sp.GetRequiredService<IOptions<DatabaseOptions>>().Value, DevicesDbContext.Schema));
     }

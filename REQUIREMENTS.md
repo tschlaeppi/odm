@@ -169,11 +169,13 @@ Acceptance criteria:
 
 Implemented, except: actions are shown route based (e.g. `DELETE software/packages/{id}`) and objects by path / ID rather than by name.
 
-### 3.12 Notifications *(proposed)*
+### 3.12 Notifications
 
 - Alerts by e-mail and/or webhook for: failed installations after the last retry, devices without heartbeat beyond a threshold, failed OS update runs,
   agent certificates about to expire
 - Recipients and events are configurable; alerts are sent once per event, not repeatedly
+
+Implemented as configuration (no UI): see operations.md. Not covered: per-user subscriptions, implicit-TLS SMTP.
 
 ### 3.13 Housekeeping and backup
 

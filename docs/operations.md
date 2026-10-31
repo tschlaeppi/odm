@@ -144,6 +144,35 @@ certificate to ODM in the `X-Client-Cert` header, see [agent.md](agent.md#mtls-b
 - **Agent client certificates (mTLS)** need either TLS terminated by ODM itself or a trusted proxy that forwards the
   certificate in a header. See [agent.md](agent.md#client-certificates-mtls).
 
+## Notifications
+
+ODM sends alerts by e-mail and/or webhook. Alerts are off by default; changes need a restart.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Notifications:Enabled` | `false` | master switch |
+| `Notifications:CheckMinutes` | 5 | how often new alerts are collected and sent |
+| `Notifications:Events` | all | list of `installation-failed`, `device-silent`, `update-run-failed`, `certificate-expiring` |
+| `Notifications:SilentHours` | 24 | a device without heartbeat for this long raises `device-silent` (devices that never reported are ignored) |
+| `Notifications:CertificateDays` | 7 | agent certificate expiring within this many days (agents renew themselves earlier, so this signals a problem) |
+| `Notifications:Email:Host` / `Port` / `Security` | / 587 / `StartTls` | SMTP server; `Security` is `StartTls` or `None` (local relay). Implicit TLS on port 465 is not supported |
+| `Notifications:Email:UserName` / `Password` | | SMTP credentials (optional) |
+| `Notifications:Email:From` / `To:0`, `To:1`, ... | | sender and recipients |
+| `Notifications:Webhook:Url` / `Authorization` | | JSON `POST { "text": "...", "alerts": [...] }`; optional `Authorization` header value |
+| `Notifications:MaxPerMessage` | 50 | alerts per message; the rest follows in the next round |
+| `Notifications:RetentionDays` | 180 | how long sent-alert records are kept |
+
+Rules: new alerts of one round go into **one** message per channel. An alert is sent **once**: the key contains the occurrence
+(installation and time of failure, last heartbeat, certificate expiry), so a new failure alerts again but the same one does
+not. If every channel fails, the alerts are retried in the next round. Alerts only look at the last 7 days of failures, so
+switching notifications on does not flood you with old history; silent devices and expiring certificates are reported as they are now.
+
+Administrators can inspect and test the setup: `GET /api/notifications` (channels, enabled events, the last 100 alerts, no secrets) and
+`POST /api/notifications/test` (sends a test message and reports the result per channel).
+
+Docker Compose example (`.env` values are passed through `environment:` entries such as `Notifications__Enabled`,
+`Notifications__Email__Host`, `Notifications__Email__To__0`).
+
 ## Housekeeping and retention
 
 A daily background job deletes old data. Finished work is removed only after its retention period; pending or running

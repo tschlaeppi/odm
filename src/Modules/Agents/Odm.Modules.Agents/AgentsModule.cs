@@ -36,6 +36,7 @@ public sealed class AgentsModule : IModule
         services.AddScoped<AgentService>();
         services.AddHostedService<AgentsRetentionService>();
         services.AddScoped<IJobQueue, JobQueue>();
+        services.AddScoped<IAlertSource, CertificateAlertSource>();
 
         // Additional authentication scheme for agents; the default (JWT for users) stays unchanged.
         services.AddAuthentication()

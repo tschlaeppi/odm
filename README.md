@@ -47,7 +47,7 @@ Details, S3 storage, migrations and tests: [docs/development.md](docs/developmen
 ```
 src/Odm.SharedKernel/   shared base: IModule, Entity, database configuration, cross-module contracts
 src/Odm.Host/           ASP.NET Core host: wires all modules, serves the web UI
-src/Modules/            Identity, Audit, Devices, Agents, Software, OsUpdates
+src/Modules/            Identity, Audit, Notifications, Devices, Agents, Software, OsUpdates
 src/Agent/Odm.Agent/    the agent (worker service)
 src/Odm.Migrations.SqlServer/   SQL Server migration set
 web/                    Svelte web UI

@@ -12,7 +12,7 @@ if (-not $env:ODM_DB) { $env:ODM_DB = 'Server=localhost;Database=odm_design;User
 dotnet restore src/Odm.Host
 if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
 
-if (-not $Modules) { $Modules = 'Identity', 'Audit', 'Devices', 'Agents', 'Software', 'OsUpdates' }
+if (-not $Modules) { $Modules = 'Identity', 'Audit', 'Notifications', 'Devices', 'Agents', 'Software', 'OsUpdates' }
 foreach ($module in $Modules) {
     Write-Host "== $module"
     dotnet ef migrations add $Name `

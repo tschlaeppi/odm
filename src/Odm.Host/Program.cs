@@ -5,6 +5,7 @@ using Odm.Modules.Audit;
 using Odm.Modules.Agents.Infrastructure;
 using Odm.Modules.Devices;
 using Odm.Modules.Identity;
+using Odm.Modules.Notifications;
 using Odm.Modules.OsUpdates;
 using Odm.Modules.Software;
 using Odm.SharedKernel;
@@ -21,6 +22,7 @@ IModule[] modules =
     new DevicesModule(),
     new AgentsModule(),
     new SoftwareModule(),
+    new NotificationsModule(),
     new OsUpdatesModule()
 ];
 

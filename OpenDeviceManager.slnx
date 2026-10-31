@@ -10,6 +10,7 @@
   <Folder Name="/src/Modules/">
     <Project Path="src/Modules/Identity/Odm.Modules.Identity/Odm.Modules.Identity.csproj" />
     <Project Path="src/Modules/Audit/Odm.Modules.Audit/Odm.Modules.Audit.csproj" />
+    <Project Path="src/Modules/Notifications/Odm.Modules.Notifications/Odm.Modules.Notifications.csproj" />
     <Project Path="src/Modules/Devices/Odm.Modules.Devices/Odm.Modules.Devices.csproj" />
     <Project Path="src/Modules/Agents/Odm.Modules.Agents/Odm.Modules.Agents.csproj" />
     <Project Path="src/Modules/Software/Odm.Modules.Software/Odm.Modules.Software.csproj" />

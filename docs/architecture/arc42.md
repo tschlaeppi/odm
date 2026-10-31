@@ -102,8 +102,8 @@ flowchart TB
         Software
         OsUpdates
         Kernel[Odm.SharedKernel<br/>IModule, Entity, contracts, DB setup]
-        Host --> Identity & Audit & Devices & Agents & Software & OsUpdates
-        Identity & Audit & Devices & Agents & Software & OsUpdates --> Kernel
+        Host --> Identity & Audit & Notifications & Devices & Agents & Software & OsUpdates
+        Identity & Audit & Notifications & Devices & Agents & Software & OsUpdates --> Kernel
     end
     Web[web/ Svelte UI] -.served by.-> Host
     AgentProc[Odm.Agent] -->|REST| Host
@@ -114,6 +114,7 @@ flowchart TB
 | `Odm.Host` | ASP.NET Core host; registers modules in order, maps their endpoints under `/api`, serves the UI |
 | `Odm.SharedKernel` | `IModule`, `Entity`, authorisation policies, database configuration, cross-module contracts (`IDeviceRegistry`, `IDeviceDirectory`, `IJobQueue`, `IJobResultListener`) |
 | `Identity` | local users (PBKDF2), JWT issuing, LDAP and OIDC authentication providers |
+| `Notifications` | e-mail / webhook alerts (failed installations, silent devices, failed update runs, expiring certificates), sent once per event |
 | `Devices` | device inventory, assignment (primary user, org unit, cost centre), dynamic groups, device statistics |
 | `Agents` | registration tokens, agent credentials and certificates, job queue, agent protocol, agent package and install script delivery, self-update planning |
 | `Software` | packages and versions (S3), assignments, profiles, rollouts, secrets, reconciliation, installation state, deployment statistics |
@@ -256,6 +257,7 @@ flowchart LR
 | ADR-30 | A trusted reverse proxy may forward the agent certificate in a header; trust is defined by `Proxy:TrustedProxies` and the original peer address, ODM still validates the certificate | mTLS works behind Caddy / ingress; ODM stays the only authority on validity; the proxy network must be isolated, otherwise the header could be forged | accepted |
 | ADR-31 | Audit log as its own module; state-changing API requests are recorded by a middleware, sign-ins explicitly; bodies are never stored | complete coverage without touching every endpoint, no secrets in the log; actions are route based rather than semantic | accepted |
 | ADR-32 | Retention is enforced by daily background jobs in the owning modules (agent jobs and tokens, update runs, audit entries) with per-module settings | no central scheduler needed; each module knows its data; deletes use set-based `ExecuteDelete`, not yet tested on a real database | accepted |
+| ADR-33 | Notifications are a module; other modules contribute alerts through `IAlertSource` (read only), alerts are de-duplicated by an occurrence key stored in the database and sent as one digest per round | modules stay decoupled, no flood and no repeats after restarts; configuration only (no UI), SMTP without implicit TLS | accepted |
 
 ## 10. Quality requirements
 
@@ -273,7 +275,6 @@ flowchart LR
 
 | Item | Impact | Mitigation / plan |
 |---|---|---|
-| No notifications | failures and silent devices are visible only in the dashboard | e-mail / webhook alerts |
 | Winget with *user* scope installs for SYSTEM | not for signed-in users | user-context execution |
 | No data migration between PostgreSQL and SQL Server | switching databases loses data | export / import tool if needed |
 | Pending EF model changes stop the server | forgotten migrations are noticed at start | documented in [development](../development.md) |
@@ -281,6 +282,7 @@ flowchart LR
 | Helm chart not tested on a cluster | template or configuration errors appear only at the first `helm install` | `helm lint` / `helm template` in CI, deployment test on a test cluster (e.g. kind) |
 | Forwarded client certificate not tested end to end | header formats and proxy settings (Caddy, ingress-nginx) are covered by unit tests only | integration test with Caddy and a real agent; verify the ingress-nginx settings on a cluster |
 | Backup / restore not tested end to end; retention deletes not tested on a real database | scripts and `ExecuteDelete` cleanups are only syntax / unit checked; a failing restore would be found too late | automated restore test on an empty environment (PostgreSQL and SQL Server), integration test for the cleanup jobs |
+| Notification channels not tested against a real SMTP server / webhook; no UI for notification settings or history | misconfiguration is found only through `POST /api/notifications/test` | integration test with a test SMTP server; settings and history page |
 | No load test | behaviour with thousands of agents (heartbeats, job delivery, reconciler, dashboard queries) is assumed, not measured | load test with simulated agents; derive sizing guidance and tune indexes / intervals |
 
 ## 12. Glossary
