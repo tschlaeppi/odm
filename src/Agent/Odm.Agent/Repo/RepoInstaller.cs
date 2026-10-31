@@ -29,9 +29,27 @@ public static class RepoInstaller
     // Winget: 0x8A150014 = no installed package found (already removed).
     private static readonly HashSet<int> WingetRemoveOk = [0, unchecked((int)0x8A150014), 1641, 3010];
 
-    public static Task<RepoResult> RunAsync(
-        InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct) =>
-        p.Uninstall ? UninstallAsync(p, timeout, ct) : InstallOrUpdateAsync(p, extra, timeout, ct);
+    public static async Task<RepoResult> RunAsync(
+        InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct)
+    {
+        try
+        {
+            return await (p.Uninstall ? UninstallAsync(p, timeout, ct) : InstallOrUpdateAsync(p, extra, timeout, ct));
+        }
+        catch (UserContextException ex)
+        {
+            return Fail(ex.Message);
+        }
+    }
+
+    /// <summary>Scope "user" (Winget, Flatpak) runs in the context of the signed-in user instead of the agent's.</summary>
+    public static bool RunsAsUser(InstallRepoPayload p) => p.Scope == "user" && p.Manager is "Winget" or "Flatpak";
+
+    private static Task<ProcessRunner.Result> Exec(
+        InstallRepoPayload p, string file, IEnumerable<string> arguments, TimeSpan timeout, CancellationToken ct) =>
+        RunsAsUser(p)
+            ? UserProcessRunner.RunAsync(p.Manager == "Winget" ? "winget" : file, arguments, timeout, ct)
+            : ProcessRunner.RunAsync(file, arguments, timeout, ct);
 
     private static Task<RepoResult> InstallOrUpdateAsync(
         InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct) => p.Manager switch
@@ -142,10 +160,10 @@ public static class RepoInstaller
         {
             case "Winget":
             {
-                var exe = ToolLocator.Winget();
+                var exe = RunsAsUser(p) ? "winget" : ToolLocator.Winget();
                 return exe is null
                     ? Fail("winget was not found (App Installer is missing or not available to the SYSTEM account).")
-                    : Summarize(await ProcessRunner.RunAsync(exe, WingetUninstallArguments(p), timeout, ct), WingetRemoveOk);
+                    : Summarize(await Exec(p, exe, WingetUninstallArguments(p), timeout, ct), WingetRemoveOk);
             }
             case "Chocolatey":
             {
@@ -173,7 +191,7 @@ public static class RepoInstaller
                 var flatpak = ToolLocator.Linux("flatpak");
                 return flatpak is null
                     ? Fail("Flatpak is not installed on this device.")
-                    : Summarize(await ProcessRunner.RunAsync(flatpak, FlatpakUninstallArguments(p), timeout, ct), [0]);
+                    : Summarize(await Exec(p, flatpak, FlatpakUninstallArguments(p), timeout, ct), [0]);
             }
             case "Snap":
             {
@@ -193,10 +211,10 @@ public static class RepoInstaller
 
     private static async Task<RepoResult> WingetAsync(InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct)
     {
-        var exe = ToolLocator.Winget();
+        var exe = RunsAsUser(p) ? "winget" : ToolLocator.Winget();
         return exe is null
             ? Fail("winget was not found (App Installer is missing or not available to the SYSTEM account).")
-            : Summarize(await ProcessRunner.RunAsync(exe, WingetArguments(p, extra), timeout, ct), WingetOk);
+            : Summarize(await Exec(p, exe, WingetArguments(p, extra), timeout, ct), WingetOk);
     }
 
     private static async Task<RepoResult> ChocolateyAsync(InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct)
@@ -246,22 +264,22 @@ public static class RepoInstaller
             return Fail("Flatpak is not installed on this device.");
         }
 
-        var installed = (await ProcessRunner.RunAsync(
-            flatpak, ["info", ScopeFlag(p), p.Identifier], TimeSpan.FromMinutes(2), ct)).ExitCode == 0;
+        var installed = (await Exec(
+            p, flatpak, ["info", ScopeFlag(p), p.Identifier], TimeSpan.FromMinutes(2), ct)).ExitCode == 0;
 
         if (installed)
         {
-            return Summarize(await ProcessRunner.RunAsync(flatpak, FlatpakUpdateArguments(p, extra), timeout, ct), [0]);
+            return Summarize(await Exec(p, flatpak, FlatpakUpdateArguments(p, extra), timeout, ct), [0]);
         }
 
-        var install = await ProcessRunner.RunAsync(flatpak, FlatpakInstallArguments(p, extra), timeout, ct);
+        var install = await Exec(p, flatpak, FlatpakInstallArguments(p, extra), timeout, ct);
         if (install.ExitCode != 0 || p.Version is null)
         {
             return Summarize(install, [0]);
         }
 
         // Pinned version (commit): bring to that state after installation
-        return Summarize(await ProcessRunner.RunAsync(flatpak, FlatpakUpdateArguments(p, []), timeout, ct), [0]);
+        return Summarize(await Exec(p, flatpak, FlatpakUpdateArguments(p, []), timeout, ct), [0]);
     }
 
     private static async Task<RepoResult> SnapAsync(InstallRepoPayload p, IReadOnlyList<string> extra, TimeSpan timeout, CancellationToken ct)

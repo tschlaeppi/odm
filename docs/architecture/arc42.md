@@ -259,6 +259,7 @@ flowchart LR
 | ADR-32 | Retention is enforced by daily background jobs in the owning modules (agent jobs and tokens, update runs, audit entries) with per-module settings | no central scheduler needed; each module knows its data; deletes use set-based `ExecuteDelete`, not yet tested on a real database | accepted |
 | ADR-33 | Notifications are a module; other modules contribute alerts through `IAlertSource` (read only), alerts are de-duplicated by an occurrence key stored in the database and sent as one digest per round | modules stay decoupled, no flood and no repeats after restarts; configuration only (no UI), SMTP without implicit TLS | accepted |
 | ADR-34 | Inventory is pushed by the agent (`POST /api/agent/v1/inventory`, every `Agent:InventoryHours`, default 24) and stored per device in the Devices module (latest state only, replaced on each report); the Agents module forwards it through `IDeviceInventory` | pull model stays intact, no history to grow, modules stay decoupled | accepted |
+| ADR-35 | Scope *user* is executed by the agent in the context of the active console user (Windows: user token of the console session; Linux: `runuser` for the first seat session) instead of installing as SYSTEM/root | the user's own package state, no new component on the device; the agent already runs with the needed privileges | accepted |
 
 ## 10. Quality requirements
 
@@ -276,7 +277,7 @@ flowchart LR
 
 | Item | Impact | Mitigation / plan |
 |---|---|---|
-| Winget with *user* scope installs for SYSTEM | not for signed-in users | user-context execution |
+| User-context execution (Winget/Flatpak scope *user*) not tested on real devices | `WTSQueryUserToken` / `CreateProcessAsUser` and `runuser` paths are only covered by unit tests for the pure parts; only the active console user is served, per-user installs are not in the inventory | test on Windows 11 and a Linux desktop; per-user inventory and targeting a specific user if needed |
 | No data migration between PostgreSQL and SQL Server | switching databases loses data | export / import tool if needed |
 | Pending EF model changes stop the server | forgotten migrations are noticed at start | documented in [development](../development.md) |
 | SQL Server provider not tested end to end | SQL Server migrations and queries are only covered by unit tests; provider differences may surface in operation | integration test run against SQL Server (Testcontainers or CI service) covering migrations, startup and the main flows |

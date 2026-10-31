@@ -39,10 +39,17 @@ Winget, Chocolatey, APT, RPM, Flatpak and Snap. ODM stores only the configuratio
 - **Additional arguments** are appended to the command (split like a shell would, but without a shell). For PSADT they are passed to the script,
   which must declare the parameters. They apply to installation only, not to uninstallation.
 
+**Scope = user (Winget, Flatpak)** installs for the signed-in user, not for the agent's account:
+
+- Windows: the agent starts winget in the session of the user signed in at the console (the user's own App Installer, no elevation).
+- Linux: the agent runs Flatpak as the user of the first graphical or console session (`runuser`, `--user` installation).
+- Nobody signed in (or only remote sessions): the job fails with a clear message and is retried by the reconciler; it succeeds
+  once someone is signed in. With several users on one device only the active console user is served.
+- Programs installed for a single user do not appear in the inventory (machine-wide programs only).
+
 Known limits:
 
 - Winget belongs to the App Installer (MSIX) and is not available to the SYSTEM account everywhere; the agent searches `WindowsApps`.
-  *Scope = user* installs for the SYSTEM account, not for signed-in users.
 - A fixed version **older** than the installed one is only applied by Chocolatey and APT (downgrade allowed). For Winget, Snap and
   Flatpak uninstall first.
 

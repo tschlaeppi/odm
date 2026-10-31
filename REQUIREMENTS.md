@@ -194,9 +194,9 @@ Implemented as configuration (no UI): see operations.md. Not covered: per-user s
 - Health checks (startup, readiness, liveness) *(implemented)*
 - Several replicas *(open: background services and the agent CA are single-instance for now, see ADR-29)*
 
-### 3.16 Operation as a user *(proposed)*
+### 3.16 Operation as a user *(implemented)*
 
-- Package installation in the context of the signed-in user (e.g. Winget user scope), in addition to the system context
+- Package installation in the context of the signed-in user (Winget and Flatpak scope *user*), in addition to the system context *(implemented for the active console user; other package kinds and per-user targeting are open)*
 
 ## 4. Non-functional requirements
 
