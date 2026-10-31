@@ -242,8 +242,12 @@
     grid-template-columns: minmax(6rem, 10rem) 1fr 3rem;
     align-items: center;
     gap: 0.6rem;
-    padding: 0.2rem 0;
+    padding: 0.5rem 0;
     font-size: 0.85rem;
+  }
+  /* Hairlines turn the bars into readable rows instead of a stripe pattern. */
+  .bar-row + .bar-row {
+    border-top: 1px solid var(--border);
   }
   .bar-row.package {
     grid-template-columns: minmax(8rem, 14rem) 1fr minmax(4rem, 8rem);
@@ -258,31 +262,32 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
+  /* Thin bars, barely visible track and softened colours: less contrast means less flicker. */
   .bar,
   .stack {
     display: flex;
-    height: 0.7rem;
-    background: var(--hover);
-    border-radius: 0.2rem;
+    height: 0.45rem;
+    background: color-mix(in srgb, var(--muted) 10%, transparent);
+    border-radius: 999px;
     overflow: hidden;
   }
   .stack:not(.slim) {
-    height: 1.1rem;
+    height: 0.8rem;
   }
   .fill {
-    background: var(--accent);
+    background: color-mix(in srgb, var(--accent) 55%, var(--surface));
   }
   .seg.ok,
   .dot.ok {
-    background: var(--ok);
+    background: color-mix(in srgb, var(--ok) 65%, var(--surface));
   }
   .seg.run,
   .dot.run {
-    background: var(--accent);
+    background: color-mix(in srgb, var(--accent) 45%, var(--surface));
   }
   .seg.err,
   .dot.err {
-    background: var(--danger);
+    background: color-mix(in srgb, var(--danger) 85%, var(--surface));
   }
   .legend {
     display: flex;
