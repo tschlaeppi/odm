@@ -50,15 +50,15 @@ public sealed class LdapOptions
     public string? Problem()
     {
         if (string.IsNullOrWhiteSpace(Host)) return "Host fehlt.";
-        if (Port is < 1 or > 65535) return "Port ist ungültig.";
+        if (Port is < 1 or > 65535) return "Port is invalid.";
         if (string.IsNullOrWhiteSpace(BaseDn)) return "BaseDn fehlt.";
-        if (!UserFilter.Contains("{0}", StringComparison.Ordinal)) return "UserFilter muss {0} enthalten.";
-        if (TimeoutSeconds is < 1 or > 120) return "TimeoutSeconds muss zwischen 1 und 120 liegen.";
+        if (!UserFilter.Contains("{0}", StringComparison.Ordinal)) return "UserFilter must contain {0}.";
+        if (TimeoutSeconds is < 1 or > 120) return "TimeoutSeconds must be between 1 and 120.";
         if (!string.IsNullOrEmpty(BindDn) && string.IsNullOrEmpty(BindPassword)) return "BindPassword fehlt.";
         if (string.IsNullOrWhiteSpace(AdminGroup) && string.IsNullOrWhiteSpace(OperatorGroup) &&
             string.IsNullOrWhiteSpace(ReadOnlyGroup))
         {
-            return "Mindestens eine Gruppe (AdminGroup, OperatorGroup oder ReadOnlyGroup) ist nötig.";
+            return "At least one group (AdminGroup, OperatorGroup or ReadOnlyGroup) is required.";
         }
 
         return null;

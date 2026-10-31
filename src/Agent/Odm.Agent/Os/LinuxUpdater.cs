@@ -30,7 +30,7 @@ public sealed class LinuxUpdater : IOsUpdater
             return await RpmAsync(rpm, payload.Mode == "SecurityOnly", timeout, ct);
         }
 
-        return new OsUpdateResult(false, 0, 0, [], false, "Kein unterstützter Paketmanager gefunden (apt, dnf, yum).");
+        return new OsUpdateResult(false, 0, 0, [], false, "No supported package manager found (apt, dnf, yum).");
     }
 
     // ---- DEB ----
@@ -40,7 +40,7 @@ public sealed class LinuxUpdater : IOsUpdater
         var update = await ProcessRunner.RunAsync("/usr/bin/apt-get", ["update", "-q"], timeout, ct, AptEnvironment);
         if (update.ExitCode != 0)
         {
-            return Fail($"apt-get update fehlgeschlagen (Exit-Code {update.ExitCode}). {Tail(update.Error)}");
+            return Fail($"apt-get update failed (exit code {update.ExitCode}). {Tail(update.Error)}");
         }
 
         // Simulation: welche Pakete würden aktualisiert? ("Inst name [alt] (neu Quelle ...)")
@@ -78,7 +78,7 @@ public sealed class LinuxUpdater : IOsUpdater
         if (upgrade.TimedOut || upgrade.ExitCode != 0)
         {
             return new OsUpdateResult(false, 0, packages.Count, Titles(packages), AptRebootRequired(),
-                upgrade.TimedOut ? "Zeitüberschreitung." : $"apt-get fehlgeschlagen (Exit-Code {upgrade.ExitCode}). {Tail(upgrade.Error)}");
+                upgrade.TimedOut ? "Timed out." : $"apt-get failed (exit code {upgrade.ExitCode}). {Tail(upgrade.Error)}");
         }
 
         return new OsUpdateResult(true, packages.Count, 0, Titles(packages), AptRebootRequired(), null);
@@ -102,7 +102,7 @@ public sealed class LinuxUpdater : IOsUpdater
 
         if (check.ExitCode != 100)
         {
-            return Fail($"{Path.GetFileName(manager)} check-update fehlgeschlagen (Exit-Code {check.ExitCode}). {Tail(check.Error)}");
+            return Fail($"{Path.GetFileName(manager)} check-update failed (exit code {check.ExitCode}). {Tail(check.Error)}");
         }
 
         var packages = check.Output
@@ -119,7 +119,7 @@ public sealed class LinuxUpdater : IOsUpdater
         if (upgrade.TimedOut || upgrade.ExitCode != 0)
         {
             return new OsUpdateResult(false, 0, packages.Count, Titles(packages), await RpmRebootRequiredAsync(ct),
-                upgrade.TimedOut ? "Zeitüberschreitung." : $"{Path.GetFileName(manager)} fehlgeschlagen (Exit-Code {upgrade.ExitCode}). {Tail(upgrade.Error)}");
+                upgrade.TimedOut ? "Timed out." : $"{Path.GetFileName(manager)} failed (exit code {upgrade.ExitCode}). {Tail(upgrade.Error)}");
         }
 
         return new OsUpdateResult(true, packages.Count, 0, Titles(packages), await RpmRebootRequiredAsync(ct), null);

@@ -41,12 +41,12 @@ internal static class ProfileEndpoints
                 var name = request.Name?.Trim() ?? "";
                 if (name.Length is 0 or > 128)
                 {
-                    return Invalid("name", "Name ist erforderlich (höchstens 128 Zeichen).");
+                    return Invalid("name", "Name is required (at most 128 characters).");
                 }
 
                 if (request.Description is { Length: > 1024 })
                 {
-                    return Invalid("description", "Beschreibung ist zu lang.");
+                    return Invalid("description", "Description is too long.");
                 }
 
                 if (await db.Profiles.AnyAsync(p => p.Name == name, ct))
@@ -80,7 +80,7 @@ internal static class ProfileEndpoints
 
                 if (request.Description is { Length: > 1024 })
                 {
-                    return Invalid("description", "Beschreibung ist zu lang.");
+                    return Invalid("description", "Description is too long.");
                 }
 
                 var built = await BuildItemsAsync(db, id, request.Items, ct);
@@ -237,7 +237,7 @@ internal static class ProfileEndpoints
 
         if (requested.Count > MaxItems)
         {
-            return ([], $"Ein Profil darf höchstens {MaxItems} Pakete enthalten.");
+            return ([], $"A profile may contain at most {MaxItems} packages.");
         }
 
         if (requested.Select(r => r.PackageId).Distinct().Count() != requested.Count)
@@ -253,21 +253,21 @@ internal static class ProfileEndpoints
         {
             if (!packages.TryGetValue(request.PackageId, out var package))
             {
-                return ([], "Ein Paket wurde nicht gefunden.");
+                return ([], "A package was not found.");
             }
 
             var policy = VersionPolicy.Latest;
             if (!package.Kind.IsRepo() && !string.IsNullOrWhiteSpace(request.VersionPolicy) &&
                 (!Enum.TryParse(request.VersionPolicy, true, out policy) || !Enum.IsDefined(policy)))
             {
-                return ([], "Ungültige Versionsregel.");
+                return ([], "Invalid version policy.");
             }
 
             if (policy == VersionPolicy.Pinned &&
                 (request.PinnedVersionId is null ||
                  !await db.Versions.AnyAsync(v => v.Id == request.PinnedVersionId && v.PackageId == package.Id, ct)))
             {
-                return ([], $"Für '{package.Name}' fehlt eine gültige feste Version.");
+                return ([], $"A valid pinned version is missing for '{package.Name}'.");
             }
 
             items.Add(ProfileItem.Create(profileId, package.Id, position, policy, request.PinnedVersionId));

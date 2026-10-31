@@ -36,7 +36,7 @@ builder.Services.AddSystemd();
 
 builder.Services.AddOptions<AgentOptions>()
     .Bind(builder.Configuration.GetSection(AgentOptions.SectionName))
-    .Validate(o => o.Validate() is null, "Ungültige Agent-Konfiguration (ServerUrl).")
+    .Validate(o => o.Validate() is null, "Invalid agent configuration (ServerUrl).")
     .ValidateOnStart();
 
 builder.Services.AddSingleton(sp =>

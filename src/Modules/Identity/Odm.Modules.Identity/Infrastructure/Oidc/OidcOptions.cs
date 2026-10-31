@@ -33,12 +33,12 @@ public sealed partial class OidcOptions
 
         if (!IsAllowedUrl(PublicBaseUrl) || new Uri(PublicBaseUrl).AbsolutePath.Trim('/').Length > 0)
         {
-            return "PublicBaseUrl muss eine https-Adresse ohne Pfad sein (http nur für localhost).";
+            return "PublicBaseUrl must be an https address without a path (http only for localhost).";
         }
 
         if (Providers.Select(p => p.Id).Distinct(StringComparer.Ordinal).Count() != Providers.Count)
         {
-            return "Anbieter-IDs müssen eindeutig sein.";
+            return "Provider IDs must be unique.";
         }
 
         foreach (var p in Providers)
@@ -108,14 +108,14 @@ public sealed class OidcProviderOptions
 
     public string? Problem()
     {
-        if (!OidcOptions.IsValidId(Id)) return "Id darf nur a–z, 0–9 und Bindestrich enthalten (höchstens 32 Zeichen).";
-        if (!OidcOptions.IsAllowedUrl(Authority)) return "Authority muss eine https-Adresse sein (http nur für localhost).";
+        if (!OidcOptions.IsValidId(Id)) return "Id may only contain a-z, 0-9 and hyphen (at most 32 characters).";
+        if (!OidcOptions.IsAllowedUrl(Authority)) return "Authority must be an https address (http only for localhost).";
         if (string.IsNullOrWhiteSpace(ClientId)) return "ClientId fehlt.";
         if (string.IsNullOrWhiteSpace(GroupsClaim)) return "GroupsClaim fehlt.";
         if (string.IsNullOrWhiteSpace(UserNameClaim)) return "UserNameClaim fehlt.";
         if (AdminValues.Count + OperatorValues.Count + ReadOnlyValues.Count == 0)
         {
-            return "Mindestens ein Wert in AdminValues, OperatorValues oder ReadOnlyValues ist nötig.";
+            return "At least one value in AdminValues, OperatorValues or ReadOnlyValues is required.";
         }
 
         return null;

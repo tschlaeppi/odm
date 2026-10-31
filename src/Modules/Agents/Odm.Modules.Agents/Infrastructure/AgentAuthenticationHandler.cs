@@ -52,7 +52,7 @@ public sealed class AgentAuthenticationHandler(
         var separator = parameter.IndexOf('.');
         if (separator <= 0 || !Guid.TryParse(parameter[..separator], out var agentId))
         {
-            return AuthenticateResult.Fail("Ungültige Agent-Zugangsdaten.");
+            return AuthenticateResult.Fail("Invalid agent credentials.");
         }
 
         var secret = parameter[(separator + 1)..];
@@ -62,7 +62,7 @@ public sealed class AgentAuthenticationHandler(
 
         if (credential is null || !CryptographicOperations.FixedTimeEquals(Secrets.Hash(secret), credential.SecretHash))
         {
-            return AuthenticateResult.Fail("Ungültige Agent-Zugangsdaten.");
+            return AuthenticateResult.Fail("Invalid agent credentials.");
         }
 
         var claims = new List<Claim>
@@ -82,7 +82,7 @@ public sealed class AgentAuthenticationHandler(
             // lediglich Heartbeat und Zertifikatsanforderung aufrufen (kein Zugriff auf Aufträge, Pakete, Secrets).
             if (authority.Mode == AgentMtlsMode.Required && !IsBootstrapPath(Request.Path))
             {
-                return AuthenticateResult.Fail("Client-Zertifikat erforderlich.");
+                return AuthenticateResult.Fail("Client certificate required.");
             }
 
             claims.Add(new Claim(MtlsClaim, MtlsUnenrolled));
@@ -94,7 +94,7 @@ public sealed class AgentAuthenticationHandler(
             if (certificate is null ||
                 !authority.IsValid(certificate, credential.Id, credential.CertThumbprint, DateTimeOffset.UtcNow))
             {
-                return AuthenticateResult.Fail("Gültiges Client-Zertifikat erforderlich.");
+                return AuthenticateResult.Fail("Valid client certificate required.");
             }
 
             claims.Add(new Claim(MtlsClaim, MtlsVerified));

@@ -26,7 +26,7 @@ public sealed class SystemInfoProvider
             return new SystemInfo(Environment.MachineName, "Linux", name, version);
         }
 
-        throw new PlatformNotSupportedException("Nur Windows und Linux werden unterstützt.");
+        throw new PlatformNotSupportedException("Only Windows and Linux are supported.");
     }
 
     [SupportedOSPlatform("windows")]

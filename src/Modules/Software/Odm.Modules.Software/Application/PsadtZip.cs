@@ -21,11 +21,11 @@ public static class PsadtZip
 
             return found
                 ? null
-                : "Das ZIP enthält kein PSADT-Skript (Invoke-AppDeployToolkit.ps1 oder Deploy-Application.ps1).";
+                : "The ZIP contains no PSADT script (Invoke-AppDeployToolkit.ps1 or Deploy-Application.ps1).";
         }
         catch (InvalidDataException)
         {
-            return "Die Datei ist kein gültiges ZIP-Archiv.";
+            return "The file is not a valid ZIP archive.";
         }
     }
 }

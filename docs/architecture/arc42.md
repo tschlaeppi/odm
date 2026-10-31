@@ -5,7 +5,7 @@ Structure follows [arc42](https://arc42.org). Diagrams use Mermaid (rendered by 
 ## 1. Introduction and goals
 
 Open Device Manager (ODM) is a free alternative to Microsoft Configuration Manager / Intune. It supports IT teams in managing
-Windows and Linux devices. Full requirements: [REQUIREMENTS.md](../../REQUIREMENTS.md) (German).
+Windows and Linux devices. Full requirements: [REQUIREMENTS.md](../../REQUIREMENTS.md) .
 
 ### 1.1 Requirements overview
 

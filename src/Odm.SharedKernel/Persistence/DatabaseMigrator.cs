@@ -15,9 +15,9 @@ public static class DatabaseMigrator
             var name = db.GetType().Name;
             throw new InvalidOperationException(
                 db.Database.IsSqlServer()
-                    ? $"Für {name} gibt es keine SQL-Server-Migrationen. Einmalig erzeugen: scripts/ef-sqlserver.ps1 bzw. " +
-                      "scripts/ef-sqlserver.sh (Name z. B. Initial) und den Ordner src/Odm.Migrations.SqlServer einchecken."
-                    : $"Für {name} gibt es keine Migrationen. Mit 'dotnet ef migrations add' erzeugen (siehe README).");
+                    ? $"There are no SQL Server migrations for {name}. Create them once with scripts/ef-sqlserver.ps1 or " +
+                      "scripts/ef-sqlserver.sh (name e.g. Initial) and commit the folder src/Odm.Migrations.SqlServer."
+                    : $"There are no migrations for {name}. Create them with 'dotnet ef migrations add' (see docs/development.md).");
         }
 
         await db.Database.MigrateAsync(ct);

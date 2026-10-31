@@ -80,10 +80,10 @@ internal static class PolicyEndpoints
         errors = new Dictionary<string, string[]>();
         name = request.Name?.Trim() ?? "";
 
-        if (name.Length is 0 or > 128) errors["name"] = ["Name ist erforderlich (höchstens 128 Zeichen)."];
-        if (request.Description is { Length: > 1024 }) errors["description"] = ["Höchstens 1024 Zeichen."];
-        if (!Enum.TryParse(request.Mode, true, out mode) || !Enum.IsDefined(mode)) errors["mode"] = ["Ungültiger Modus."];
-        if (!Enum.TryParse(request.Reboot, true, out reboot) || !Enum.IsDefined(reboot)) errors["reboot"] = ["Ungültige Neustart-Regel."];
+        if (name.Length is 0 or > 128) errors["name"] = ["Name is required (at most 128 characters)."];
+        if (request.Description is { Length: > 1024 }) errors["description"] = ["At most 1024 characters."];
+        if (!Enum.TryParse(request.Mode, true, out mode) || !Enum.IsDefined(mode)) errors["mode"] = ["Invalid mode."];
+        if (!Enum.TryParse(request.Reboot, true, out reboot) || !Enum.IsDefined(reboot)) errors["reboot"] = ["Invalid restart rule."];
 
         if (errors.Count == 0)
         {

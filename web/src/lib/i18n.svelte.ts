@@ -1,3 +1,5 @@
+import { translateServerMessage } from './serverMessages'
+
 export type Locale = 'de' | 'en'
 
 const messages = {
@@ -808,6 +810,11 @@ class I18n {
       }
     }
     return text
+  }
+
+  /** Server and agent messages are English; show them in the selected language. */
+  server(text: string | null | undefined): string {
+    return text ? translateServerMessage(text, this.locale) : ''
   }
 
   formatDate(iso: string | null): string {

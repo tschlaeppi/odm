@@ -45,12 +45,12 @@ internal static class AssignmentEndpoints
             {
                 if (!Enum.TryParse<VersionPolicy>(request.VersionPolicy, true, out var policy) || !Enum.IsDefined(policy))
                 {
-                    return Invalid("versionPolicy", "Ungültige Versionsregel.");
+                    return Invalid("versionPolicy", "Invalid version policy.");
                 }
 
                 if (!TryParseIntent(request.Intent, out var intent))
                 {
-                    return Invalid("intent", "Ungültige Absicht.");
+                    return Invalid("intent", "Invalid action.");
                 }
 
                 var (kind, target, errorField, targetError) =
@@ -110,7 +110,7 @@ internal static class AssignmentEndpoints
             {
                 if (!Enum.TryParse<VersionPolicy>(request.VersionPolicy, true, out var policy) || !Enum.IsDefined(policy))
                 {
-                    return Invalid("versionPolicy", "Ungültige Versionsregel.");
+                    return Invalid("versionPolicy", "Invalid version policy.");
                 }
 
                 var assignment = await db.Assignments.SingleOrDefaultAsync(a => a.Id == id, ct);
@@ -121,13 +121,13 @@ internal static class AssignmentEndpoints
 
                 if (!TryParseIntent(request.Intent ?? assignment.Intent.ToString(), out var newIntent))
                 {
-                    return Invalid("intent", "Ungültige Absicht.");
+                    return Invalid("intent", "Invalid action.");
                 }
 
                 var assignedPackage = await db.Packages.AsNoTracking().SingleAsync(p => p.Id == assignment.PackageId, ct);
                 if (assignedPackage.Kind.IsRepo() && policy == VersionPolicy.Pinned)
                 {
-                    return Invalid("versionPolicy", "Bei Repo-Paketen wird die Version in der Paketkonfiguration festgelegt.");
+                    return Invalid("versionPolicy", "For repository packages the version is set in the package configuration.");
                 }
 
                 var pinError = await ValidatePinAsync(db, assignment.PackageId, policy, request.PinnedVersionId, ct);
@@ -255,10 +255,10 @@ internal static class AssignmentEndpoints
 
         if (pinnedVersionId is null)
         {
-            return "Für eine feste Version muss eine Version gewählt werden.";
+            return "A version must be chosen for a pinned version.";
         }
 
         var exists = await db.Versions.AnyAsync(v => v.Id == pinnedVersionId && v.PackageId == packageId, ct);
-        return exists ? null : "Die gewählte Version gehört nicht zu diesem Paket.";
+        return exists ? null : "The chosen version does not belong to this package.";
     }
 }

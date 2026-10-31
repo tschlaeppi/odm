@@ -61,7 +61,7 @@
 {#snippet failureDevice(f: FailureDto)}<a href={`#/devices/${f.deviceId}`}>{f.deviceName ?? f.deviceId}</a>{/snippet}
 {#snippet failurePackage(f: FailureDto)}<a href={`#/software/${f.packageId}`}>{f.packageName}</a>{/snippet}
 {#snippet failureDate(f: FailureDto)}{i18n.formatDate(f.updatedAt)}{/snippet}
-{#snippet failureMessage(f: FailureDto)}<span class="msg" title={f.message ?? ''}>{f.message ?? '–'}</span>{/snippet}
+{#snippet failureMessage(f: FailureDto)}<span class="msg" title={i18n.server(f.message)}>{i18n.server(f.message) || '–'}</span>{/snippet}
 
 <section>
   <header class="page-head">

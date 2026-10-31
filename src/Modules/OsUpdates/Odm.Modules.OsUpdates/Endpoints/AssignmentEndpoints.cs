@@ -54,12 +54,12 @@ internal static class AssignmentEndpoints
                 if (!Enum.TryParse<AssignmentScope>(request.Scope, true, out var scope) || !Enum.IsDefined(scope) ||
                     !Enum.TryParse<TargetKind>(request.TargetKind, true, out var kind) || !Enum.IsDefined(kind))
                 {
-                    return Invalid("scope", "Ungültiger Bereich oder Zieltyp.");
+                    return Invalid("scope", "Invalid scope or target type.");
                 }
 
                 if (!Guid.TryParse(request.Target, out var targetId))
                 {
-                    return Invalid("target", "Ungültige ID.");
+                    return Invalid("target", "Invalid ID.");
                 }
 
                 var exists = scope == AssignmentScope.Policy
@@ -75,7 +75,7 @@ internal static class AssignmentEndpoints
                     : await directory.GroupExistsAsync(targetId, ct);
                 if (!targetExists)
                 {
-                    return Invalid("target", "Ziel nicht gefunden.");
+                    return Invalid("target", "Target not found.");
                 }
 
                 var target = targetId.ToString("D");

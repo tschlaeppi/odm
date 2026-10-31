@@ -25,13 +25,13 @@ public sealed class InstallRepoJobHandler(ILogger<InstallRepoJobHandler> logger)
 
         if (payload is null || string.IsNullOrWhiteSpace(payload.Identifier))
         {
-            return new JobOutcome(false, "Ungültiger Auftragsinhalt.");
+            return new JobOutcome(false, "Invalid job content.");
         }
 
         var needsWindows = WindowsManagers.Contains(payload.Manager);
         if (needsWindows != OperatingSystem.IsWindows())
         {
-            return new JobOutcome(false, $"{payload.Manager} wird auf diesem Betriebssystem nicht unterstützt.");
+            return new JobOutcome(false, $"{payload.Manager} is not supported on this operating system.");
         }
 
         ResolvedArguments arguments;

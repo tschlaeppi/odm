@@ -42,12 +42,12 @@ public sealed class OsUpdateJobHandler(
 
         if (payload is null)
         {
-            return Failure("Ungültiger Auftragsinhalt.");
+            return Failure("Invalid job content.");
         }
 
         if (DateTimeOffset.UtcNow >= payload.WindowEndsAt - StartBuffer)
         {
-            return Failure("Das Wartungsfenster war beim Start bereits (fast) abgelaufen; der Lauf wurde nicht gestartet.");
+            return Failure("The maintenance window had (almost) ended at start; the run was not started.");
         }
 
         var updater = OperatingSystem.IsWindows() ? (IOsUpdater)windows : linux;

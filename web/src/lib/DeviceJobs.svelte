@@ -101,7 +101,7 @@
                 <td>{job.type}</td>
                 <td>{i18n.t(`jobs.status.${job.status}` as MessageKey)}</td>
                 <td>{i18n.formatDate(job.createdAt)}</td>
-                <td class="output">{job.output ?? '–'}</td>
+                <td class="output">{i18n.server(job.output) || '–'}</td>
               </tr>
             {/each}
           </tbody>

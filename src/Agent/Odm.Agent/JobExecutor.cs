@@ -100,7 +100,7 @@ public sealed class JobExecutor(
         if (!_handlers.TryGetValue(job.Type, out var handler))
         {
             logger.LogWarning("Unknown job type '{Type}' (job {JobId}).", job.Type, job.Id);
-            return new JobResult(job.Id, false, $"Auftragstyp '{job.Type}' wird von diesem Agent nicht unterstützt.");
+            return new JobResult(job.Id, false, $"Job type '{job.Type}' is not supported by this agent.");
         }
 
         try

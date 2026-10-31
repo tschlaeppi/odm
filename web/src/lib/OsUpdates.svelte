@@ -214,7 +214,7 @@
   <span class="badge {statusClass[r.status]}">{i18n.t(`os.status.${r.status}` as MessageKey)}</span>
 {/snippet}
 {#snippet runResult(r: UpdateRunDto)}
-  <span class="msg" title={r.message ?? ''}>{runSummary(r) || '–'}</span>
+  <span class="msg" title={i18n.server(r.message)}>{runSummary(r) || '–'}</span>
 {/snippet}
 
 <section>

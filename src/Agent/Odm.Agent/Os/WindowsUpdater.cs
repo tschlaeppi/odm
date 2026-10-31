@@ -70,13 +70,13 @@ public sealed class WindowsUpdater : IOsUpdater
 
         if (result.TimedOut)
         {
-            return new OsUpdateResult(false, 0, 0, [], false, $"Zeitüberschreitung nach {timeout.TotalMinutes:N0} Minuten.");
+            return new OsUpdateResult(false, 0, 0, [], false, $"Timed out after {timeout.TotalMinutes:N0} minutes.");
         }
 
         if (result.ExitCode != 0)
         {
             return new OsUpdateResult(false, 0, 0, [], false,
-                $"Windows Update fehlgeschlagen (Exit-Code {result.ExitCode}). {Tail(result.Error.Length > 0 ? result.Error : result.Output)}");
+                $"Windows Update failed (exit code {result.ExitCode}). {Tail(result.Error.Length > 0 ? result.Error : result.Output)}");
         }
 
         // Die letzte JSON-Zeile der Ausgabe ist das Ergebnis; davor können Warnungen stehen.
@@ -85,12 +85,12 @@ public sealed class WindowsUpdater : IOsUpdater
         var parsed = line is null ? null : JsonSerializer.Deserialize<ScriptOutput>(line, Json);
         if (parsed is null)
         {
-            return new OsUpdateResult(false, 0, 0, [], false, "Ausgabe des Update-Skripts konnte nicht gelesen werden.");
+            return new OsUpdateResult(false, 0, 0, [], false, "The output of the update script could not be read.");
         }
 
         return new OsUpdateResult(
             parsed.Failed == 0, parsed.Installed, parsed.Failed, parsed.Titles ?? [], parsed.RebootRequired,
-            parsed.Failed > 0 ? $"{parsed.Failed} Update(s) konnten nicht installiert werden." : null);
+            parsed.Failed > 0 ? $"{parsed.Failed} update(s) could not be installed." : null);
     }
 
     private static string Tail(string text) => text.Length <= 500 ? text.Trim() : text[^500..].Trim();

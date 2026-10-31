@@ -34,7 +34,7 @@ internal static class SecretEndpoints
 
                 if (string.IsNullOrEmpty(request.Value) || request.Value.Length > 4000)
                 {
-                    return Invalid("value", "Wert ist erforderlich (höchstens 4000 Zeichen).");
+                    return Invalid("value", "Value is required (at most 4000 characters).");
                 }
 
                 var ciphertext = protector.Protect(name, request.Value);

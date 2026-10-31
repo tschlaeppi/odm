@@ -33,7 +33,7 @@ public sealed class SoftwareModule : IModule
             .Validate(o => !string.IsNullOrWhiteSpace(o.Bucket) &&
                            !string.IsNullOrWhiteSpace(o.AccessKey) &&
                            !string.IsNullOrWhiteSpace(o.SecretKey),
-                "Storage:S3 (Bucket, AccessKey, SecretKey) ist nicht konfiguriert.")
+                "Storage:S3 (Bucket, AccessKey, SecretKey) is not configured.")
             .ValidateOnStart();
 
         services.AddDbContext<SoftwareDbContext>((sp, o) =>
@@ -42,7 +42,7 @@ public sealed class SoftwareModule : IModule
         services.AddOptions<SecretsOptions>()
             .Bind(configuration.GetSection(SecretsOptions.SectionName))
             .Validate(o => SecretsOptions.IsValid(o.MasterKey),
-                "Secrets:MasterKey muss ein Base64-codierter 256-Bit-Schlüssel sein (z. B. 'openssl rand -base64 32').")
+                "Secrets:MasterKey must be a Base64-encoded 256-bit key (e.g. 'openssl rand -base64 32').")
             .ValidateOnStart();
 
         services.AddSingleton<SecretProtector>();

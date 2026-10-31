@@ -105,9 +105,9 @@ internal static class DeviceEndpoints
                 Guid id, AssignmentRequest request, DevicesDbContext db, CancellationToken ct) =>
             {
                 var errors = new Dictionary<string, string[]>();
-                if (request.PrimaryUser is { Length: > 256 }) errors["primaryUser"] = ["Höchstens 256 Zeichen."];
-                if (request.OrgUnit is { Length: > 256 }) errors["orgUnit"] = ["Höchstens 256 Zeichen."];
-                if (request.CostCenter is { Length: > 64 }) errors["costCenter"] = ["Höchstens 64 Zeichen."];
+                if (request.PrimaryUser is { Length: > 256 }) errors["primaryUser"] = ["At most 256 characters."];
+                if (request.OrgUnit is { Length: > 256 }) errors["orgUnit"] = ["At most 256 characters."];
+                if (request.CostCenter is { Length: > 64 }) errors["costCenter"] = ["At most 64 characters."];
                 if (errors.Count > 0)
                 {
                     return Results.ValidationProblem(errors);

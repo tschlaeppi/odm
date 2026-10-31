@@ -30,7 +30,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
     {
         if (!OperatingSystem.IsWindows())
         {
-            return Fail("PSADT-Pakete werden nur unter Windows unterstützt.");
+            return Fail("PSADT packages are only supported on Windows.");
         }
 
         InstallPsadtPayload? payload;
@@ -45,7 +45,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
 
         if (payload is null || payload.VersionId == Guid.Empty || string.IsNullOrWhiteSpace(payload.Sha256))
         {
-            return Fail("Ungültiger Auftragsinhalt.");
+            return Fail("Invalid job content.");
         }
 
         var workDirectory = context.Store.CreateWorkDirectory(job.Id);
@@ -60,7 +60,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
                 var actual = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
                 if (!string.Equals(actual, payload.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
-                    return Fail("Prüfsumme des heruntergeladenen Pakets stimmt nicht überein.");
+                    return Fail("The checksum of the downloaded package does not match.");
                 }
             }
 
@@ -70,7 +70,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
             var script = FindScript(extractDirectory);
             if (script is null)
             {
-                return Fail("Im Paket wurde kein PSADT-Skript gefunden.");
+                return Fail("No PSADT script was found in the package.");
             }
 
             ResolvedArguments arguments;
@@ -164,7 +164,7 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
                 throw; // Agent wird beendet: Auftrag nicht als fehlgeschlagen melden, er wird erneut ausgeliefert.
             }
 
-            return Fail($"Zeitüberschreitung nach {minutes} Minuten.\n{SecretSubstitution.Redact(tail.ToString(), arguments.SecretValues)}");
+            return Fail($"Timed out after {minutes} minutes.\n{SecretSubstitution.Redact(tail.ToString(), arguments.SecretValues)}");
         }
 
         process.WaitForExit(); // stellt sicher, dass die letzte Ausgabe gelesen wurde
@@ -172,9 +172,9 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
         var code = process.ExitCode;
         var summary = code switch
         {
-            0 => "Exit-Code 0 (erfolgreich)",
-            1641 or 3010 => $"Exit-Code {code} (erfolgreich, Neustart erforderlich)",
-            _ => $"Exit-Code {code}"
+            0 => "Exit code 0 (succeeded)",
+            1641 or 3010 => $"Exit code {code} (succeeded, restart required)",
+            _ => $"Exit code {code}"
         };
 
         return new JobOutcome(

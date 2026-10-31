@@ -32,7 +32,7 @@ internal static class AdminEndpoints
             {
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 {
-                    ["label"] = ["Bezeichnung ist erforderlich (höchstens 128 Zeichen)."]
+                    ["label"] = ["Label is required (at most 128 characters)."]
                 });
             }
 
@@ -82,7 +82,7 @@ internal static class AdminEndpoints
         {
             var errors = new Dictionary<string, string[]>();
             if (request.Type is null || !JobTypes.UserCreatable.Contains(request.Type)) errors["type"] = ["Unbekannter Auftragstyp."];
-            if (request.Payload is { Length: > 4000 }) errors["payload"] = ["Höchstens 4000 Zeichen."];
+            if (request.Payload is { Length: > 4000 }) errors["payload"] = ["At most 4000 characters."];
             if (errors.Count > 0)
             {
                 return Results.ValidationProblem(errors);

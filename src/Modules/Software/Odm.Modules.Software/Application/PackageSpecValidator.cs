@@ -47,9 +47,9 @@ public static partial class PackageSpecValidator
         if (kind.IsRepo())
         {
             if (identifier is null || !IdentifierPattern().IsMatch(identifier))
-                errors["identifier"] = ["Paketname/-ID ist erforderlich (Buchstaben, Ziffern und . _ + : @ / -)."];
+                errors["identifier"] = ["Package name/ID is required (letters, digits and . _ + : @ / -)."];
             if (version is not null && !VersionPattern().IsMatch(version))
-                errors["version"] = ["Ungültige Version."];
+                errors["version"] = ["Invalid version."];
         }
         else
         {
@@ -61,24 +61,24 @@ public static partial class PackageSpecValidator
         {
             case PackageKind.Winget:
                 scope ??= "machine";
-                if (scope is not ("machine" or "user")) errors["scope"] = ["Bereich: machine oder user."];
-                if (source is not null && !NamePattern().IsMatch(source)) errors["source"] = ["Ungültige Quelle."];
+                if (scope is not ("machine" or "user")) errors["scope"] = ["Scope: machine or user."];
+                if (source is not null && !NamePattern().IsMatch(source)) errors["source"] = ["Invalid source."];
                 remote = channel = null;
                 break;
             case PackageKind.Chocolatey:
                 scope = remote = channel = null;
-                if (source is not null && !SourceUrlPattern().IsMatch(source)) errors["source"] = ["Ungültige Quelle."];
+                if (source is not null && !SourceUrlPattern().IsMatch(source)) errors["source"] = ["Invalid source."];
                 break;
             case PackageKind.Flatpak:
                 scope ??= "system";
-                if (scope is not ("system" or "user")) errors["scope"] = ["Bereich: system oder user."];
+                if (scope is not ("system" or "user")) errors["scope"] = ["Scope: system or user."];
                 remote ??= "flathub";
-                if (!NamePattern().IsMatch(remote)) errors["remote"] = ["Ungültiges Remote."];
+                if (!NamePattern().IsMatch(remote)) errors["remote"] = ["Invalid remote."];
                 source = channel = null;
                 break;
             case PackageKind.Snap:
                 channel ??= "stable";
-                if (!ChannelPattern().IsMatch(channel)) errors["channel"] = ["Ungültiger Kanal."];
+                if (!ChannelPattern().IsMatch(channel)) errors["channel"] = ["Invalid channel."];
                 scope = source = remote = null;
                 break;
             default: // Psadt, Apt, Rpm
@@ -92,7 +92,7 @@ public static partial class PackageSpecValidator
         {
             if (arguments.Length > MaxArgumentsLength)
             {
-                errors["arguments"] = [$"Höchstens {MaxArgumentsLength} Zeichen."];
+                errors["arguments"] = [$"At most {MaxArgumentsLength} characters."];
             }
             else
             {

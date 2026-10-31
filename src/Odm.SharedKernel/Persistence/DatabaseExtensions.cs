@@ -58,7 +58,7 @@ public static class DatabaseExtensions
         {
             connection = effective == DatabaseProvider.Postgres
                 ? "Host=localhost;Database=odm;Username=odm;Password=odm"
-                : throw new InvalidOperationException("Für SQL Server die Umgebungsvariable ODM_DB setzen (Verbindungszeichenfolge).");
+                : throw new InvalidOperationException("Set the environment variable ODM_DB (connection string) for SQL Server.");
         }
 
         var builder = new DbContextOptionsBuilder<TContext>();

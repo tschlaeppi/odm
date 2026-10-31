@@ -25,7 +25,7 @@ internal static class AgentEndpoints
                 var errors = Validate(request.Hostname, request.OsFamily, request.OsName, request.OsVersion, request.AgentVersion);
                 if (string.IsNullOrWhiteSpace(request.Token) || request.Token.Length > 200)
                 {
-                    errors["token"] = ["Token fehlt oder ist ungültig."];
+                    errors["token"] = ["Token is missing or invalid."];
                 }
 
                 if (errors.Count > 0)
@@ -72,13 +72,13 @@ internal static class AgentEndpoints
             {
                 if (!authority.Enabled)
                 {
-                    return Results.Problem("Zertifikate sind auf diesem Server nicht aktiviert.", statusCode: 404);
+                    return Results.Problem("Certificates are not enabled on this server.", statusCode: 404);
                 }
 
                 if (!IsDirectTls(http))
                 {
                     // Ein Zertifikat, das über diese Verbindung nicht vorgezeigt werden kann, würde das Gerät aussperren.
-                    return Results.Problem("Zertifikate werden nur über eine direkte TLS-Verbindung zu ODM ausgestellt.", statusCode: 400);
+                    return Results.Problem("Certificates are only issued over a direct TLS connection to ODM.", statusCode: 400);
                 }
 
                 if (string.IsNullOrWhiteSpace(request.Csr) || request.Csr.Length > 4000)
@@ -94,7 +94,7 @@ internal static class AgentEndpoints
                 }
                 catch (CryptographicException)
                 {
-                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["csr"] = ["Ungültige Zertifikatsanforderung."] });
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["csr"] = ["Invalid certificate request."] });
                 }
             })
             .RequireAuthorization(Policies.Agent);
@@ -127,7 +127,7 @@ internal static class AgentEndpoints
     {
         var errors = new Dictionary<string, string[]>();
         if (string.IsNullOrWhiteSpace(hostname) || hostname.Length > 255) errors["hostname"] = ["Ungültig."];
-        if (osFamily is null || !OsFamilies.Contains(osFamily, StringComparer.OrdinalIgnoreCase)) errors["osFamily"] = ["Windows oder Linux."];
+        if (osFamily is null || !OsFamilies.Contains(osFamily, StringComparer.OrdinalIgnoreCase)) errors["osFamily"] = ["Windows or Linux."];
         if (string.IsNullOrWhiteSpace(osName) || osName.Length > 128) errors["osName"] = ["Ungültig."];
         if (osVersion is null || osVersion.Length > 64) errors["osVersion"] = ["Ungültig."];
         if (agentVersion is null || agentVersion.Length > 32) errors["agentVersion"] = ["Ungültig."];

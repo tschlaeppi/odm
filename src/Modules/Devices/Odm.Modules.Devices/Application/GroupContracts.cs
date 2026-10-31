@@ -39,28 +39,28 @@ public static class GroupRequestParser
         var name = request.Name?.Trim() ?? "";
         if (requireName && name.Length == 0)
         {
-            errors["name"] = ["Name ist erforderlich."];
+            errors["name"] = ["Name is required."];
         }
         else if (name.Length > 128)
         {
-            errors["name"] = ["Name darf höchstens 128 Zeichen lang sein."];
+            errors["name"] = ["Name must be at most 128 characters."];
         }
 
         if (request.Description is { Length: > 1024 })
         {
-            errors["description"] = ["Beschreibung darf höchstens 1024 Zeichen lang sein."];
+            errors["description"] = ["Description must be at most 1024 characters."];
         }
 
         if (!Enum.TryParse<GroupMatchMode>(request.MatchMode, true, out var mode) || !Enum.IsDefined(mode))
         {
-            errors["matchMode"] = ["Ungültiger Abgleichmodus."];
+            errors["matchMode"] = ["Invalid match mode."];
         }
 
         var rules = new List<GroupRule>();
         var dtos = request.Rules ?? [];
         if (dtos.Count > MaxRules)
         {
-            errors["rules"] = [$"Höchstens {MaxRules} Regeln erlaubt."];
+            errors["rules"] = [$"At most {MaxRules} rules are allowed."];
         }
         else
         {
@@ -93,25 +93,25 @@ public static class GroupRequestParser
 
         if (!Enum.TryParse<GroupField>(dto.Field, true, out var field) || !Enum.IsDefined(field))
         {
-            return "Ungültiges Feld.";
+            return "Invalid field.";
         }
 
         if (!Enum.TryParse<MatchOperator>(dto.Operator, true, out var op) || !Enum.IsDefined(op))
         {
-            return "Ungültiger Operator.";
+            return "Invalid operator.";
         }
 
         var value = dto.Value?.Trim() ?? "";
         if (value.Length is 0 or > 256)
         {
-            return "Wert ist erforderlich (höchstens 256 Zeichen).";
+            return "Value is required (at most 256 characters).";
         }
 
         if (field == GroupField.OsFamily)
         {
             if (op != MatchOperator.Is || !Enum.TryParse<OsFamily>(value, true, out var family) || !Enum.IsDefined(family))
             {
-                return "Betriebssystemfamilie: nur 'Is' mit Windows oder Linux.";
+                return "Operating system family: only 'Is' with Windows or Linux.";
             }
 
             value = family.ToString();

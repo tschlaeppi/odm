@@ -50,7 +50,7 @@ public sealed class RolloutPlan
 
         if (list.Any(s => s.AfterDays is < 0 or > MaxDays))
         {
-            return (null, $"Die Wartezeit muss zwischen 0 und {MaxDays} Tagen liegen.");
+            return (null, $"The delay must be between 0 and {MaxDays} days.");
         }
 
         if (mode == RolloutMode.Percent)
@@ -63,12 +63,12 @@ public sealed class RolloutPlan
             if (list.Select(s => s.AfterDays).Distinct().Count() != list.Count ||
                 list.Zip(list.Skip(1), (a, b) => b.Percent <= a.Percent).Any(x => x))
             {
-                return (null, "Wartezeit und Prozentwert müssen von Stufe zu Stufe steigen.");
+                return (null, "Delay and percentage must increase from stage to stage.");
             }
 
             if (list[^1].Percent != 100)
             {
-                return (null, "Die letzte Stufe muss 100 % erreichen.");
+                return (null, "The last stage must reach 100 %.");
             }
         }
         else

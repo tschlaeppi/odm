@@ -57,7 +57,7 @@ public sealed class AgentWorker(
         if (string.IsNullOrWhiteSpace(token))
         {
             throw new InvalidOperationException(
-                "Der Agent ist nicht registriert und es ist kein Agent:RegistrationToken konfiguriert.");
+                "The agent is not registered and no Agent:RegistrationToken is configured.");
         }
 
         var info = systemInfo.Collect();

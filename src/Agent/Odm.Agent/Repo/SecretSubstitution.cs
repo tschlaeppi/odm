@@ -16,7 +16,7 @@ public static partial class SecretSubstitution
             var name = match.Groups[1].Value;
             return secrets.TryGetValue(name, out var value)
                 ? value
-                : throw new InvalidOperationException($"Das Secret '{name}' ist nicht definiert.");
+                : throw new InvalidOperationException($"The secret '{name}' is not defined.");
         });
 
     /// <summary>

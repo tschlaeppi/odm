@@ -42,7 +42,7 @@ internal static class RunEndpoints
                     RunNowResult.Started => Results.NoContent(),
                     RunNowResult.NoPolicy => Results.ValidationProblem(new Dictionary<string, string[]>
                     {
-                        ["policy"] = ["Für dieses Gerät gilt keine Update-Richtlinie."]
+                        ["policy"] = ["No update policy applies to this device."]
                     }),
                     _ => Results.Conflict()
                 };

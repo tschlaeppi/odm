@@ -8,7 +8,7 @@ OS update management and device inventory for Windows and Linux fleets.
 - **Agent:** self-contained .NET worker service for Windows and Linux (DEB and RPM based)
 - **Deployment:** Docker / Docker Compose (Kubernetes: planned)
 
-The product requirements are in [REQUIREMENTS.md](REQUIREMENTS.md) (German).
+The product requirements are in [REQUIREMENTS.md](REQUIREMENTS.md).
 
 ## Quick start (Docker Compose)
 

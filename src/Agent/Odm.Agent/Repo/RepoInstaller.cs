@@ -144,42 +144,42 @@ public static class RepoInstaller
             {
                 var exe = ToolLocator.Winget();
                 return exe is null
-                    ? Fail("winget wurde nicht gefunden (App-Installer fehlt oder ist für das SYSTEM-Konto nicht verfügbar).")
+                    ? Fail("winget was not found (App Installer is missing or not available to the SYSTEM account).")
                     : Summarize(await ProcessRunner.RunAsync(exe, WingetUninstallArguments(p), timeout, ct), WingetRemoveOk);
             }
             case "Chocolatey":
             {
                 var exe = ToolLocator.Chocolatey();
                 return exe is null
-                    ? Fail("Chocolatey ist auf diesem Gerät nicht installiert.")
+                    ? Fail("Chocolatey is not installed on this device.")
                     : Summarize(await ProcessRunner.RunAsync(exe, ChocolateyUninstallArguments(p), timeout, ct), ChocolateyOk);
             }
             case "Apt":
             {
                 var apt = ToolLocator.Linux("apt-get");
                 return apt is null
-                    ? Fail("apt-get ist auf diesem Gerät nicht vorhanden (keine DEB-basierte Distribution).")
+                    ? Fail("apt-get is not available on this device (not a DEB based distribution).")
                     : Summarize(await ProcessRunner.RunAsync(apt, AptUninstallArguments(p), timeout, ct, AptEnvironment), [0]);
             }
             case "Rpm":
             {
                 var manager = ToolLocator.Linux("dnf") ?? ToolLocator.Linux("yum");
                 return manager is null
-                    ? Fail("dnf/yum ist auf diesem Gerät nicht vorhanden (keine RPM-basierte Distribution).")
+                    ? Fail("dnf/yum is not available on this device (not an RPM based distribution).")
                     : Summarize(await ProcessRunner.RunAsync(manager, RpmUninstallArguments(p), timeout, ct), [0]);
             }
             case "Flatpak":
             {
                 var flatpak = ToolLocator.Linux("flatpak");
                 return flatpak is null
-                    ? Fail("Flatpak ist auf diesem Gerät nicht installiert.")
+                    ? Fail("Flatpak is not installed on this device.")
                     : Summarize(await ProcessRunner.RunAsync(flatpak, FlatpakUninstallArguments(p), timeout, ct), [0]);
             }
             case "Snap":
             {
                 var snap = ToolLocator.Linux("snap");
                 return snap is null
-                    ? Fail("snap ist auf diesem Gerät nicht installiert.")
+                    ? Fail("snap is not installed on this device.")
                     : Summarize(await ProcessRunner.RunAsync(snap, SnapUninstallArguments(p), timeout, ct), [0]);
             }
             default:
@@ -195,7 +195,7 @@ public static class RepoInstaller
     {
         var exe = ToolLocator.Winget();
         return exe is null
-            ? Fail("winget wurde nicht gefunden (App-Installer fehlt oder ist für das SYSTEM-Konto nicht verfügbar).")
+            ? Fail("winget was not found (App Installer is missing or not available to the SYSTEM account).")
             : Summarize(await ProcessRunner.RunAsync(exe, WingetArguments(p, extra), timeout, ct), WingetOk);
     }
 
@@ -203,7 +203,7 @@ public static class RepoInstaller
     {
         var exe = ToolLocator.Chocolatey();
         return exe is null
-            ? Fail("Chocolatey ist auf diesem Gerät nicht installiert.")
+            ? Fail("Chocolatey is not installed on this device.")
             : Summarize(await ProcessRunner.RunAsync(exe, ChocolateyArguments(p, extra), timeout, ct), ChocolateyOk);
     }
 
@@ -212,7 +212,7 @@ public static class RepoInstaller
         var apt = ToolLocator.Linux("apt-get");
         if (apt is null)
         {
-            return Fail("apt-get ist auf diesem Gerät nicht vorhanden (keine DEB-basierte Distribution).");
+            return Fail("apt-get is not available on this device (not a DEB based distribution).");
         }
 
         var update = await ProcessRunner.RunAsync(apt, ["update", "-q"], timeout, ct, AptEnvironment);
@@ -230,7 +230,7 @@ public static class RepoInstaller
         var rpm = ToolLocator.Linux("rpm");
         if (manager is null || rpm is null)
         {
-            return Fail("dnf/yum und rpm sind auf diesem Gerät nicht vorhanden (keine RPM-basierte Distribution).");
+            return Fail("dnf/yum and rpm are not available on this device (not an RPM based distribution).");
         }
 
         var installed = (await ProcessRunner.RunAsync(rpm, ["-q", p.Identifier], TimeSpan.FromMinutes(2), ct)).ExitCode == 0;
@@ -243,7 +243,7 @@ public static class RepoInstaller
         var flatpak = ToolLocator.Linux("flatpak");
         if (flatpak is null)
         {
-            return Fail("Flatpak ist auf diesem Gerät nicht installiert.");
+            return Fail("Flatpak is not installed on this device.");
         }
 
         var installed = (await ProcessRunner.RunAsync(
@@ -269,7 +269,7 @@ public static class RepoInstaller
         var snap = ToolLocator.Linux("snap");
         if (snap is null)
         {
-            return Fail("snap ist auf diesem Gerät nicht installiert.");
+            return Fail("snap is not installed on this device.");
         }
 
         var installed = (await ProcessRunner.RunAsync(snap, ["list", p.Identifier], TimeSpan.FromMinutes(2), ct)).ExitCode == 0;
@@ -281,11 +281,11 @@ public static class RepoInstaller
         var prefix = step is null ? "" : $"{step}: ";
         if (result.TimedOut)
         {
-            return Fail($"{prefix}Zeitüberschreitung.\n{Tail(result)}");
+            return Fail($"{prefix}Timed out.\n{Tail(result)}");
         }
 
         var ok = successCodes.Contains(result.ExitCode);
-        return new RepoResult(ok, $"{prefix}Exit-Code {result.ExitCode}{(ok ? "" : " (Fehler)")}\n{Tail(result)}".TrimEnd());
+        return new RepoResult(ok, $"{prefix}Exit code {result.ExitCode}{(ok ? "" : " (error)")}\n{Tail(result)}".TrimEnd());
     }
 
     private static string Tail(ProcessRunner.Result result)

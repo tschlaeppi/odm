@@ -28,7 +28,7 @@ internal static class InstallEndpoints
             var baseUrl = BaseUrl(http, options.Value);
             if (baseUrl is null)
             {
-                return Results.Problem("Die Server-Adresse ist ungültig.", statusCode: 400);
+                return Results.Problem("The server address is invalid.", statusCode: 400);
             }
 
             var packages = catalog.List()
@@ -52,13 +52,13 @@ internal static class InstallEndpoints
         var baseUrl = BaseUrl(http, options);
         if (baseUrl is null)
         {
-            return Results.Problem("Die Server-Adresse ist ungültig. Agents:PublicBaseUrl konfigurieren.", statusCode: 400);
+            return Results.Problem("The server address is invalid. Configure Agents:PublicBaseUrl.", statusCode: 400);
         }
 
         var packages = catalog.List();
         if (packages.Count == 0)
         {
-            return Results.Problem("Auf diesem Server sind keine Agent-Pakete hinterlegt.", statusCode: 404);
+            return Results.Problem("No agent packages are available on this server.", statusCode: 404);
         }
 
         http.Response.Headers.CacheControl = "no-store";

@@ -36,7 +36,7 @@ public sealed class IdentityModule : IModule
     {
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
-            .Validate(o => o.Secret.Length >= 32, "Jwt:Secret muss mindestens 32 Zeichen lang sein.")
+            .Validate(o => o.Secret.Length >= 32, "Jwt:Secret must be at least 32 characters long.")
             .ValidateOnStart();
 
         services.Configure<BootstrapAdminOptions>(configuration.GetSection("Identity:BootstrapAdmin"));
@@ -53,7 +53,7 @@ public sealed class IdentityModule : IModule
         services.AddOptions<LdapOptions>()
             .Bind(configuration.GetSection(LdapOptions.SectionName))
             .Validate(o => !o.Enabled || o.Problem() is null,
-                "Identity:Ldap ist unvollständig (Host, BaseDn, UserFilter mit Platzhalter, BindPassword, mindestens eine Gruppe).")
+                "Identity:Ldap is incomplete (Host, BaseDn, UserFilter with placeholder, BindPassword, at least one group).")
             .ValidateOnStart();
 
         if (configuration.GetValue<bool>($"{LdapOptions.SectionName}:Enabled"))
@@ -66,7 +66,7 @@ public sealed class IdentityModule : IModule
         services.AddOptions<OidcOptions>()
             .Bind(configuration.GetSection(OidcOptions.SectionName))
             .Validate(o => o.Problem() is null,
-                "Identity:Oidc ist unvollständig (PublicBaseUrl, je Anbieter Id, Authority, ClientId und mindestens ein Rollenwert).")
+                "Identity:Oidc is incomplete (PublicBaseUrl, per provider Id, Authority, ClientId and at least one role value).")
             .ValidateOnStart();
         services.AddHttpClient(OidcService.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(15));
         services.AddSingleton<OidcStateProtector>();
@@ -119,7 +119,7 @@ public sealed class IdentityModule : IModule
                 {
                     return Results.ValidationProblem(new Dictionary<string, string[]>
                     {
-                        ["credentials"] = ["Benutzername und Passwort sind erforderlich."]
+                        ["credentials"] = ["User name and password are required."]
                     });
                 }
 

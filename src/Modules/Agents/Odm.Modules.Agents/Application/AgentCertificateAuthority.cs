@@ -108,15 +108,15 @@ public sealed class AgentCertificateAuthority(IOptions<AgentsOptions> options, I
 
         if (csr.PublicKey.Oid.Value != EcPublicKeyOid)
         {
-            throw new CryptographicException("Nur ECDSA-Schlüssel (P-256) werden unterstützt.");
+            throw new CryptographicException("Only ECDSA keys (P-256) are supported.");
         }
 
         using (var publicKey = csr.PublicKey.GetECDsaPublicKey()
-                               ?? throw new CryptographicException("Ungültiger öffentlicher Schlüssel."))
+                               ?? throw new CryptographicException("Invalid public key."))
         {
             if (publicKey.ExportParameters(false).Curve.Oid.Value != NistP256Oid)
             {
-                throw new CryptographicException("Nur die Kurve P-256 wird unterstützt.");
+                throw new CryptographicException("Only the P-256 curve is supported.");
             }
         }
 

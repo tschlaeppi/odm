@@ -84,7 +84,7 @@ internal static class WindowEndpoints
         name = request.Name?.Trim() ?? "";
         days = WeekDays.None;
 
-        if (name.Length is 0 or > 128) errors["name"] = ["Name ist erforderlich (höchstens 128 Zeichen)."];
+        if (name.Length is 0 or > 128) errors["name"] = ["Name is required (at most 128 characters)."];
 
         foreach (var day in request.Days ?? [])
         {
@@ -94,14 +94,14 @@ internal static class WindowEndpoints
             }
             else
             {
-                errors["days"] = ["Ungültiger Wochentag."];
+                errors["days"] = ["Invalid weekday."];
             }
         }
 
-        if (days == WeekDays.None && !errors.ContainsKey("days")) errors["days"] = ["Mindestens ein Wochentag ist erforderlich."];
-        if (request.StartMinutes is < 0 or > 1439) errors["startMinutes"] = ["Beginn muss zwischen 00:00 und 23:59 liegen."];
+        if (days == WeekDays.None && !errors.ContainsKey("days")) errors["days"] = ["At least one weekday is required."];
+        if (request.StartMinutes is < 0 or > 1439) errors["startMinutes"] = ["Start must be between 00:00 and 23:59."];
         if (request.DurationMinutes < MaintenanceWindow.MinDurationMinutes || request.DurationMinutes > MaintenanceWindow.MaxDurationMinutes)
-            errors["durationMinutes"] = ["Dauer muss zwischen 15 Minuten und 24 Stunden liegen."];
+            errors["durationMinutes"] = ["Duration must be between 15 minutes and 24 hours."];
         if (string.IsNullOrWhiteSpace(request.TimeZoneId) || request.TimeZoneId.Length > 64 || !MaintenanceWindow.IsValidTimeZone(request.TimeZoneId))
             errors["timeZoneId"] = ["Unbekannte Zeitzone."];
 

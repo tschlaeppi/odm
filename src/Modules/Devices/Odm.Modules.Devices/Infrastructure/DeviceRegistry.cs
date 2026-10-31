@@ -53,5 +53,5 @@ internal sealed class DeviceRegistry(DevicesDbContext db) : IDeviceRegistry
     private static OsFamily ParseFamily(string family) =>
         Enum.TryParse<OsFamily>(family, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
             ? parsed
-            : throw new ArgumentException("Nicht unterstützte OS-Familie.", nameof(family));
+            : throw new ArgumentException("Unsupported OS family.", nameof(family));
 }

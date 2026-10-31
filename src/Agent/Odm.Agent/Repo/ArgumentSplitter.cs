@@ -63,7 +63,7 @@ public static class ArgumentSplitter
 
         if (quote != '\0')
         {
-            throw new FormatException("Ein Anführungszeichen in den Argumenten ist nicht geschlossen.");
+            throw new FormatException("A quotation mark in the arguments is not closed.");
         }
 
         if (hasToken)

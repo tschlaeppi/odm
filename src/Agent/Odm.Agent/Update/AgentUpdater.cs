@@ -114,7 +114,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
             var binary = Path.Combine(stage, OperatingSystem.IsWindows() ? "odm-agent.exe" : "odm-agent");
             if (!File.Exists(binary))
             {
-                throw new InvalidDataException("Das Paket enthält keine Programmdatei.");
+                throw new InvalidDataException("The package contains no program file.");
             }
 
             File.WriteAllText(PendingFile, offer.Version);
@@ -166,7 +166,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
                 total += read;
                 if (total > MaxPackageBytes)
                 {
-                    throw new InvalidDataException("Das Paket ist größer als erlaubt.");
+                    throw new InvalidDataException("The package is larger than allowed.");
                 }
 
                 hash.AppendData(buffer, 0, read);
@@ -177,7 +177,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
         var actual = Convert.ToHexStringLower(hash.GetHashAndReset());
         if (total != offer.Size || !string.Equals(actual, offer.Sha256, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidDataException("Größe oder Prüfsumme des Pakets stimmt nicht mit dem Angebot überein.");
+            throw new InvalidDataException("The size or checksum of the package does not match the offer.");
         }
     }
 
@@ -234,7 +234,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
             run.ArgumentList.Add(arg);
         }
 
-        using var process = Process.Start(run) ?? throw new InvalidOperationException("systemd-run konnte nicht gestartet werden.");
+        using var process = Process.Start(run) ?? throw new InvalidOperationException("systemd-run could not be started.");
         process.WaitForExit(15_000);
         if (process.HasExited && process.ExitCode != 0)
         {

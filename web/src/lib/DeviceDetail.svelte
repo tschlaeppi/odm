@@ -90,12 +90,12 @@
 {/snippet}
 
 {#snippet message(i: InstallationDto)}
-  <span class="msg" title={i.message ?? ''}>{i.message ?? '–'}</span>
+  <span class="msg" title={i18n.server(i.message)}>{i18n.server(i.message) || '–'}</span>
 {/snippet}
 
 {#snippet softwareActions(i: InstallationDto)}
   {#if i.message}
-    <button class="ghost" onclick={() => messageDialog.show(`${i.packageName} – ${i18n.t('msg.title')}`, i.message)}>
+    <button class="ghost" onclick={() => messageDialog.show(`${i.packageName} – ${i18n.t('msg.title')}`, i18n.server(i.message))}>
       {i18n.t('msg.show')}
     </button>
   {/if}

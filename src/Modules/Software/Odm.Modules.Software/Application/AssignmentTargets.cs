@@ -12,20 +12,20 @@ public static class AssignmentTargets
     {
         if (!Enum.TryParse<TargetKind>(kindText, true, out var kind) || !Enum.IsDefined(kind))
         {
-            return (default, "", "targetKind", "Ungültiger Zieltyp.");
+            return (default, "", "targetKind", "Invalid target type.");
         }
 
         var target = targetText?.Trim() ?? "";
         if (target.Length is 0 or > 256)
         {
-            return (kind, "", "target", "Ziel ist erforderlich.");
+            return (kind, "", "target", "Target is required.");
         }
 
         if (kind != TargetKind.User)
         {
             if (!Guid.TryParse(target, out var targetId))
             {
-                return (kind, "", "target", "Ungültige ID.");
+                return (kind, "", "target", "Invalid ID.");
             }
 
             var exists = kind == TargetKind.Device
@@ -33,7 +33,7 @@ public static class AssignmentTargets
                 : await directory.GroupExistsAsync(targetId, ct);
             if (!exists)
             {
-                return (kind, "", "target", "Ziel nicht gefunden.");
+                return (kind, "", "target", "Target not found.");
             }
 
             target = targetId.ToString("D");
@@ -53,7 +53,7 @@ public static class AssignmentTargets
 
         if (!Enum.TryParse<RolloutMode>(dto.Mode, true, out var mode) || !Enum.IsDefined(mode))
         {
-            return (null, "Ungültiger Tranchenmodus.");
+            return (null, "Invalid rollout mode.");
         }
 
         var stages = dto.Stages.Select(s => new RolloutStage(s.AfterDays, s.Percent, s.GroupId)).ToList();
@@ -69,7 +69,7 @@ public static class AssignmentTargets
             {
                 if (!await directory.GroupExistsAsync(stage.GroupId!.Value, ct))
                 {
-                    return (null, "Eine Untergruppe wurde nicht gefunden.");
+                    return (null, "A subgroup was not found.");
                 }
             }
         }

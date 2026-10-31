@@ -62,7 +62,7 @@ internal static partial class PackageEndpoints
                 var name = request.Name?.Trim() ?? "";
                 if (name.Length is 0 or > 128 || request.Description is { Length: > 1024 })
                 {
-                    return Invalid("name", "Name ist erforderlich (höchstens 128 Zeichen), Beschreibung höchstens 1024 Zeichen.");
+                    return Invalid("name", "Name is required (at most 128 characters), description at most 1024 characters.");
                 }
 
                 if (!Enum.TryParse<PackageKind>(request.Kind ?? nameof(PackageKind.Psadt), true, out var kind) || !Enum.IsDefined(kind))
@@ -105,7 +105,7 @@ internal static partial class PackageEndpoints
             {
                 if (request.Description is { Length: > 1024 })
                 {
-                    return Invalid("description", "Höchstens 1024 Zeichen.");
+                    return Invalid("description", "At most 1024 characters.");
                 }
 
                 var package = await db.Packages.SingleOrDefaultAsync(p => p.Id == id, ct);
@@ -119,7 +119,7 @@ internal static partial class PackageEndpoints
                 {
                     if (newName.Length is 0 or > 128)
                     {
-                        return Invalid("name", "Name ist erforderlich (höchstens 128 Zeichen).");
+                        return Invalid("name", "Name is required (at most 128 characters).");
                     }
 
                     var lowered = newName.ToLower();
@@ -209,9 +209,9 @@ internal static partial class PackageEndpoints
 
                 var errors = new Dictionary<string, string[]>();
                 if (!VersionPattern().IsMatch(version)) errors["version"] = ["Version: 1-64 Zeichen (Buchstaben, Ziffern, . _ + -)."];
-                if (notes.Length > 1024) errors["notes"] = ["Höchstens 1024 Zeichen."];
+                if (notes.Length > 1024) errors["notes"] = ["At most 1024 characters."];
                 if (file is null || file.Length == 0) errors["file"] = ["ZIP-Datei fehlt."];
-                else if (file.Length > maxPackageBytes) errors["file"] = ["Datei überschreitet die erlaubte Grösse."];
+                else if (file.Length > maxPackageBytes) errors["file"] = ["The file exceeds the allowed size."];
                 if (errors.Count > 0)
                 {
                     return Results.ValidationProblem(errors);
@@ -225,7 +225,7 @@ internal static partial class PackageEndpoints
 
                 if (package.Kind != PackageKind.Psadt)
                 {
-                    return Invalid("file", "Nur PSADT-Pakete haben Dateien; Repo-Pakete werden über ihre Einstellungen geändert.");
+                    return Invalid("file", "Only PSADT packages have files; repository packages are changed through their settings.");
                 }
 
                 if (await db.Versions.AnyAsync(v => v.PackageId == id && v.Version == version, ct))

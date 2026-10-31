@@ -1,3 +1,4 @@
+import { i18n } from './i18n.svelte'
 export interface UserDto {
   id: string
   userName: string
@@ -368,7 +369,8 @@ export class ApiError extends Error {
 function firstProblemMessage(text: string): string | undefined {
   try {
     const body = JSON.parse(text) as { errors?: Record<string, string[]> }
-    return body.errors ? Object.values(body.errors)[0]?.[0] : undefined
+    const message = body.errors ? Object.values(body.errors)[0]?.[0] : undefined
+    return message ? i18n.server(message) : undefined
   } catch {
     return undefined
   }

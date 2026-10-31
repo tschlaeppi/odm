@@ -18,16 +18,16 @@ internal static class UpdateScripts
         log() { mkdir -p "$STATE/logs"; echo "$(date '+%F %T') $*" >> "$LOG"; }
 
         rm -f "$OK"
-        log "Update auf $VERSION beginnt."
+        log "Update to $VERSION started."
         systemctl stop odm-agent
         if ! cp -p "$BIN" "$BIN.bak"; then
-          log "Sicherung der alten Version fehlgeschlagen, Abbruch."
+          log "Backing up the old version failed, aborting."
           echo "$VERSION" > "$STATE/update-failed"
           systemctl start odm-agent
           exit 1
         fi
         if ! install -m 0755 "$STAGE/odm-agent" "$BIN.new" || ! mv -f "$BIN.new" "$BIN"; then
-          log "Austausch fehlgeschlagen, stelle alte Version wieder her."
+          log "Replacement failed, restoring the old version."
           mv -f "$BIN.bak" "$BIN"
           echo "$VERSION" > "$STATE/update-failed"
           systemctl start odm-agent
@@ -39,9 +39,9 @@ internal static class UpdateScripts
         while [ "$i" -lt 90 ] && [ ! -f "$OK" ]; do sleep 2; i=$((i+1)); done
         if [ -f "$OK" ]; then
           rm -f "$BIN.bak"
-          log "Update auf $VERSION erfolgreich."
+          log "Update to $VERSION succeeded."
         else
-          log "Neuer Agent hat sich nicht gemeldet, Rollback."
+          log "The new agent did not report back, rolling back."
           systemctl stop odm-agent
           mv -f "$BIN.bak" "$BIN"
           echo "$VERSION" > "$STATE/update-failed"
@@ -68,7 +68,7 @@ internal static class UpdateScripts
         }
 
         Remove-Item $ok -ErrorAction SilentlyContinue
-        Log "Update auf $Version beginnt."
+        Log "Update to $Version started."
         try {
             StopAgent
             Copy-Item -Path $exe -Destination $bak -Force
@@ -76,9 +76,9 @@ internal static class UpdateScripts
             Start-Service -Name $service
             $deadline = (Get-Date).AddSeconds(180)
             while (-not (Test-Path $ok) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
-            if (-not (Test-Path $ok)) { throw 'Der neue Agent hat sich nicht gemeldet.' }
+            if (-not (Test-Path $ok)) { throw 'The new agent did not report back.' }
             Remove-Item $bak -ErrorAction SilentlyContinue
-            Log "Update auf $Version erfolgreich."
+            Log "Update to $Version succeeded."
         } catch {
             Log "Rollback: $_"
             try { StopAgent } catch { }

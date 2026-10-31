@@ -21,12 +21,12 @@ public sealed class AgentOptions
         if (!Uri.TryCreate(ServerUrl, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
         {
-            return "Agent:ServerUrl fehlt oder ist keine gültige http(s)-URL.";
+            return "Agent:ServerUrl is missing or not a valid http(s) URL.";
         }
 
         if (uri.Scheme == Uri.UriSchemeHttp && !AllowInsecureHttp)
         {
-            return "Agent:ServerUrl muss https verwenden (Agent:AllowInsecureHttp nur für Tests).";
+            return "Agent:ServerUrl must use https (Agent:AllowInsecureHttp is for tests only).";
         }
 
         return null;
