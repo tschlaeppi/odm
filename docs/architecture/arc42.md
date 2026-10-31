@@ -280,6 +280,7 @@ flowchart LR
 | SQL Server provider not tested end to end | SQL Server migrations and queries are only covered by unit tests; provider differences may surface in operation | integration test run against SQL Server (Testcontainers or CI service) covering migrations, startup and the main flows |
 | Helm chart not tested on a cluster | template or configuration errors appear only at the first `helm install` | `helm lint` / `helm template` in CI, deployment test on a test cluster (e.g. kind) |
 | Forwarded client certificate not tested end to end | header formats and proxy settings (Caddy, ingress-nginx) are covered by unit tests only | integration test with Caddy and a real agent; verify the ingress-nginx settings on a cluster |
+| Backup / restore not tested end to end; retention deletes not tested on a real database | scripts and `ExecuteDelete` cleanups are only syntax / unit checked; a failing restore would be found too late | automated restore test on an empty environment (PostgreSQL and SQL Server), integration test for the cleanup jobs |
 | No load test | behaviour with thousands of agents (heartbeats, job delivery, reconciler, dashboard queries) is assumed, not measured | load test with simulated agents; derive sizing guidance and tune indexes / intervals |
 
 ## 12. Glossary
