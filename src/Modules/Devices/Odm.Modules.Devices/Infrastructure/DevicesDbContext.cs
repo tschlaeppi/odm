@@ -44,6 +44,9 @@ public sealed class DevicesDbContext(DbContextOptions<DevicesDbContext> options)
             b.Property(h => h.LastUser).HasMaxLength(256);
             b.Property(h => h.NetworkJson).HasMaxLength(8000);
             b.Property(h => h.DisksJson).HasMaxLength(8000);
+            // Computed views of the JSON columns, not mapped (EF would take them for navigations)
+            b.Ignore(h => h.Adapters);
+            b.Ignore(h => h.Volumes);
         });
 
         modelBuilder.Entity<InstalledSoftware>(b =>
