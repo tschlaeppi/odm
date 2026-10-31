@@ -53,5 +53,5 @@ src/Odm.Migrations.SqlServer/   SQL Server migration set
 web/                    Svelte web UI
 tests/Odm.Tests/        unit tests
 deploy/                 systemd unit, SQL Server and HTTPS compose files, Helm chart
-scripts/                agent packaging, SQL Server migration helper
+scripts/                agent packaging, SQL Server migration helper, backup / restore (Compose)
 ```

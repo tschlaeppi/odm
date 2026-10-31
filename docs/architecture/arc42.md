@@ -255,6 +255,7 @@ flowchart LR
 | ADR-29 | Helm chart deploys exactly one ODM replica; database optionally bundled, S3 always external | background services and the agent CA volume are not multi-instance safe yet; a managed DB / object store is the better production choice | accepted |
 | ADR-30 | A trusted reverse proxy may forward the agent certificate in a header; trust is defined by `Proxy:TrustedProxies` and the original peer address, ODM still validates the certificate | mTLS works behind Caddy / ingress; ODM stays the only authority on validity; the proxy network must be isolated, otherwise the header could be forged | accepted |
 | ADR-31 | Audit log as its own module; state-changing API requests are recorded by a middleware, sign-ins explicitly; bodies are never stored | complete coverage without touching every endpoint, no secrets in the log; actions are route based rather than semantic | accepted |
+| ADR-32 | Retention is enforced by daily background jobs in the owning modules (agent jobs and tokens, update runs, audit entries) with per-module settings | no central scheduler needed; each module knows its data; deletes use set-based `ExecuteDelete`, not yet tested on a real database | accepted |
 
 ## 10. Quality requirements
 
@@ -273,7 +274,6 @@ flowchart LR
 | Item | Impact | Mitigation / plan |
 |---|---|---|
 | No notifications | failures and silent devices are visible only in the dashboard | e-mail / webhook alerts |
-| No housekeeping | old jobs and results accumulate | retention settings and cleanup job |
 | Winget with *user* scope installs for SYSTEM | not for signed-in users | user-context execution |
 | No data migration between PostgreSQL and SQL Server | switching databases loses data | export / import tool if needed |
 | Pending EF model changes stop the server | forgotten migrations are noticed at start | documented in [development](../development.md) |

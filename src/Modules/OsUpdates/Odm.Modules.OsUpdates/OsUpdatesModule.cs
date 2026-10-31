@@ -24,6 +24,7 @@ public sealed class OsUpdatesModule : IModule
         services.AddScoped<UpdateSchedulingService>();
         services.AddScoped<IJobResultListener, UpdateRunListener>();
         services.AddHostedService<UpdateScheduler>();
+        services.AddHostedService<UpdateRunRetentionService>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

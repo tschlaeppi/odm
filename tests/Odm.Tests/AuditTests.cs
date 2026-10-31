@@ -70,3 +70,32 @@ public class AuditTests
         public IServiceScope CreateScope() => throw new InvalidOperationException("No scope expected.");
     }
 }
+
+public class RetentionTests
+{
+    private sealed class NoScopes : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() => throw new InvalidOperationException("No scope expected.");
+    }
+
+    [Fact]
+    public async Task Agent_cleanup_does_nothing_when_both_retentions_are_zero()
+    {
+        var service = new Odm.Modules.Agents.Application.AgentsRetentionService(
+            new NoScopes(),
+            Options.Create(new Odm.Modules.Agents.Application.AgentsOptions { JobRetentionDays = 0, TokenRetentionDays = 0 }),
+            NullLogger<Odm.Modules.Agents.Application.AgentsRetentionService>.Instance);
+
+        Assert.Equal((0, 0), await service.CleanAsync(DateTimeOffset.UtcNow, default));
+    }
+
+    [Fact]
+    public async Task Run_cleanup_does_nothing_when_retention_is_zero()
+    {
+        var service = new Odm.Modules.OsUpdates.Application.UpdateRunRetentionService(
+            new NoScopes(), new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(),
+            NullLogger<Odm.Modules.OsUpdates.Application.UpdateRunRetentionService>.Instance);
+
+        Assert.Equal(0, await service.CleanAsync(0, DateTimeOffset.UtcNow, default));
+    }
+}

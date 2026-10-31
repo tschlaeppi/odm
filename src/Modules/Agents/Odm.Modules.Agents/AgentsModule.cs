@@ -34,6 +34,7 @@ public sealed class AgentsModule : IModule
         services.AddSingleton(TrustedProxies.FromConfiguration(configuration));
         services.AddSingleton<ClientCertificateProvider>();
         services.AddScoped<AgentService>();
+        services.AddHostedService<AgentsRetentionService>();
         services.AddScoped<IJobQueue, JobQueue>();
 
         // Additional authentication scheme for agents; the default (JWT for users) stays unchanged.

@@ -175,10 +175,10 @@ Implemented, except: actions are shown route based (e.g. `DELETE software/packag
   agent certificates about to expire
 - Recipients and events are configurable; alerts are sent once per event, not repeatedly
 
-### 3.13 Housekeeping and backup *(proposed)*
+### 3.13 Housekeeping and backup
 
 - Configurable retention for finished jobs, update runs and audit entries; a background job removes old data
-- The documentation describes backup and restore of database, package storage, secrets key and agent CA
+- The documentation describes backup and restore of database, package storage, secrets key and agent CA; backup and restore scripts exist for Docker Compose with PostgreSQL
 
 ### 3.14 Inventory and reporting *(proposed)*
 

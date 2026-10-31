@@ -144,14 +144,48 @@ certificate to ODM in the `X-Client-Cert` header, see [agent.md](agent.md#mtls-b
 - **Agent client certificates (mTLS)** need either TLS terminated by ODM itself or a trusted proxy that forwards the
   certificate in a header. See [agent.md](agent.md#client-certificates-mtls).
 
+## Housekeeping and retention
+
+A daily background job deletes old data. Finished work is removed only after its retention period; pending or running
+jobs are never touched. `0` keeps the data forever.
+
+| Setting | Default | Deletes |
+|---|---|---|
+| `Agents:JobRetentionDays` | 90 | finished (succeeded / failed) agent jobs including their output |
+| `Agents:TokenRetentionDays` | 30 | used or expired registration tokens |
+| `OsUpdates:RunRetentionDays` | 365 | finished OS update runs |
+| `Audit:RetentionDays` | 365 | audit log entries |
+
+The current state of devices, installations and assignments is not affected; only the history (job output, run records) goes.
+
 ## Backup and restore
 
-Back up:
+What to back up:
 
 1. the database (PostgreSQL dump or SQL Server backup),
 2. the package bucket (S3),
-3. `ODM_SECRETS_KEY` (without it stored secrets cannot be decrypted),
-4. the CA directory (`odm-pki` volume / Kubernetes PVC `<release>-odm-pki`, `ca.crt` / `ca.key`) when mTLS is used. If the CA is lost, all agents must be re-registered.
+3. `ODM_SECRETS_KEY` (without it stored secrets cannot be decrypted; keep it apart from the other backups),
+4. the CA directory (`odm-pki` volume / Kubernetes PVC `<release>-odm-pki`, `ca.crt` / `ca.key`) when mTLS is used. If the CA is lost, all agents must be re-registered. It contains the CA private key: protect the backup.
+
+**Docker Compose with PostgreSQL:** the scripts do the work.
+
+```bash
+scripts/backup.sh                       # backup/<timestamp>/ with odm.dump and pki/
+scripts/backup.sh /mnt/backup --with-packages   # also copies the bundled S3 store
+scripts/restore.sh backup/20261031-120000       # replaces the database, CA and (if present) packages
+```
+
+Without the scripts: `docker compose exec -T db pg_dump -U odm -d odm -Fc > odm.dump` and
+`docker compose exec -T db pg_restore -U odm -d odm --clean --if-exists --no-owner < odm.dump`.
+Use the bucket tools of your S3 service (e.g. `mc mirror`) for an external store.
+
+**SQL Server:** `BACKUP DATABASE odm TO DISK = '...' WITH COMPRESSION, CHECKSUM` and the matching `RESTORE DATABASE`.
+
+**Kubernetes:** dump the database with `kubectl exec ... pg_dump` (or your operator's backup feature) and snapshot the CA
+volume, or copy it with `kubectl cp`.
+
+**Restore order:** stop ODM, restore database, bucket and CA directory, set the same `ODM_SECRETS_KEY`, start ODM (pending
+migrations are applied on start). Test a restore before you need it.
 
 ## Audit log
 

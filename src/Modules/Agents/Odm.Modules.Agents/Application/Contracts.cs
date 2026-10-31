@@ -16,6 +16,12 @@ public sealed class AgentsOptions
     /// </summary>
     public string PublicBaseUrl { get; set; } = "";
 
+    /// <summary>Finished jobs older than this many days are deleted daily. 0 = keep forever.</summary>
+    public int JobRetentionDays { get; set; } = 90;
+
+    /// <summary>Used or expired registration tokens older than this many days are deleted daily. 0 = keep forever.</summary>
+    public int TokenRetentionDays { get; set; } = 30;
+
     /// <summary>Self-update of the agents (off by default).</summary>
     public AgentUpdateOptions Update { get; set; } = new();
 
