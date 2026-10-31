@@ -1,13 +1,13 @@
-# ODM mit SQL Server statt Postgres. Start aus dem Repository-Wurzelverzeichnis:
+# ODM with SQL Server instead of PostgreSQL. Start from the repository root:
 #   docker compose -f deploy/docker-compose.mssql.yml --env-file .env up -d --build
-# Voraussetzung: SQL-Server-Migrationen sind eingecheckt (scripts/ef-sqlserver.*).
+# Prerequisite: the SQL Server migrations are committed (scripts/ef-sqlserver.*).
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${ODM_DB_PASSWORD:?ODM_DB_PASSWORD in .env setzen (mindestens 8 Zeichen, Gross-/Kleinbuchstaben, Ziffern)}
+      MSSQL_SA_PASSWORD: ${ODM_DB_PASSWORD:?set ODM_DB_PASSWORD in .env (mindestens 8 Zeichen, Gross-/Kleinbuchstaben, Ziffern)}
     volumes:
       - odm-db:/var/opt/mssql
     healthcheck:
@@ -17,13 +17,13 @@ services:
       retries: 12
       start_period: 20s
 
-  # S3-kompatibler Paketspeicher (RustFS). Jeder andere S3-Dienst funktioniert ebenso: Storage__S3__* anpassen.
+  # S3-compatible package store (RustFS). Any other S3 service works too: adjust Storage__S3__*.
   s3:
     image: rustfs/rustfs:latest
     restart: unless-stopped
     environment:
       RUSTFS_ACCESS_KEY: odm
-      RUSTFS_SECRET_KEY: ${ODM_S3_PASSWORD:?ODM_S3_PASSWORD in .env setzen (mindestens 8 Zeichen)}
+      RUSTFS_SECRET_KEY: ${ODM_S3_PASSWORD:?set ODM_S3_PASSWORD in .env (at least 8 characters)}
     volumes:
       - odm-packages:/data
 
@@ -43,17 +43,17 @@ services:
       - odm-pki:/pki
     environment:
       Database__Provider: SqlServer
-      # Das Passwort darf kein ';' enthalten. Für den Betrieb besser ein eigenes Konto statt 'sa' (siehe README).
+      # The password must not contain ';'. In production use a dedicated account instead of 'sa' (see docs/operations.md).
       Database__ConnectionString: Server=db;Database=odm;User Id=sa;Password=${ODM_DB_PASSWORD};TrustServerCertificate=True
       Storage__S3__ServiceUrl: http://s3:9000
       Storage__S3__Bucket: odm-packages
       Storage__S3__AccessKey: odm
       Storage__S3__SecretKey: ${ODM_S3_PASSWORD}
-      Secrets__MasterKey: ${ODM_SECRETS_KEY:?ODM_SECRETS_KEY in .env setzen (openssl rand -base64 32)}
-      Jwt__Secret: ${ODM_JWT_SECRET:?ODM_JWT_SECRET in .env setzen}
+      Secrets__MasterKey: ${ODM_SECRETS_KEY:?set ODM_SECRETS_KEY in .env (openssl rand -base64 32)}
+      Jwt__Secret: ${ODM_JWT_SECRET:?set ODM_JWT_SECRET in .env}
       Identity__BootstrapAdmin__UserName: ${ODM_ADMIN_USER:-admin}
-      Identity__BootstrapAdmin__Password: ${ODM_ADMIN_PASSWORD:?ODM_ADMIN_PASSWORD in .env setzen}
-      # Optional: Anmeldung gegen LDAP/Active Directory (siehe README)
+      Identity__BootstrapAdmin__Password: ${ODM_ADMIN_PASSWORD:?set ODM_ADMIN_PASSWORD in .env}
+      # Optional: sign-in against LDAP / Active Directory (see docs/authentication.md)
       Identity__Ldap__Enabled: ${ODM_LDAP_ENABLED:-false}
       Identity__Ldap__Host: ${ODM_LDAP_HOST:-}
       Identity__Ldap__Port: ${ODM_LDAP_PORT:-636}
@@ -64,15 +64,15 @@ services:
       Identity__Ldap__AdminGroup: ${ODM_LDAP_ADMIN_GROUP:-}
       Identity__Ldap__OperatorGroup: ${ODM_LDAP_OPERATOR_GROUP:-}
       Identity__Ldap__ReadOnlyGroup: ${ODM_LDAP_READONLY_GROUP:-}
-      # Agents: Selbstaktualisierung (Off | Latest | Pinned) und öffentliche Server-Adresse für die Installationsskripte
+      # Agents: self-update (Off | Latest | Pinned) and public server address for the install scripts
       Agents__Update__Mode: ${ODM_AGENT_UPDATE_MODE:-Off}
       Agents__Update__TargetVersion: ${ODM_AGENT_UPDATE_VERSION:-}
       Agents__Update__RolloutPercent: ${ODM_AGENT_UPDATE_PERCENT:-100}
       Agents__PublicBaseUrl: ${ODM_PUBLIC_URL:-}
-      # Agents: Client-Zertifikate (mTLS). Aus | Optional | Required; die CA liegt im Volume odm-pki. Erfordert HTTPS am Server (siehe README).
+      # Agents: client certificates (mTLS): Off | Optional | Required; the CA lives in the odm-pki volume. Requires HTTPS at the server (see docs/agent.md).
       Agents__Mtls__Mode: ${ODM_MTLS_MODE:-Off}
       Agents__Mtls__CaDirectory: /pki
-      # Optional: Anmeldung über OpenID Connect (Entra ID, authentik ...), siehe README. Beispiel für einen Anbieter:
+      # Optional: sign-in via OpenID Connect (Entra ID, authentik ...), see docs/authentication.md. Example for one provider:
       # Identity__Oidc__PublicBaseUrl: https://odm.example.org
       # Identity__Oidc__Providers__0__Id: authentik
       # Identity__Oidc__Providers__0__DisplayName: authentik

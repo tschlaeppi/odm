@@ -8,7 +8,7 @@ Type=notify
 ExecStart=/opt/odm-agent/odm-agent
 Restart=always
 RestartSec=10
-# Konfiguration (ServerUrl, einmaliges RegistrationToken) - Datei nur für root lesbar machen
+# Configuration (ServerUrl, one-time RegistrationToken) - make the file readable by root only
 EnvironmentFile=-/etc/odm-agent/agent.env
 
 [Install]
