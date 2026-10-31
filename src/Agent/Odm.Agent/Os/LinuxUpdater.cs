@@ -10,6 +10,10 @@ public sealed class LinuxUpdater : IOsUpdater
         ["LC_ALL"] = "C"
     };
 
+    // Ubuntu phased updates would otherwise be held back by "apt-get upgrade" although "apt list --upgradable" shows them.
+    // Staged rollouts are controlled by ODM itself, so all available updates are included.
+    private const string IncludePhased = "APT::Get::Always-Include-Phased-Updates=true";
+
     private static readonly IReadOnlyDictionary<string, string> RpmEnvironment = new Dictionary<string, string>
     {
         ["LC_ALL"] = "C"
@@ -44,7 +48,7 @@ public sealed class LinuxUpdater : IOsUpdater
         }
 
         // Simulation: which packages would be upgraded? ("Inst name [old] (new source ...)")
-        var simulation = await ProcessRunner.RunAsync("/usr/bin/apt-get", ["-s", "upgrade"], timeout, ct, AptEnvironment);
+        var simulation = await ProcessRunner.RunAsync("/usr/bin/apt-get", ["-s", "-o", IncludePhased, "upgrade"], timeout, ct, AptEnvironment);
         var packages = simulation.Output
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(l => l.StartsWith("Inst ", StringComparison.Ordinal))
@@ -55,12 +59,13 @@ public sealed class LinuxUpdater : IOsUpdater
 
         if (packages.Count == 0)
         {
-            return new OsUpdateResult(true, 0, 0, [], AptRebootRequired(), null);
+            return new OsUpdateResult(true, 0, 0, [], AptRebootRequired(), "No updates available.");
         }
 
         List<string> arguments =
         [
             "-y", "-q",
+            "-o", IncludePhased,
             "-o", "Dpkg::Options::=--force-confdef",
             "-o", "Dpkg::Options::=--force-confold"
         ];

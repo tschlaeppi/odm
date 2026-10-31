@@ -2,6 +2,7 @@
 // Patterns may contain {placeholders} which are carried over to the translation.
 
 const de: [string, string][] = [
+  ["No updates available.", "Keine Updates verfügbar."],
   ["User name is required (letters, digits and . _ @ -, at most 128 characters).", "Benutzername ist erforderlich (Buchstaben, Ziffern und . _ @ -, höchstens 128 Zeichen)."],
   ["Password must be 10 to 256 characters long.", "Das Passwort muss 10 bis 256 Zeichen lang sein."],
   ["Invalid role.", "Ungültige Rolle."],
