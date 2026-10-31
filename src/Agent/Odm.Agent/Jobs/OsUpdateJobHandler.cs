@@ -99,6 +99,18 @@ public sealed class OsUpdateJobHandler(
                     shutdown, ["-r", $"+{RebootDelaySeconds / 60}", reason], TimeSpan.FromMinutes(1), ct);
             }
 
+            if (result.ExitCode != 0 && !OperatingSystem.IsWindows() && result.Error.Contains("inhibitor", StringComparison.OrdinalIgnoreCase))
+            {
+                // E.g. an open desktop session blocks "shutdown". The policy allows restarts in the window,
+                // so the restart is scheduled through systemd and ignores the inhibitors.
+                logger.LogInformation("Restart is blocked by an inhibitor; scheduling it with --ignore-inhibitors.");
+                var systemdRun = new[] { "/usr/bin/systemd-run", "/bin/systemd-run" }.FirstOrDefault(File.Exists) ?? "systemd-run";
+                result = await ProcessRunner.RunAsync(
+                    systemdRun,
+                    ["--on-active=" + RebootDelaySeconds, "--unit=odm-reboot", "systemctl", "reboot", "--ignore-inhibitors"],
+                    TimeSpan.FromMinutes(1), ct);
+            }
+
             if (result.ExitCode != 0)
             {
                 logger.LogWarning(

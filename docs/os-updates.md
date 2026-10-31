@@ -17,5 +17,6 @@
 - **Linux (RPM):** `dnf` or `yum` (`--security` for *security only*).
 - **Restart:** only if the policy allows it, a restart is required and at least 5 minutes remain in the window. It is scheduled with
   a 2-minute delay so the agent can report the result first. A job that reaches the agent just before the window ends (device was offline) is not started.
+- On Linux, if `shutdown` is refused because of an inhibitor (e.g. an open desktop session), the restart is scheduled with `systemd-run ... systemctl reboot --ignore-inhibitors`; the policy's "restart if required" therefore also applies to devices with logged-in users.
 - On RPM systems restart detection needs `needs-restarting` (package `dnf-utils` / `yum-utils`).
 - The server needs time zone data (`tzdata`); the default Debian based image contains it.
