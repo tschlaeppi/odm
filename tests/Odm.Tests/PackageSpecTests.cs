@@ -132,4 +132,36 @@ public class PackageSpecTests
     [InlineData("{secret:EINFACH}", new string[0])]
     public void Secret_references_are_extracted_once_and_in_order(string text, string[] expected) =>
         Assert.Equal(expected, SecretReferences.Extract(text));
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("Windows", null)]
+    [InlineData("linux", "Linux")]
+    public void Psadt_platform_is_normalized(string? requested, string? expected)
+    {
+        var dto = Dto() with { Platform = requested };
+
+        Assert.True(PackageSpecValidator.TryValidate(PackageKind.Psadt, dto, NoSecrets, out var spec, out _));
+        Assert.Equal(expected, spec.Platform);
+    }
+
+    [Fact]
+    public void Unknown_platform_is_rejected_and_other_kinds_ignore_it()
+    {
+        var dto = Dto() with { Platform = "Mac" };
+        Assert.False(PackageSpecValidator.TryValidate(PackageKind.Psadt, dto, NoSecrets, out _, out var errors));
+        Assert.True(errors.ContainsKey("platform"));
+
+        var apt = Dto(id: "nginx") with { Platform = "Linux" };
+        Assert.True(PackageSpecValidator.TryValidate(PackageKind.Apt, apt, NoSecrets, out var spec, out _));
+        Assert.Null(spec.Platform);
+    }
+
+    [Fact]
+    public void Spec_without_platform_serializes_without_the_field()
+    {
+        // Existing specs keep their JSON, so no spurious new revisions are created.
+        Assert.DoesNotContain("platform", PackageSpec.Empty.ToJson());
+        Assert.Contains("\"platform\":\"Linux\"", (PackageSpec.Empty with { Platform = "Linux" }).ToJson());
+    }
 }

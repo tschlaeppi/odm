@@ -20,7 +20,13 @@ Notes:
   job for exactly that version. The agent verifies the SHA-256 checksum before unpacking.
 - Packages are unpacked in a protected working directory (not `%TEMP%`) because they run as SYSTEM.
 - When a package is assigned to a device several times, the most specific source wins: device before user before group.
-- PSADT packages are only installed on Windows. Exit codes 0, 1641 and 3010 count as success.
+- PSADT packages have a **platform** (Windows or Linux, chosen when the package is created and not changeable afterwards).
+  Windows packages run with Windows PowerShell 5.1 on Windows devices. Exit codes 0, 1641 and 3010 count as success.
+- **PSADT on Linux** uses [PSAppDeployToolkit-Linux](https://github.com/tschlaeppi/PSAppDeployToolkit-Linux): upload a ZIP that is
+  a deployment package of that project (it contains `Invoke-AppDeployToolkit.ps1` and the module, e.g. the `Template/` folder with
+  your install logic). The device needs PowerShell 7.4 or newer (`pwsh`, in `/usr/bin`, `/usr/local/bin`, `/opt/microsoft/powershell/7` or
+  `/snap/bin`); the agent runs the script as root with `-DeploymentType Install|Uninstall -DeployMode Silent`. Linux passes only the low 8 bits
+  of an exit code, so 3010 and 1641 (restart) arrive as 194 and 105; the agent treats 0, 105 and 194 as success.
 - Maximum package size: `Software:MaxPackageMegabytes` (default 4096). Behind a reverse proxy its upload limit must match.
 
 ## Repository packages
@@ -33,7 +39,7 @@ Winget, Chocolatey, APT, RPM, Flatpak and Snap. ODM stores only the configuratio
 - **Always unattended:** Winget `--silent --disable-interactivity`, Chocolatey `-y`, APT/DNF `-y`, Flatpak `--noninteractive`.
 - **Per manager:** Winget (scope `machine`/`user`, source), Chocolatey (source), Flatpak (scope, remote; *version* = commit ID),
   Snap (channel, classic; *version* = revision), APT and RPM (name, version).
-- **Matching devices:** Winget/Chocolatey/PSADT only on Windows, the rest only on Linux. APT packages go to DEB based, RPM
+- **Matching devices:** Winget/Chocolatey and PSADT packages of platform Windows only on Windows, the rest (incl. PSADT packages of platform Linux) only on Linux. APT packages go to DEB based, RPM
   packages to RPM based devices (detected by OS name; unknown distributions are allowed and the agent reports a clear error if the
   package manager is missing).
 - **Additional arguments** are appended to the command (split like a shell would, but without a shell). For PSADT they are passed to the script,

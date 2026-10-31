@@ -108,6 +108,8 @@ export interface PackageSpec {
   channel: string | null
   classic: boolean
   arguments: string | null
+  /** PSADT only: 'Windows' (default) or 'Linux'. */
+  platform?: string | null
 }
 
 export interface SecretDto {

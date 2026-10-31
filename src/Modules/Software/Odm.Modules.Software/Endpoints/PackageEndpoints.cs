@@ -137,6 +137,12 @@ internal static partial class PackageEndpoints
                     return Results.ValidationProblem(errors);
                 }
 
+                if (package.Kind == PackageKind.Psadt)
+                {
+                    // The platform cannot be changed afterwards: uploaded versions are built for one platform.
+                    spec = spec with { Platform = package.Spec.Platform };
+                }
+
                 var changed = package.SpecJson != spec.ToJson();
                 package.Update(request.Description, spec);
 
@@ -242,7 +248,7 @@ internal static partial class PackageEndpoints
                         await file!.CopyToAsync(target, ct);
                     }
 
-                    var zipError = PsadtZip.Validate(temp);
+                    var zipError = PsadtZip.Validate(temp, package.Spec.IsLinuxPsadt);
                     if (zipError is not null)
                     {
                         return Invalid("file", zipError);
@@ -290,7 +296,7 @@ internal static partial class PackageEndpoints
     private static string RevisionLabel(PackageSpec spec, int number) => $"{spec.Version ?? "latest"} (r{number})";
 
     private static PackageSpecDto ToDto(PackageSpec s) =>
-        new(s.Identifier, s.Version, s.Scope, s.Source, s.Remote, s.Channel, s.Classic, s.Arguments);
+        new(s.Identifier, s.Version, s.Scope, s.Source, s.Remote, s.Channel, s.Classic, s.Arguments, s.Platform);
 
     private static IResult Invalid(string field, string message) =>
         Results.ValidationProblem(new Dictionary<string, string[]> { [field] = [message] });

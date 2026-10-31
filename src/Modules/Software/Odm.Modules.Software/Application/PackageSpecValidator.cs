@@ -43,6 +43,23 @@ public static partial class PackageSpecValidator
         var remote = Clean(dto.Remote);
         var channel = Clean(dto.Channel);
         var arguments = Clean(dto.Arguments);
+        string? platform = null;
+        if (kind == PackageKind.Psadt)
+        {
+            var requested = Clean(dto.Platform);
+            if (requested is null || string.Equals(requested, "Windows", StringComparison.OrdinalIgnoreCase))
+            {
+                platform = null;
+            }
+            else if (string.Equals(requested, PackageSpec.LinuxPlatform, StringComparison.OrdinalIgnoreCase))
+            {
+                platform = PackageSpec.LinuxPlatform;
+            }
+            else
+            {
+                errors["platform"] = ["Platform: Windows or Linux."];
+            }
+        }
 
         if (kind.IsRepo())
         {
@@ -104,7 +121,7 @@ public static partial class PackageSpecValidator
             }
         }
 
-        spec = new PackageSpec(identifier, version, scope, source, remote, channel, classic, arguments);
+        spec = new PackageSpec(identifier, version, scope, source, remote, channel, classic, arguments, platform);
         return errors.Count == 0;
     }
 

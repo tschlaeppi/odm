@@ -2,6 +2,10 @@
 // Patterns may contain {placeholders} which are carried over to the translation.
 
 const de: [string, string][] = [
+  ["Platform: Windows or Linux.", "Plattform: Windows oder Linux."],
+  ["The ZIP contains no Invoke-AppDeployToolkit.ps1 (PSAppDeployToolkit-Linux package).", "Das ZIP enthält keine Invoke-AppDeployToolkit.ps1 (PSAppDeployToolkit-Linux-Paket)."],
+  ["Linux needs a PSAppDeployToolkit-Linux package (Invoke-AppDeployToolkit.ps1).", "Linux benötigt ein PSAppDeployToolkit-Linux-Paket (Invoke-AppDeployToolkit.ps1)."],
+  ["PowerShell 7.4 or newer (pwsh) is not installed on this device.", "PowerShell 7.4 oder neuer (pwsh) ist auf diesem Gerät nicht installiert."],
   ["No updates available.", "Keine Updates verfügbar."],
   ["User name is required (letters, digits and . _ @ -, at most 128 characters).", "Benutzername ist erforderlich (Buchstaben, Ziffern und . _ @ -, höchstens 128 Zeichen)."],
   ["Password must be 10 to 256 characters long.", "Das Passwort muss 10 bis 256 Zeichen lang sein."],

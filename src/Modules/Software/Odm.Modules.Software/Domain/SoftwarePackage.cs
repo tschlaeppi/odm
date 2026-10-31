@@ -1,11 +1,12 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Odm.SharedKernel;
 
 namespace Odm.Modules.Software.Domain;
 
 public enum PackageKind
 {
-    /// <summary>PSAppDeployToolkit package (zipped PSADT), Windows only.</summary>
+    /// <summary>PSAppDeployToolkit package (zipped PSADT); Windows by default, Linux with the platform setting.</summary>
     Psadt = 0,
 
     // Packages from third-party repositories: the device's package manager installs and updates them.
@@ -21,9 +22,13 @@ public static class PackageKindExtensions
 {
     public static bool IsRepo(this PackageKind kind) => kind != PackageKind.Psadt;
 
-    /// <summary>Winget, Chocolatey and PSADT run on Windows only, the rest on Linux only.</summary>
+    /// <summary>Winget and Chocolatey run on Windows only, the rest on Linux only; PSADT depends on its platform setting.</summary>
     public static bool IsWindowsOnly(this PackageKind kind) =>
         kind is PackageKind.Psadt or PackageKind.Winget or PackageKind.Chocolatey;
+
+    /// <summary>Does the package run on Windows devices (as opposed to Linux ones)?</summary>
+    public static bool RunsOnWindows(this PackageKind kind, PackageSpec spec) =>
+        kind.IsWindowsOnly() && !(kind == PackageKind.Psadt && spec.IsLinuxPsadt);
 }
 
 /// <summary>
@@ -38,8 +43,14 @@ public sealed record PackageSpec(
     string? Remote,
     string? Channel,
     bool Classic,
-    string? Arguments)
+    string? Arguments,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Platform = null)
 {
+    public const string LinuxPlatform = "Linux";
+
+    /// <summary>PSADT packages: does the package run on Linux (PSAppDeployToolkit-Linux, pwsh)? Default is Windows.</summary>
+    public bool IsLinuxPsadt => string.Equals(Platform, LinuxPlatform, StringComparison.Ordinal);
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public static PackageSpec Empty { get; } = new(null, null, null, null, null, null, false, null);

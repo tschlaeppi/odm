@@ -149,7 +149,7 @@ public sealed class DeploymentService(
 
                 foreach (var device in devices)
                 {
-                    if (!DistroFamily.Applies(package.Kind, device))
+                    if (!DistroFamily.Applies(package.Kind, specs[package.Id], device))
                     {
                         continue;
                     }

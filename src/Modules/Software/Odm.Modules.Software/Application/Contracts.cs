@@ -3,7 +3,7 @@ namespace Odm.Modules.Software.Application;
 /// <summary>Settings of a package; which fields apply depends on the kind.</summary>
 public sealed record PackageSpecDto(
     string? Identifier, string? Version, string? Scope, string? Source, string? Remote, string? Channel,
-    bool Classic, string? Arguments);
+    bool Classic, string? Arguments, string? Platform = null);
 
 public sealed record CreatePackageRequest(string? Name, string? Description, string? Kind, PackageSpecDto? Spec);
 

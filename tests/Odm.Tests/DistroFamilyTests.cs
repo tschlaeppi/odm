@@ -18,7 +18,7 @@ public class DistroFamilyTests
     [InlineData(PackageKind.Snap, "Windows", "Windows 11 Pro", false)]
     [InlineData(PackageKind.Apt, "Windows", "Windows 11 Pro", false)]
     public void Windows_and_linux_split(PackageKind kind, string family, string os, bool expected) =>
-        Assert.Equal(expected, DistroFamily.Applies(kind, Device(family, os)));
+        Assert.Equal(expected, DistroFamily.Applies(kind, PackageSpec.Empty, Device(family, os)));
 
     [Theory]
     [InlineData(PackageKind.Apt, "Ubuntu", true)]
@@ -35,5 +35,16 @@ public class DistroFamilyTests
     [InlineData(PackageKind.Flatpak, "Ubuntu", true)]
     [InlineData(PackageKind.Snap, "Rocky Linux", true)]
     public void Linux_distribution_families(PackageKind kind, string os, bool expected) =>
-        Assert.Equal(expected, DistroFamily.Applies(kind, Device("Linux", os)));
+        Assert.Equal(expected, DistroFamily.Applies(kind, PackageSpec.Empty, Device("Linux", os)));
+
+    [Theory]
+    [InlineData("Linux", "Ubuntu", true)]
+    [InlineData("Linux", "Rocky Linux", true)]
+    [InlineData("Windows", "Windows 11 Pro", false)]
+    public void Linux_psadt_packages_run_on_linux_only(string family, string os, bool expected)
+    {
+        var spec = PackageSpec.Empty with { Platform = PackageSpec.LinuxPlatform };
+
+        Assert.Equal(expected, DistroFamily.Applies(PackageKind.Psadt, spec, Device(family, os)));
+    }
 }

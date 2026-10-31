@@ -7,7 +7,8 @@
     kind,
     spec = $bindable(),
     secretNames = [],
-  }: { kind: PackageKind; spec: SpecForm; secretNames?: string[] } = $props()
+    platformLocked = false,
+  }: { kind: PackageKind; spec: SpecForm; secretNames?: string[]; platformLocked?: boolean } = $props()
 
   const isRepo = $derived(kind !== 'Psadt')
   const versionKey = $derived(
@@ -16,6 +17,15 @@
 </script>
 
 <div class="grid">
+  {#if !isRepo}
+    <label>
+      <span>{i18n.t('sw.spec.platform')}</span>
+      <select bind:value={spec.platform} disabled={platformLocked}>
+        <option value="Windows">Windows</option>
+        <option value="Linux">Linux</option>
+      </select>
+    </label>
+  {/if}
   {#if isRepo}
     <label class="wide">
       <span>{i18n.t(`sw.spec.identifier.${kind}` as MessageKey)}</span>
@@ -78,6 +88,7 @@
 
 <p class="muted small">
   {isRepo ? i18n.t('sw.spec.argumentsHint') : i18n.t('sw.spec.argumentsPsadt')}
+  {#if !isRepo && spec.platform === 'Linux'}{i18n.t('sw.spec.platformLinuxHint')}{/if}
   {#if secretNames.length > 0}
     {i18n.t('sw.secrets.available')}: {secretNames.map((n) => `{{secret:${n}}}`).join(', ')}
   {/if}

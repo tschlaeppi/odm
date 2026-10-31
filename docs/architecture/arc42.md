@@ -263,6 +263,7 @@ flowchart LR
 | ADR-36 | The project is licensed under Apache-2.0 | permissive, widely accepted by companies, explicit patent grant; keeps adoption easy; a later move to a stricter licence stays possible, a more permissive one would need all contributors' consent | accepted |
 | ADR-37 | Registration tokens can be reusable: a use limit (default 1, at most 1000) and a validity of up to one year; no approval step for new devices | lab and provisioning setups need automatic enrolment; the counter is incremented atomically and an exhausted, expired or deleted token stops working; devices registered with it appear immediately | accepted |
 | ADR-38 | Local users are managed in the UI by administrators (list, create, role, deactivate, set password, delete) and every local user can change the own password; protections against self-lockout live in `UserRules` | no CLI or database access should be needed for daily user work; the last active administrator and the own account cannot be removed or demoted; no migration was needed because the `users` table already had all columns | accepted |
+| ADR-39 | PSADT packages get a platform (Windows or Linux) stored in the package settings; the Linux variant runs PSAppDeployToolkit-Linux packages with `pwsh` | reuses the PSADT knowledge for Linux without a new package kind or a migration; the platform field is omitted from the JSON when it is Windows, so existing settings and revisions stay unchanged | accepted |
 
 ## 10. Quality requirements
 

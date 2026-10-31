@@ -363,7 +363,7 @@
           <input bind:value={pkgName} required maxlength="128" />
         </label>
         {#key pkg.id}
-          <PackageSpecForm kind={pkg.kind} bind:spec {secretNames} />
+          <PackageSpecForm kind={pkg.kind} bind:spec {secretNames} platformLocked />
         {/key}
       </fieldset>
       {#if auth.canEdit}

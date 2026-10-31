@@ -14,7 +14,8 @@ public sealed record InstallPsadtPayload(
 
 /// <summary>
 /// Installs (or uninstalls) a PSADT package: download, verify checksum, unpack, run the script silently.
-/// Supports PSADT v4 (Invoke-AppDeployToolkit.ps1) and v3 (Deploy-Application.ps1).
+/// Windows: PSADT v4 (Invoke-AppDeployToolkit.ps1) and v3 (Deploy-Application.ps1) with Windows PowerShell 5.1.
+/// Linux: PSAppDeployToolkit-Linux packages (v4 script) with PowerShell 7.4+ (pwsh).
 /// </summary>
 public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logger) : IJobHandler
 {
@@ -22,15 +23,21 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
     private static readonly string[] Scripts = ["Invoke-AppDeployToolkit.ps1", "Deploy-Application.ps1"];
 
     // 1641 and 3010: installation succeeded, restart required.
-    private static readonly HashSet<int> SuccessCodes = [0, 1641, 3010];
+    private static readonly HashSet<int> WindowsSuccessCodes = [0, 1641, 3010];
+
+    // Linux passes only the low 8 bits of an exit code to the parent: 1641 -> 105, 3010 -> 194.
+    private static readonly HashSet<int> LinuxSuccessCodes = [0, 1641 & 0xFF, 3010 & 0xFF];
+
+    private static readonly string[] PwshLocations =
+        ["/usr/bin/pwsh", "/usr/local/bin/pwsh", "/opt/microsoft/powershell/7/pwsh", "/snap/bin/pwsh"];
 
     public string Type => "install-psadt";
 
     public async Task<JobOutcome> HandleAsync(ServerJob job, JobContext context, CancellationToken ct)
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
         {
-            return Fail("PSADT packages are only supported on Windows.");
+            return Fail("PSADT packages are only supported on Windows and Linux.");
         }
 
         InstallPsadtPayload? payload;
@@ -71,6 +78,11 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
             if (script is null)
             {
                 return Fail("No PSADT script was found in the package.");
+            }
+
+            if (OperatingSystem.IsLinux() && !Path.GetFileName(script).Equals(Scripts[0], StringComparison.OrdinalIgnoreCase))
+            {
+                return Fail("Linux needs a PSAppDeployToolkit-Linux package (Invoke-AppDeployToolkit.ps1).");
             }
 
             ResolvedArguments arguments;
@@ -114,7 +126,23 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
     private static async Task<JobOutcome> RunAsync(
         string script, int timeoutMinutes, ResolvedArguments arguments, string deploymentType, CancellationToken ct)
     {
-        var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+        var linux = OperatingSystem.IsLinux();
+        string powershell;
+        if (linux)
+        {
+            var pwsh = PwshLocations.FirstOrDefault(File.Exists);
+            if (pwsh is null)
+            {
+                return Fail("PowerShell 7.4 or newer (pwsh) is not installed on this device.");
+            }
+
+            powershell = pwsh;
+        }
+        else
+        {
+            powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+        }
+
         var startInfo = new ProcessStartInfo(powershell)
         {
             WorkingDirectory = Path.GetDirectoryName(script)!,
@@ -124,13 +152,25 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
             RedirectStandardError = true
         };
 
-        foreach (var argument in new[]
-                 {
-                     "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                     "-File", script, "-DeploymentType", deploymentType, "-DeployMode", "Silent"
-                 })
+        string[] fixedArguments = linux
+            ? ["-NoProfile", "-NonInteractive", "-File", script, "-DeploymentType", deploymentType, "-DeployMode", "Silent"]
+            : ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, "-DeploymentType", deploymentType, "-DeployMode", "Silent"];
+        foreach (var argument in fixedArguments)
         {
             startInfo.ArgumentList.Add(argument);
+        }
+
+        if (linux)
+        {
+            // A systemd service has no HOME; pwsh and PSADT need one for caches and logs.
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("HOME")))
+            {
+                startInfo.Environment["HOME"] = "/root";
+            }
+
+            startInfo.Environment["POWERSHELL_TELEMETRY_OPTOUT"] = "1";
+            startInfo.Environment["POWERSHELL_UPDATECHECK"] = "Off";
+            startInfo.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
         }
 
         // Additional arguments are passed to the PSADT script; the script must declare matching parameters.
@@ -170,15 +210,17 @@ public sealed class InstallPsadtJobHandler(ILogger<InstallPsadtJobHandler> logge
         process.WaitForExit(); // makes sure the last output has been read
 
         var code = process.ExitCode;
+        var successCodes = linux ? LinuxSuccessCodes : WindowsSuccessCodes;
         var summary = code switch
         {
             0 => "Exit code 0 (succeeded)",
             1641 or 3010 => $"Exit code {code} (succeeded, restart required)",
+            105 or 194 when linux => $"Exit code {code} (succeeded, restart required)",
             _ => $"Exit code {code}"
         };
 
         return new JobOutcome(
-            SuccessCodes.Contains(code),
+            successCodes.Contains(code),
             SecretSubstitution.Redact($"{summary}\n{tail}", arguments.SecretValues).TrimEnd());
     }
 

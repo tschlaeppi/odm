@@ -2,7 +2,7 @@
   <PropertyGroup>
     <RootNamespace>Odm.Agent</RootNamespace>
     <AssemblyName>odm-agent</AssemblyName>
-    <Version>0.8.3</Version>
+    <Version>0.8.4</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
