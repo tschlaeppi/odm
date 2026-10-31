@@ -332,7 +332,7 @@
   th,
   td {
     text-align: left;
-    padding: 0.3rem 0.6rem;
+    padding: 0.5rem 0.75rem;
     white-space: nowrap;
   }
   th.right,
@@ -342,11 +342,9 @@
   thead th {
     background: var(--header);
     border-bottom: 1px solid var(--border);
-    font-weight: 600;
-    font-size: 0.78rem;
+    font-weight: 500;
+    font-size: 0.8rem;
     color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
   }
   .sort {
     all: unset;

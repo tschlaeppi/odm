@@ -471,7 +471,7 @@
     vertical-align: top;
   }
   .aligned :global(td:not(:has(select)):not(.actions)) {
-    padding-top: 0.8rem;
+    padding-top: 1.05rem;
   }
   .target-cell {
     display: grid;

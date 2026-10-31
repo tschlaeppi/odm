@@ -1,35 +1,39 @@
 :root {
-  --bg: #f3f6fa;
+  --bg: #f6f7f9;
   --surface: #ffffff;
-  --header: #f7f9fc;
-  --text: #1b2733;
-  --muted: #5d6c7e;
-  --border: #d6dee9;
-  --hover: #edf4fb;
-  --accent: #0078d4;
-  --accent-strong: #106ebe;
-  --accent-soft: #e5f1fb;
+  --header: #f6f7f9;
+  --text: #1d2433;
+  --muted: #5c6577;
+  --border: #e1e4ea;
+  --hover: #f1f3f7;
+  --accent: #1f2d57;
+  --accent-strong: #121c3b;
+  --accent-soft: #e8ecf6;
   --accent-text: #ffffff;
-  --danger: #c4261d;
-  --ok: #107c41;
-  --radius: 0.3rem;
+  --danger: #b42318;
+  --ok: #17603a;
+  --topbar-bg: #1f2d57;
+  --topbar-text: #ffffff;
+  --radius: 0.25rem;
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --bg: #11171f;
-  --surface: #18202a;
-  --header: #1c2530;
-  --text: #e6ebf1;
-  --muted: #98a6b7;
-  --border: #2a3644;
-  --hover: #1f2b38;
-  --accent: #3b9eef;
-  --accent-strong: #62b3f5;
-  --accent-soft: #17324a;
-  --accent-text: #08121c;
-  --danger: #f2736b;
-  --ok: #4cc38a;
+  --bg: #0f141c;
+  --surface: #151b25;
+  --header: #1a212c;
+  --text: #e6e9ef;
+  --muted: #9aa4b5;
+  --border: #28313f;
+  --hover: #1c2431;
+  --accent: #93a9e8;
+  --accent-strong: #b5c5f2;
+  --accent-soft: #1c2640;
+  --accent-text: #0c1220;
+  --danger: #f08a80;
+  --ok: #52c48b;
+  --topbar-bg: #1a2342;
+  --topbar-text: #ffffff;
   color-scheme: dark;
 }
 
@@ -43,7 +47,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  font-family: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.45;
 }
@@ -200,21 +204,21 @@ dialog::backdrop {
 
 .badge {
   display: inline-block;
-  padding: 0.1rem 0.55rem;
-  border-radius: 0.2rem;
+  padding: 0.1rem 0.65rem;
+  border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   background: var(--hover);
   color: var(--muted);
 }
 
 .badge.ok {
-  background: rgb(16 124 65 / 0.14);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
   color: var(--ok);
 }
 
 .badge.err {
-  background: rgb(196 38 29 / 0.14);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
   color: var(--danger);
 }
 

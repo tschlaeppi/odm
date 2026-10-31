@@ -22,7 +22,7 @@
 
   let collapsed = $state(false)
   try {
-    collapsed = localStorage.getItem('odm.sidebar') === 'collapsed'
+    collapsed = localStorage.getItem('odm.sidebar') !== 'expanded'
   } catch {
     // Storage not available
   }
@@ -76,7 +76,7 @@
   <header class="topbar">
     <span class="brand"><span class="logo" aria-hidden="true">◧</span>{i18n.t('app.title')}</span>
     {#if info}
-      <span class="version muted" title={`${info.runtime} · ${info.databaseProvider}`}>v{info.version}</span>
+      <span class="version" title={`${info.runtime} · ${info.databaseProvider}`}>v{info.version}</span>
     {/if}
     <span class="spacer"></span>
     <button class="ghost" onclick={() => i18n.toggle()} aria-label={i18n.t('lang.toggle')}>
@@ -221,9 +221,14 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0 1rem;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    border-top: 3px solid var(--accent);
+    background: var(--topbar-bg);
+    color: var(--topbar-text);
+  }
+  .topbar button.ghost {
+    color: var(--topbar-text);
+  }
+  .topbar button.ghost:hover:not(:disabled) {
+    background: rgb(255 255 255 / 0.14);
   }
   .brand {
     display: flex;
@@ -232,18 +237,18 @@
     font-weight: 600;
   }
   .logo {
-    color: var(--accent);
     font-size: 1.2rem;
   }
   .version {
     font-size: 0.8rem;
+    color: rgb(255 255 255 / 0.72);
   }
   .spacer {
     flex: 1;
   }
   .user {
     margin: 0 0.25rem;
-    color: var(--muted);
+    color: rgb(255 255 255 / 0.85);
   }
   .side {
     position: sticky;
