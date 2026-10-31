@@ -127,6 +127,20 @@ Akzeptanzkriterien:
 - Modi: Aus (Standard) / Optional (Geräte mit Zertifikat müssen es vorzeigen) / Erforderlich
 - Ein Administrator kann die Zertifikatsbindung eines Geräts zurücksetzen
 
+### 3.8 Deinstallation, Umbenennen, Meldungen
+
+- Eine Paketzuweisung hat die Absicht „Installieren“ oder „Deinstallieren“; deinstalliert wird nur dort, wo ODM das Paket installiert hat
+- Deinstallation für PSADT (Uninstall-Modus des Pakets) und alle Repo-Paketmanager; fehlgeschlagene Läufe werden begrenzt wiederholt
+- Softwarepakete können umbenannt werden (Name bleibt eindeutig)
+- Die vollständige Meldung einer Installation ist auf der Geräte- und Paketseite lesbar (bis 64 000 Zeichen, z. B. PSADT-Protokolle)
+
+### 3.9 Dashboard
+
+- Startseite mit Kennzahlen: Geräte, Online-Status, Geräte ohne Heartbeat (Schwelle wählbar), fehlgeschlagene Installationen
+- Verteilungen nach Betriebssystem und Agent-Version; Status der Softwareverteilung insgesamt und je Paket
+- Liste der letzten Fehler und der Geräte ohne Heartbeat mit Link zum Gerät
+
+
 - **Design:** Clean, minimalistisch, Dark-Mode-Unterstützung
 - **Sicherheit:** Passwörter müssen gehasht werden
 - **Performance:** Keine externen schweren Bibliotheken, wenn nicht nötig
