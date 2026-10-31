@@ -106,6 +106,79 @@ namespace Odm.Migrations.SqlServer.Devices
                     b.ToTable("device_groups", "devices");
                 });
 
+            modelBuilder.Entity("Odm.Modules.Devices.Domain.DeviceHardware", b =>
+                {
+                    b.Property<Guid>("DeviceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Architecture")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("CollectedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Cpu")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int?>("CpuCores")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("DiskFreeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("DiskTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Manufacturer")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<long?>("MemoryBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("DeviceId");
+
+                    b.ToTable("device_hardware", "devices");
+                });
+
+            modelBuilder.Entity("Odm.Modules.Devices.Domain.InstalledSoftware", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Publisher")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("installed_software", "devices");
+                });
+
             modelBuilder.Entity("Odm.Modules.Devices.Domain.DeviceGroup", b =>
                 {
                     b.OwnsMany("Odm.Modules.Devices.Domain.GroupRule", "Rules", b1 =>
