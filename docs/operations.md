@@ -46,6 +46,7 @@ Settings come from `appsettings.json` and environment variables (`Section__Key`)
 | `Agents:PublicBaseUrl` | | public address for install scripts (set it behind a reverse proxy) |
 | `Agents:Update:*` | off | agent self-update policy, see [agent.md](agent.md) |
 | `Agents:Mtls:*` | off | agent client certificates, see [agent.md](agent.md) |
+| `Audit:RetentionDays` | 365 | audit entries older than this are deleted daily (0 = keep forever) |
 | `Proxy:ForwardedHeaders` | `false` | take client address and scheme from `X-Forwarded-*` (reverse proxy) |
 | `Proxy:TrustedProxies` | empty | addresses / CIDR ranges of trusted proxies; empty = every peer for `X-Forwarded-*`, none for forwarded certificates |
 
@@ -151,6 +152,19 @@ Back up:
 2. the package bucket (S3),
 3. `ODM_SECRETS_KEY` (without it stored secrets cannot be decrypted),
 4. the CA directory (`odm-pki` volume / Kubernetes PVC `<release>-odm-pki`, `ca.crt` / `ca.key`) when mTLS is used. If the CA is lost, all agents must be re-registered.
+
+## Audit log
+
+Administrators see the audit log in the UI (*Audit log*, menu *System*) or via `GET /api/audit` (filters `from`, `to`, `actor`,
+`outcome`, `text`; at most 500 entries per request). It records:
+
+- every state-changing API request (POST, PUT, PATCH, DELETE) with time, user and role, route, affected path, outcome
+  (`success`, `failed`, `denied`, `error`) and client address,
+- sign-ins and failed sign-ins (local, LDAP, OIDC), agent registrations and certificate requests.
+
+Request bodies are never stored, so passwords, tokens and secret values do not appear. Agent traffic such as heartbeats is
+not recorded. The application offers no way to change or delete single entries; the retention job removes old ones
+(`Audit:RetentionDays`). For tamper resistance beyond that, restrict database access or ship the table to a log system.
 
 ## Security notes
 

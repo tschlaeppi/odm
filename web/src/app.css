@@ -229,7 +229,7 @@ progress {
   accent-color: var(--accent);
 }
 
-/* Tabellen in Detailseiten: kompakt, mit abgesetzter Kopfzeile */
+/* Tables in detail pages: compact, with a set-off header row */
 table {
   font-size: 0.92rem;
 }

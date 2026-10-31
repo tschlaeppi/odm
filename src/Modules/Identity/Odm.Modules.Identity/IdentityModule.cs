@@ -18,6 +18,7 @@ using Odm.Modules.Identity.Infrastructure;
 using Odm.Modules.Identity.Infrastructure.Ldap;
 using Odm.Modules.Identity.Infrastructure.Oidc;
 using Odm.SharedKernel;
+using Odm.SharedKernel.Contracts;
 using Odm.SharedKernel.Persistence;
 
 namespace Odm.Modules.Identity;
@@ -113,7 +114,7 @@ public sealed class IdentityModule : IModule
     {
         var group = endpoints.MapGroup("/auth").WithTags("Auth");
 
-        group.MapPost("/login", async (LoginRequest request, AuthService auth, CancellationToken ct) =>
+        group.MapPost("/login", async (LoginRequest request, AuthService auth, HttpContext http, CancellationToken ct) =>
             {
                 if (string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrEmpty(request.Password))
                 {
@@ -124,6 +125,7 @@ public sealed class IdentityModule : IModule
                 }
 
                 var response = await auth.LoginAsync(request.UserName, request.Password, ct);
+                await AuditSignInAsync(http, "auth.login", request.UserName, response, null, ct);
                 return response is null ? Results.Unauthorized() : Results.Ok(response);
             })
             .AllowAnonymous()
@@ -141,6 +143,25 @@ public sealed class IdentityModule : IModule
                     principal.FindFirstValue("role") ?? ""));
             })
             .RequireAuthorization();
+    }
+
+    /// <summary>Records a sign-in attempt (the Audit module is optional). The password is never part of the entry.</summary>
+    private static Task AuditSignInAsync(
+        HttpContext http, string action, string? userName, LoginResponse? response, string? error, CancellationToken ct)
+    {
+        var audit = http.RequestServices.GetService<IAuditLog>();
+        if (audit is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var name = (userName ?? "").Trim();
+        return audit.RecordAsync(new AuditEvent(
+            action,
+            response is null ? "failed" : "success",
+            Actor: name.Length > 0 ? name : "unknown",
+            Role: response?.User.Role,
+            Details: response is null ? error : null), ct);
     }
 
     private const string OidcCookie = "odm_oidc";
@@ -198,6 +219,7 @@ public sealed class IdentityModule : IModule
                 }
 
                 var result = await oidc.CompleteAsync(code, state, cookie, ct);
+                await AuditSignInAsync(http, "auth.login.oidc", result.Response?.User.UserName, result.Response, result.Error, ct);
                 if (result.Response is null)
                 {
                     return Results.Redirect($"/#/login?oidc={result.Error ?? "failed"}");

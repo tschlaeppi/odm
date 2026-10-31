@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Agent\Odm.Agent\Odm.Agent.csproj" />
     <ProjectReference Include="..\..\src\Modules\Agents\Odm.Modules.Agents\Odm.Modules.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\Odm.Modules.Audit\Odm.Modules.Audit.csproj" />
     <ProjectReference Include="..\..\src\Modules\Devices\Odm.Modules.Devices\Odm.Modules.Devices.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Odm.Modules.Identity\Odm.Modules.Identity.csproj" />
     <ProjectReference Include="..\..\src\Modules\OsUpdates\Odm.Modules.OsUpdates\Odm.Modules.OsUpdates.csproj" />

@@ -2,6 +2,7 @@
   import DeviceDetail from './lib/DeviceDetail.svelte'
   import Devices from './lib/Devices.svelte'
   import Dashboard from './lib/Dashboard.svelte'
+  import Audit from './lib/Audit.svelte'
   import Enrollment from './lib/Enrollment.svelte'
   import GroupEditor from './lib/GroupEditor.svelte'
   import Groups from './lib/Groups.svelte'
@@ -28,7 +29,7 @@
     try {
       localStorage.setItem('odm.sidebar', collapsed ? 'collapsed' : 'expanded')
     } catch {
-      // ignorieren
+      // storage not available
     }
   }
 
@@ -49,7 +50,9 @@
             ? 'os-updates'
             : router.path.startsWith('/enrollment')
               ? 'enrollment'
-              : 'devices',
+              : router.path.startsWith('/audit')
+                ? 'audit'
+                : 'devices',
   )
 </script>
 
@@ -104,6 +107,12 @@
           <span class="label">{i18n.t('nav.enrollment')}</span>
         </a>
       {/if}
+      {#if auth.isAdmin}
+        <a href="#/audit" title={collapsed ? i18n.t('nav.audit') : undefined} class:active={section === 'audit'}>
+          <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 13h7M9 17h7" /></svg>
+          <span class="label">{i18n.t('nav.audit')}</span>
+        </a>
+      {/if}
       <span class="fill"></span>
       <button
         class="collapse"
@@ -147,6 +156,8 @@
         <OsUpdates />
       {:else if section === 'enrollment' && auth.canEdit}
         <Enrollment />
+      {:else if section === 'audit' && auth.isAdmin}
+        <Audit />
       {:else if deviceId}
         {#key deviceId}
           <DeviceDetail id={deviceId} />

@@ -66,7 +66,7 @@
     try {
       if (storageKey) localStorage.setItem(`odm.columns.${storageKey}`, JSON.stringify(hidden))
     } catch {
-      // ignorieren
+      // storage not available
     }
   }
 

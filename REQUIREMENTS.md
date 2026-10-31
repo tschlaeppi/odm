@@ -155,7 +155,7 @@ Acceptance criteria:
 - The documentation describes certificate handling and the required proxy settings (forwarded headers, upload limit) *(implemented)*
 - With a TLS-terminating reverse proxy, agent client certificates (mTLS) can still be used by forwarding the client certificate in a header from a trusted proxy *(implemented)*
 
-### 3.11 Audit log *(proposed)*
+### 3.11 Audit log
 
 **As a security officer** I want to see who changed what and when.
 
@@ -166,6 +166,8 @@ Acceptance criteria:
 - Each entry contains time, user (or system), action, affected object and outcome; no secret values
 - Administrators can search and filter the log in the UI; entries cannot be changed through the application
 - Retention is configurable
+
+Implemented, except: actions are shown route based (e.g. `DELETE software/packages/{id}`) and objects by path / ID rather than by name.
 
 ### 3.12 Notifications *(proposed)*
 

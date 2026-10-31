@@ -15,7 +15,7 @@ public interface IDeviceDirectory
 
     Task<IReadOnlyDictionary<Guid, string>> GetGroupNamesAsync(IReadOnlyCollection<Guid> groupIds, CancellationToken ct);
 
-    /// <summary>Aktuelle Mitglieder einer dynamischen Gruppe.</summary>
+    /// <summary>Current members of a dynamic group.</summary>
     Task<IReadOnlyList<DeviceRef>> ResolveGroupAsync(Guid groupId, CancellationToken ct);
 
     /// <summary>Devices whose primary user is the given user.</summary>

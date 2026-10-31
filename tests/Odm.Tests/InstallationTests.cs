@@ -2,7 +2,7 @@ using Odm.Modules.Software.Domain;
 
 namespace Odm.Tests;
 
-/// <summary>Der Zustandsautomat einer Installation: Pending, Running, Installed, Failed.</summary>
+/// <summary>The state machine of an installation: Pending, Running, Installed, Failed.</summary>
 public class InstallationTests
 {
     private static readonly DateTimeOffset T0 = new(2026, 10, 30, 12, 0, 0, TimeSpan.Zero);

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Odm.Modules.Agents.Infrastructure;
+using Odm.Modules.Audit.Infrastructure;
 using Odm.Modules.Devices.Infrastructure;
 using Odm.Modules.Identity.Infrastructure;
 using Odm.Modules.OsUpdates.Infrastructure;
@@ -40,4 +41,10 @@ internal sealed class OsUpdatesFactory : IDesignTimeDbContextFactory<OsUpdatesDb
 {
     public OsUpdatesDbContext CreateDbContext(string[] args) =>
         new(DatabaseExtensions.CreateDesignTimeOptions<OsUpdatesDbContext>(OsUpdatesDbContext.Schema, DatabaseProvider.SqlServer));
+}
+
+internal sealed class AuditFactory : IDesignTimeDbContextFactory<AuditDbContext>
+{
+    public AuditDbContext CreateDbContext(string[] args) =>
+        new(DatabaseExtensions.CreateDesignTimeOptions<AuditDbContext>(AuditDbContext.Schema, DatabaseProvider.SqlServer));
 }

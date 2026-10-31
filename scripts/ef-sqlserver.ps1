@@ -1,6 +1,7 @@
 # Creates SQL Server migrations for all modules (PostgreSQL migrations stay untouched).
-# Run from the repository root:  .\scripts\ef-sqlserver.ps1 Initial
-param([Parameter(Mandatory = $true)][string]$Name)
+# Run from the repository root:  .\scripts\ef-sqlserver.ps1 <Name> [Module ...]
+# Without module names every module gets a migration; pass names to limit it (e.g. .\scripts\ef-sqlserver.ps1 Initial Audit).
+param([Parameter(Mandatory = $true)][string]$Name, [Parameter(ValueFromRemainingArguments = $true)][string[]]$Modules)
 
 $ErrorActionPreference = 'Stop'
 $env:ODM_DB_PROVIDER = 'SqlServer'
@@ -9,9 +10,10 @@ if (-not $env:ODM_DB) { $env:ODM_DB = 'Server=localhost;Database=odm_design;User
 
 # Restore packages (the migrations project is new and has not been restored yet)
 dotnet restore src/Odm.Host
-if ($LASTEXITCODE -ne 0) { throw 'dotnet restore fehlgeschlagen.' }
+if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
 
-foreach ($module in 'Identity', 'Devices', 'Agents', 'Software', 'OsUpdates') {
+if (-not $Modules) { $Modules = 'Identity', 'Audit', 'Devices', 'Agents', 'Software', 'OsUpdates' }
+foreach ($module in $Modules) {
     Write-Host "== $module"
     dotnet ef migrations add $Name `
         --context "${module}DbContext" `

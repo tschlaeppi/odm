@@ -447,6 +447,24 @@ export interface AgentPackagesDto {
   packages: AgentPackageDto[]
 }
 
+export interface AuditEntryDto {
+  id: string
+  timestamp: string
+  actor: string
+  role: string | null
+  action: string
+  target: string | null
+  outcome: string
+  statusCode: number | null
+  ipAddress: string | null
+  details: string | null
+}
+
+export interface AuditPageDto {
+  total: number
+  items: AuditEntryDto[]
+}
+
 export interface DeviceGroupRefDto {
   id: string
   name: string
@@ -454,6 +472,11 @@ export interface DeviceGroupRefDto {
 }
 
 export const api = {
+  audit: (filter: { from?: string; actor?: string; outcome?: string; text?: string }) => {
+    const query = new URLSearchParams({ take: '500' })
+    for (const [key, value] of Object.entries(filter)) if (value) query.set(key, value)
+    return request<AuditPageDto>(`/audit?${query}`)
+  },
   device: (id: string) => request<DeviceDto>(`/devices/${id}`),
   deviceGroups: (id: string) => request<DeviceGroupRefDto[]>(`/devices/${id}/groups`),
   deviceInstallations: (id: string) => request<InstallationDto[]>(`/software/installations/by-device?deviceId=${id}`),

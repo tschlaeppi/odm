@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Odm.Modules.Agents;
+using Odm.Modules.Audit;
 using Odm.Modules.Agents.Infrastructure;
 using Odm.Modules.Devices;
 using Odm.Modules.Identity;
@@ -16,6 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 IModule[] modules =
 [
     new IdentityModule(),
+    new AuditModule(),
     new DevicesModule(),
     new AgentsModule(),
     new SoftwareModule(),

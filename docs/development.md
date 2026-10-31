@@ -78,7 +78,7 @@ scripts/ef-sqlserver.sh <Name>          # Linux / macOS
 .\scripts\ef-sqlserver.ps1 <Name>       # Windows
 ```
 
-Modules: `Identity`, `Devices`, `Agents`, `Software`, `OsUpdates`. Commit the generated files. The host applies the set of the
+Modules: `Identity`, `Audit`, `Devices`, `Agents`, `Software`, `OsUpdates`. `scripts/ef-sqlserver.sh <Name> [Module ...]` limits the SQL Server migration to the given modules (e.g. `scripts/ef-sqlserver.sh Initial Audit` for a new module). Commit the generated files. The host applies the set of the
 configured provider on start and aborts with a clear message if the SQL Server set is missing. If the model has pending
 changes without a migration, the server does not start.
 
