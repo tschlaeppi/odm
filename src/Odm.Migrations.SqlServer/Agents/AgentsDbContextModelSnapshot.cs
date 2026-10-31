@@ -120,10 +120,18 @@ namespace Odm.Migrations.SqlServer.Agents
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<int>("MaxUses")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<byte[]>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varbinary(32)");
+
+                    b.Property<int>("UseCount")
+                        .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("UsedAt")
                         .HasColumnType("datetimeoffset");
