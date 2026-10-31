@@ -99,8 +99,16 @@ public sealed class OsUpdateJobHandler(
                     shutdown, ["-r", $"+{RebootDelaySeconds / 60}", reason], TimeSpan.FromMinutes(1), ct);
             }
 
-            logger.LogInformation("Restart scheduled in {Seconds} s (exit code {Code}).", RebootDelaySeconds, result.ExitCode);
-            return result.ExitCode == 0;
+            if (result.ExitCode != 0)
+            {
+                logger.LogWarning(
+                    "Restart could not be scheduled (exit code {Code}): {Error} {Output}",
+                    result.ExitCode, result.Error.Trim(), result.Output.Trim());
+                return false;
+            }
+
+            logger.LogInformation("Restart scheduled in {Seconds} s.", RebootDelaySeconds);
+            return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
