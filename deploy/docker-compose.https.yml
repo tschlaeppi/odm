@@ -1,0 +1,35 @@
+# HTTPS variant: Caddy terminates TLS in front of ODM.
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.https.yml up -d --build
+# Requires Docker Compose 2.24 or newer (uses "!reset"). Set ODM_DOMAIN in .env (e.g. odm.example.org).
+# Agent client certificates (mTLS) are not possible in this variant yet: the proxy does not forward them.
+services:
+  odm:
+    # Only reachable through the proxy
+    ports: !reset []
+    environment:
+      # Take client address and scheme from the proxy's X-Forwarded-* headers
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      Agents__PublicBaseUrl: https://${ODM_DOMAIN:?set ODM_DOMAIN in .env}
+      Identity__Oidc__PublicBaseUrl: https://${ODM_DOMAIN}
+
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - odm
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      ODM_DOMAIN: ${ODM_DOMAIN}
+      ODM_CADDY_TLS: ${ODM_CADDY_TLS:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

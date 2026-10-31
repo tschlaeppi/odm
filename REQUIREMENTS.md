@@ -145,15 +145,15 @@ Acceptance criteria:
 - Distributions by operating system and agent version; status of software distribution overall and per package
 - List of the latest failures and of devices without heartbeat, linking to the device
 
-### 3.10 HTTPS operation *(proposed)*
+### 3.10 HTTPS operation
 
 **As a system administrator** I want to run ODM securely over HTTPS with little effort.
 
 Acceptance criteria:
 
-- The Docker Compose setup offers an HTTPS variant (reverse proxy with automatic or provided certificates, or TLS in ODM itself)
-- The documentation describes certificate handling and the required proxy settings (forwarded headers, upload limit)
-- With a TLS-terminating reverse proxy, agent client certificates (mTLS) can still be used by forwarding the verified client certificate in a header from a trusted proxy
+- The Docker Compose setup offers an HTTPS variant (reverse proxy with automatic or provided certificates, or TLS in ODM itself) *(implemented: Caddy)*
+- The documentation describes certificate handling and the required proxy settings (forwarded headers, upload limit) *(implemented)*
+- With a TLS-terminating reverse proxy, agent client certificates (mTLS) can still be used by forwarding the verified client certificate in a header from a trusted proxy *(open)*
 
 ### 3.11 Audit log *(proposed)*
 

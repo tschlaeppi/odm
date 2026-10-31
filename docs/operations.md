@@ -108,6 +108,27 @@ ODM runs on PostgreSQL (default) or Microsoft SQL Server 2019 or newer. Select i
 
 ## TLS and reverse proxy
 
+### HTTPS with Docker Compose
+
+```bash
+# .env: ODM_DOMAIN=odm.example.org   (optional: ODM_CADDY_TLS, see below)
+docker compose -f docker-compose.yml -f deploy/docker-compose.https.yml up -d --build
+```
+
+This adds a [Caddy](https://caddyserver.com) reverse proxy (`deploy/Caddyfile`) on ports 80/443 and removes the direct
+port 8080. It needs Docker Compose 2.24 or newer. Certificates (`ODM_CADDY_TLS`):
+
+| Value | Result |
+|---|---|
+| empty | certificate from Let's Encrypt, renewed automatically; needs a public DNS name and reachable ports 80 and 443 |
+| `internal` | Caddy's own CA for private networks; browsers and agents must trust its root certificate (`caddy-data` volume, `pki/authorities/local/root.crt`) |
+| `/certs/fullchain.pem /certs/key.pem` | your own certificate, placed in `./certs` |
+
+The variant sets the forwarded headers, `Agents__PublicBaseUrl` and the upload limit (4 GB, as `Software:MaxPackageMegabytes`;
+change both together). Agent client certificates (mTLS) are not available in this variant.
+
+### General notes
+
 - Agents refuse plain HTTP by default. Terminate TLS either in front of ODM (reverse proxy) or in ODM itself
   (`Kestrel__Endpoints__Https__Url` plus certificate configuration).
 - **Behind a reverse proxy:** configure forwarded headers, otherwise rate limits apply per proxy instead of per client; set

@@ -1,0 +1,21 @@
+# Reverse proxy for ODM (see deploy/docker-compose.https.yml).
+# Certificates: by default Caddy obtains and renews them from Let's Encrypt (public DNS name, ports 80/443 reachable).
+# Set ODM_CADDY_TLS in .env for other cases:
+#   internal                              Caddy's own CA (private networks; agents must trust its root certificate)
+#   /certs/fullchain.pem /certs/key.pem   your own certificate (mounted from ./certs)
+{$ODM_DOMAIN} {
+	tls {$ODM_CADDY_TLS:}
+
+	# Package uploads (match Software__MaxPackageMegabytes)
+	request_body {
+		max_size 4GB
+	}
+
+	reverse_proxy odm:8080 {
+		# Large package downloads/uploads must not time out
+		transport http {
+			read_timeout 30m
+			write_timeout 30m
+		}
+	}
+}
