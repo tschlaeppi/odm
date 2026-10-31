@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { api, type SystemInfoDto } from './lib/api'
   import DeviceDetail from './lib/DeviceDetail.svelte'
   import Devices from './lib/Devices.svelte'
   import Dashboard from './lib/Dashboard.svelte'
@@ -39,6 +40,15 @@
   const editorId = $derived(router.path.startsWith('/groups/') ? router.path.slice('/groups/'.length) : null)
   const packageId = $derived(router.path.startsWith('/software/') ? router.path.slice('/software/'.length) : null)
   const profileId = $derived(router.path.startsWith('/profiles/') ? router.path.slice('/profiles/'.length) : null)
+  let info = $state<SystemInfoDto | null>(null)
+  $effect(() => {
+    if (auth.isAuthenticated && auth.isAdmin) {
+      api.systemInfo().then((i) => (info = i), () => (info = null))
+    } else {
+      info = null
+    }
+  })
+
   const section = $derived(
     router.path.startsWith('/dashboard')
       ? 'dashboard'
@@ -65,6 +75,9 @@
 <div class="shell" class:authed={auth.isAuthenticated} class:collapsed>
   <header class="topbar">
     <span class="brand"><span class="logo" aria-hidden="true">◧</span>{i18n.t('app.title')}</span>
+    {#if info}
+      <span class="version muted" title={`${info.runtime} · ${info.databaseProvider}`}>v{info.version}</span>
+    {/if}
     <span class="spacer"></span>
     <button class="ghost" onclick={() => i18n.toggle()} aria-label={i18n.t('lang.toggle')}>
       {i18n.locale === 'de' ? 'EN' : 'DE'}
@@ -221,6 +234,9 @@
   .logo {
     color: var(--accent);
     font-size: 1.2rem;
+  }
+  .version {
+    font-size: 0.8rem;
   }
   .spacer {
     flex: 1;

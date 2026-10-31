@@ -236,6 +236,11 @@ Request bodies are never stored, so passwords, tokens and secret values do not a
 not recorded. The application offers no way to change or delete single entries; the retention job removes old ones
 (`Audit:RetentionDays`). For tamper resistance beyond that, restrict database access or ship the table to a log system.
 
+## Version
+
+Administrators see the server version in the top bar of the UI (tooltip: .NET runtime and database provider); the same data is available at
+`GET /api/system/info`. The version is set in `src/Odm.Host/Odm.Host.csproj` (`<Version>`). Agents report their own version, shown on the device page.
+
 ## Security notes
 
 - Passwords: PBKDF2-HMAC-SHA256 (600 000 iterations, random salt); sign-in is rate limited (10 attempts per minute and IP)

@@ -557,6 +557,12 @@ export interface ChannelResultDto {
   error: string | null
 }
 
+export interface SystemInfoDto {
+  version: string
+  runtime: string
+  databaseProvider: string
+}
+
 export const api = {
   audit: (filter: { from?: string; actor?: string; outcome?: string; text?: string }) => {
     const query = new URLSearchParams({ take: '500' })
@@ -574,6 +580,7 @@ export const api = {
   compliance: (reason: string) => request<ComplianceDto>(`/software/compliance?${new URLSearchParams(reason ? { reason } : {})}`),
   notifications: () => request<NotificationsDto>('/notifications'),
   notificationsTest: () => request<ChannelResultDto[]>('/notifications/test', { method: 'POST' }),
+  systemInfo: () => request<SystemInfoDto>('/system/info'),
   device: (id: string) => request<DeviceDto>(`/devices/${id}`),
   deviceGroups: (id: string) => request<DeviceGroupRefDto[]>(`/devices/${id}/groups`),
   deviceInstallations: (id: string) => request<InstallationDto[]>(`/software/installations/by-device?deviceId=${id}`),

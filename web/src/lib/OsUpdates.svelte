@@ -29,7 +29,7 @@
   let errorKey = $state<MessageKey | null>(null)
   let timer: ReturnType<typeof setInterval> | undefined
 
-  // Formular Richtlinie
+  // Policy form
   let policyName = $state('')
   let policyMode = $state<UpdateMode>('SecurityOnly')
   let policyReboot = $state<RebootBehavior>('Never')
@@ -182,14 +182,6 @@
     assignments[parentId] = await api.osAssignments(scope, parentId)
   }
 
-  function describeWindow(w: MaintenanceWindowDto): string {
-    const days = weekDays.filter((d) => w.days.includes(d)).map((d) => i18n.t(`day.${d}` as MessageKey)).join(', ')
-    const duration = w.durationMinutes % 60 === 0
-      ? i18n.t('os.hours', { count: w.durationMinutes / 60 })
-      : i18n.t('os.minutes', { count: w.durationMinutes })
-    return `${days} · ${toTime(w.startMinutes)} · ${duration} · ${w.timeZoneId}`
-  }
-
   function runSummary(r: UpdateRunDto): string {
     const parts: string[] = []
     if (r.installed !== null) parts.push(`${i18n.t('os.installed')}: ${r.installed}`)
@@ -199,6 +191,30 @@
     return parts.join(' · ')
   }
 
+  function durationText(minutes: number): string {
+    return minutes % 60 === 0 ? i18n.t('os.hours', { count: minutes / 60 }) : i18n.t('os.minutes', { count: minutes })
+  }
+
+  function daysText(w: MaintenanceWindowDto): string {
+    return weekDays.filter((d) => w.days.includes(d)).map((d) => i18n.t(`day.${d}` as MessageKey)).join(', ')
+  }
+
+  const policyColumns = $derived<Column<UpdatePolicyDto>[]>([
+    { key: 'name', label: i18n.t('os.name'), value: (p) => p.name, strong: true },
+    { key: 'mode', label: i18n.t('os.mode'), value: (p) => i18n.t(`os.mode.${p.mode}` as MessageKey), cell: policyMode_, filter: 'select' },
+    { key: 'reboot', label: i18n.t('os.reboot'), value: (p) => i18n.t(`os.reboot.${p.reboot}` as MessageKey), cell: policyReboot_, filter: 'select' },
+    { key: 'targets', label: i18n.t('os.targets'), value: (p) => (assignments[p.id] ?? []).map((a) => a.targetName ?? a.target).join(' '), cell: policyTargets },
+  ])
+
+  const windowColumns = $derived<Column<MaintenanceWindowDto>[]>([
+    { key: 'name', label: i18n.t('os.name'), value: (w) => w.name, strong: true },
+    { key: 'days', label: i18n.t('os.days'), value: (w) => daysText(w) },
+    { key: 'start', label: i18n.t('os.start'), value: (w) => toTime(w.startMinutes), filter: 'none' },
+    { key: 'duration', label: i18n.t('os.duration'), value: (w) => durationText(w.durationMinutes), filter: 'select' },
+    { key: 'zone', label: i18n.t('os.timeZone'), value: (w) => w.timeZoneId, filter: 'select' },
+    { key: 'targets', label: i18n.t('os.targets'), value: (w) => (assignments[w.id] ?? []).map((a) => a.targetName ?? a.target).join(' '), cell: windowTargets },
+  ])
+
   const runColumns = $derived<Column<UpdateRunDto>[]>([
     { key: 'when', label: i18n.t('os.when'), value: (r) => r.createdAt, cell: runWhen, filter: 'none' },
     { key: 'device', label: i18n.t('devices.name'), value: (r) => r.deviceName ?? r.deviceId, cell: runDevice, strong: true },
@@ -207,6 +223,36 @@
     { key: 'result', label: i18n.t('dev.detail.message'), value: (r) => runSummary(r), cell: runResult, muted: true },
   ])
 </script>
+
+{#snippet policyMode_(p: UpdatePolicyDto)}
+  <select value={p.mode} disabled={!auth.canEdit} onchange={(e) => changePolicy(p, e.currentTarget.value as UpdateMode, p.reboot)}>
+    <option value="SecurityOnly">{i18n.t('os.mode.SecurityOnly')}</option>
+    <option value="All">{i18n.t('os.mode.All')}</option>
+  </select>
+{/snippet}
+
+{#snippet policyReboot_(p: UpdatePolicyDto)}
+  <select value={p.reboot} disabled={!auth.canEdit} onchange={(e) => changePolicy(p, p.mode, e.currentTarget.value as RebootBehavior)}>
+    <option value="Never">{i18n.t('os.reboot.Never')}</option>
+    <option value="IfRequired">{i18n.t('os.reboot.IfRequired')}</option>
+  </select>
+{/snippet}
+
+{#snippet policyTargets(p: UpdatePolicyDto)}{@render targets('Policy', p.id)}{/snippet}
+{#snippet windowTargets(w: MaintenanceWindowDto)}{@render targets('Window', w.id)}{/snippet}
+
+{#snippet policyActions(p: UpdatePolicyDto)}
+  {#if auth.canEdit}
+    <button class="ghost" onclick={() => removePolicy(p)}>{i18n.t('common.delete')}</button>
+  {/if}
+{/snippet}
+
+{#snippet windowActions(w: MaintenanceWindowDto)}
+  {#if auth.canEdit}
+    <button class="ghost" onclick={() => editWindow(w)}>{i18n.t('common.edit')}</button>
+    <button class="ghost" onclick={() => removeWindow(w)}>{i18n.t('common.delete')}</button>
+  {/if}
+{/snippet}
 
 {#snippet runWhen(r: UpdateRunDto)}{i18n.formatDate(r.createdAt)}{/snippet}
 {#snippet runDevice(r: UpdateRunDto)}<a href={`#/devices/${r.deviceId}`}>{r.deviceName ?? r.deviceId}</a>{/snippet}
@@ -226,7 +272,7 @@
   {#if loading}
     <p class="muted">{i18n.t('devices.loading')}</p>
   {:else}
-    <!-- Richtlinien -->
+    <!-- Policies -->
     <h2>{i18n.t('os.policies')}</h2>
 
     {#if auth.canEdit}
@@ -256,46 +302,16 @@
       </form>
     {/if}
 
-    {#if policies.length === 0}
-      <p class="muted">{i18n.t('os.noPolicies')}</p>
-    {/if}
-    {#each policies as policy (policy.id)}
-      <article class="card item">
-        <header>
-          <h3>{policy.name}</h3>
-          {#if auth.canEdit}
-            <button class="ghost" onclick={() => removePolicy(policy)}>{i18n.t('common.delete')}</button>
-          {/if}
-        </header>
-        <div class="row">
-          <label>
-            <span>{i18n.t('os.mode')}</span>
-            <select
-              value={policy.mode}
-              disabled={!auth.canEdit}
-              onchange={(e) => changePolicy(policy, e.currentTarget.value as UpdateMode, policy.reboot)}
-            >
-              <option value="SecurityOnly">{i18n.t('os.mode.SecurityOnly')}</option>
-              <option value="All">{i18n.t('os.mode.All')}</option>
-            </select>
-          </label>
-          <label>
-            <span>{i18n.t('os.reboot')}</span>
-            <select
-              value={policy.reboot}
-              disabled={!auth.canEdit}
-              onchange={(e) => changePolicy(policy, policy.mode, e.currentTarget.value as RebootBehavior)}
-            >
-              <option value="Never">{i18n.t('os.reboot.Never')}</option>
-              <option value="IfRequired">{i18n.t('os.reboot.IfRequired')}</option>
-            </select>
-          </label>
-        </div>
-        {@render targets('Policy', policy.id)}
-      </article>
-    {/each}
+    <DataTable
+      rows={policies}
+      columns={policyColumns}
+      rowKey={(p) => p.id}
+      actions={policyActions}
+      emptyText={i18n.t('os.noPolicies')}
+      pageSize={25}
+    />
 
-    <!-- Wartungsfenster -->
+    <!-- Maintenance windows -->
     <h2>{i18n.t('os.windows')}</h2>
 
     {#if auth.canEdit}
@@ -349,26 +365,14 @@
       </form>
     {/if}
 
-    {#if windows.length === 0}
-      <p class="muted">{i18n.t('os.noWindows')}</p>
-    {/if}
-    {#each windows as w (w.id)}
-      <article class="card item">
-        <header>
-          <div>
-            <h3>{w.name}</h3>
-            <p class="muted small">{describeWindow(w)}</p>
-          </div>
-          {#if auth.canEdit}
-            <div>
-              <button class="ghost" onclick={() => editWindow(w)}>{i18n.t('common.edit')}</button>
-              <button class="ghost" onclick={() => removeWindow(w)}>{i18n.t('common.delete')}</button>
-            </div>
-          {/if}
-        </header>
-        {@render targets('Window', w.id)}
-      </article>
-    {/each}
+    <DataTable
+      rows={windows}
+      columns={windowColumns}
+      rowKey={(w) => w.id}
+      actions={windowActions}
+      emptyText={i18n.t('os.noWindows')}
+      pageSize={25}
+    />
 
     <!-- Runs -->
     <h2>{i18n.t('os.runs')}</h2>

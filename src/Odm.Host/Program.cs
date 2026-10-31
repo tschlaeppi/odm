@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Odm.Modules.Agents;
@@ -103,6 +105,22 @@ foreach (var module in modules)
 {
     module.MapEndpoints(api);
 }
+
+// Version and runtime information for administrators (shown in the UI).
+api.MapGet("/system/info", (IConfiguration configuration) =>
+    {
+        var version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "?";
+        var plus = version.IndexOf('+');
+        return Results.Ok(new
+        {
+            Version = plus > 0 ? version[..plus] : version,
+            Runtime = RuntimeInformation.FrameworkDescription,
+            DatabaseProvider = configuration["Database:Provider"] ?? "Postgres",
+        });
+    })
+    .RequireAuthorization(Odm.SharedKernel.Policies.Admin);
+
 api.MapFallback(() => Results.NotFound());
 
 // SPA-Fallback (Production: Frontend liegt in wwwroot)
