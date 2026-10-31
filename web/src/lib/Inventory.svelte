@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import {
     api,
     downloadCsv,
@@ -24,12 +25,13 @@
   let loading = $state(false)
   let failed = $state(false)
 
+  onMount(search)
+
   async function search() {
     const name = query.trim()
     selected = null
     rows = []
-    if (!name) {
-      summary = []
+    if (!name && tab === 'missing') {
       missing = []
       return
     }
@@ -192,14 +194,16 @@
         <input bind:value={query} maxlength="200" />
       </label>
       <button type="submit" disabled={loading}>{i18n.t('audit.search')}</button>
-      <button type="button" class="ghost" disabled={!query.trim()} onclick={exportCsv}>{i18n.t('inv.csv')}</button>
+      <button type="button" class="ghost" disabled={tab === 'missing' && !query.trim()} onclick={exportCsv}>{i18n.t('inv.csv')}</button>
     </form>
 
     {#if failed}
       <p class="error">{i18n.t('devices.error')}</p>
-    {:else if query.trim() && tab === 'missing'}
+    {:else if tab === 'missing'}
+      {#if query.trim()}
       <DataTable rows={missing} columns={missingColumns} rowKey={(r) => r.deviceId} stale={loading} emptyText={i18n.t('inv.missingEmpty')} pageSize={25} />
-    {:else if query.trim()}
+      {/if}
+    {:else}
       <DataTable
         rows={summary}
         columns={summaryColumns}
