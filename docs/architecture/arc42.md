@@ -264,6 +264,7 @@ flowchart LR
 | ADR-37 | Registration tokens can be reusable: a use limit (default 1, at most 1000) and a validity of up to one year; no approval step for new devices | lab and provisioning setups need automatic enrolment; the counter is incremented atomically and an exhausted, expired or deleted token stops working; devices registered with it appear immediately | accepted |
 | ADR-38 | Local users are managed in the UI by administrators (list, create, role, deactivate, set password, delete) and every local user can change the own password; protections against self-lockout live in `UserRules` | no CLI or database access should be needed for daily user work; the last active administrator and the own account cannot be removed or demoted; no migration was needed because the `users` table already had all columns | accepted |
 | ADR-39 | PSADT packages get a platform (Windows or Linux) stored in the package settings; the Linux variant runs PSAppDeployToolkit-Linux packages with `pwsh` | reuses the PSADT knowledge for Linux without a new package kind or a migration; the platform field is omitted from the JSON when it is Windows, so existing settings and revisions stay unchanged | accepted |
+| ADR-40 | Trust is built on checks anyone can read and rerun (CI, CodeQL, Dependabot, guard tests, signed build provenance, SBOM) and documented in [security](../security.md), not on promises | free for open source repositories; users can verify a release themselves | accepted |
 
 ## 10. Quality requirements
 
@@ -290,6 +291,7 @@ flowchart LR
 | Backup / restore not tested end to end; retention deletes not tested on a real database | scripts and `ExecuteDelete` cleanups are only syntax / unit checked; a failing restore would be found too late | automated restore test on an empty environment (PostgreSQL and SQL Server), integration test for the cleanup jobs |
 | Notification channels not tested against a real SMTP server / webhook; settings are configuration only (the UI shows status, test and history, read only) | misconfiguration is found only through `POST /api/notifications/test` | integration test with a test SMTP server; editable settings in the UI if needed |
 | Inventory holds the latest state only, no history; compliance is derived from ODM's own installation state, not compared against the reported inventory | cannot answer "what changed"; a program removed by hand is not noticed until the next package check | optional history with retention; reconcile installation state against inventory |
+| Agent updates, PSADT and repository package offers are verified only against a checksum delivered by the server | a compromised server can distribute malicious code to all devices | sign agent packages with an offline key and verify the signature in the agent; same for PSADT ZIPs |
 | No load test | behaviour with thousands of agents (heartbeats, job delivery, reconciler, dashboard queries) is assumed, not measured | load test with simulated agents; derive sizing guidance and tune indexes / intervals |
 
 ## 12. Glossary

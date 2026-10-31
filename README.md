@@ -40,6 +40,7 @@ Details, S3 storage, migrations and tests: [docs/development.md](docs/developmen
 | [docs/agent.md](docs/agent.md) | operators | agent installation, self-update, logging, mTLS |
 | [docs/software-distribution.md](docs/software-distribution.md) | operators | PSADT and repository packages, secrets, profiles, rollouts, uninstall |
 | [docs/os-updates.md](docs/os-updates.md) | operators | update policies, maintenance windows, how the agent updates |
+| [docs/security.md](docs/security.md) | operators, reviewers | threat model, automated checks, verifying releases, known gaps |
 | [docs/architecture/arc42.md](docs/architecture/arc42.md) | everyone | architecture following arc42, including the decision log (ADR table) |
 
 ## License
