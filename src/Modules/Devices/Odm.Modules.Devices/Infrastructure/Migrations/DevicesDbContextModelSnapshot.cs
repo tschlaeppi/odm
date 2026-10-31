@@ -116,6 +116,9 @@ namespace Odm.Modules.Devices.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<DateTimeOffset?>("BootTime")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset>("CollectedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -132,6 +135,17 @@ namespace Odm.Modules.Devices.Infrastructure.Migrations
                     b.Property<long?>("DiskTotalBytes")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("DisksJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<DateTimeOffset?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastUser")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("Manufacturer")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -142,6 +156,10 @@ namespace Odm.Modules.Devices.Infrastructure.Migrations
                     b.Property<string>("Model")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<string>("NetworkJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
 
                     b.HasKey("DeviceId");
 

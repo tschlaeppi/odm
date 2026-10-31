@@ -116,6 +116,9 @@ namespace Odm.Migrations.SqlServer.Devices
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<DateTimeOffset?>("BootTime")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("CollectedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -132,6 +135,17 @@ namespace Odm.Migrations.SqlServer.Devices
                     b.Property<long?>("DiskTotalBytes")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("DisksJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("LastLoginAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastUser")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("Manufacturer")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
@@ -142,6 +156,10 @@ namespace Odm.Migrations.SqlServer.Devices
                     b.Property<string>("Model")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("NetworkJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("DeviceId");
 
