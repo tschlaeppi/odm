@@ -3,6 +3,7 @@
   import Devices from './lib/Devices.svelte'
   import Dashboard from './lib/Dashboard.svelte'
   import Inventory from './lib/Inventory.svelte'
+  import Notifications from './lib/Notifications.svelte'
   import Audit from './lib/Audit.svelte'
   import Enrollment from './lib/Enrollment.svelte'
   import GroupEditor from './lib/GroupEditor.svelte'
@@ -55,7 +56,9 @@
               ? 'enrollment'
               : router.path.startsWith('/audit')
                 ? 'audit'
-                : 'devices',
+                : router.path.startsWith('/notifications')
+                  ? 'notifications'
+                  : 'devices',
   )
 </script>
 
@@ -115,6 +118,10 @@
         </a>
       {/if}
       {#if auth.isAdmin}
+        <a href="#/notifications" title={collapsed ? i18n.t('nav.notifications') : undefined} class:active={section === 'notifications'}>
+          <svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg>
+          <span class="label">{i18n.t('nav.notifications')}</span>
+        </a>
         <a href="#/audit" title={collapsed ? i18n.t('nav.audit') : undefined} class:active={section === 'audit'}>
           <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 13h7M9 17h7" /></svg>
           <span class="label">{i18n.t('nav.audit')}</span>
@@ -165,6 +172,8 @@
         <OsUpdates />
       {:else if section === 'enrollment' && auth.canEdit}
         <Enrollment />
+      {:else if section === 'notifications' && auth.isAdmin}
+        <Notifications />
       {:else if section === 'audit' && auth.isAdmin}
         <Audit />
       {:else if deviceId}

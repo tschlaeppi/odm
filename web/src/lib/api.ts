@@ -534,6 +534,29 @@ export interface ComplianceDto {
   rows: ComplianceRowDto[]
 }
 
+export interface SentAlertDto {
+  id: string
+  type: string
+  deviceName: string | null
+  subject: string
+  detail: string
+  sentAt: string
+  channels: string
+}
+
+export interface NotificationsDto {
+  enabled: boolean
+  channels: { name: string; configured: boolean }[]
+  events: string[]
+  recent: SentAlertDto[]
+}
+
+export interface ChannelResultDto {
+  channel: string
+  success: boolean
+  error: string | null
+}
+
 export const api = {
   audit: (filter: { from?: string; actor?: string; outcome?: string; text?: string }) => {
     const query = new URLSearchParams({ take: '500' })
@@ -549,6 +572,8 @@ export const api = {
   },
   softwareMissing: (name: string) => request<MissingSoftwareDto[]>(`/inventory/software/missing?${new URLSearchParams({ name, take: '500' })}`),
   compliance: (reason: string) => request<ComplianceDto>(`/software/compliance?${new URLSearchParams(reason ? { reason } : {})}`),
+  notifications: () => request<NotificationsDto>('/notifications'),
+  notificationsTest: () => request<ChannelResultDto[]>('/notifications/test', { method: 'POST' }),
   device: (id: string) => request<DeviceDto>(`/devices/${id}`),
   deviceGroups: (id: string) => request<DeviceGroupRefDto[]>(`/devices/${id}/groups`),
   deviceInstallations: (id: string) => request<InstallationDto[]>(`/software/installations/by-device?deviceId=${id}`),

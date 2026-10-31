@@ -167,7 +167,7 @@ Rules: new alerts of one round go into **one** message per channel. An alert is 
 not. If every channel fails, the alerts are retried in the next round. Alerts only look at the last 7 days of failures, so
 switching notifications on does not flood you with old history; silent devices and expiring certificates are reported as they are now.
 
-Administrators can inspect and test the setup: `GET /api/notifications` (channels, enabled events, the last 100 alerts, no secrets) and
+Administrators see the setup, can send a test message and browse the recently sent alerts in the UI (*Notifications*, menu *System*). The same is available through `GET /api/notifications` (channels, enabled events, the last 100 alerts, no secrets) and
 `POST /api/notifications/test` (sends a test message and reports the result per channel).
 
 Docker Compose example (`.env` values are passed through `environment:` entries such as `Notifications__Enabled`,

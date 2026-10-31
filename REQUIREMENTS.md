@@ -175,7 +175,7 @@ Implemented, except: actions are shown route based (e.g. `DELETE software/packag
   agent certificates about to expire
 - Recipients and events are configurable; alerts are sent once per event, not repeatedly
 
-Implemented as configuration (no UI): see operations.md. Not covered: per-user subscriptions, implicit-TLS SMTP.
+Implemented as configuration; the UI shows status, test and history (read only): see operations.md. Not covered: per-user subscriptions, implicit-TLS SMTP.
 
 ### 3.13 Housekeeping and backup
 
