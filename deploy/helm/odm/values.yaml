@@ -1,0 +1,121 @@
+# Open Device Manager (ODM) - Helm values. See docs/operations.md#kubernetes-helm for details.
+
+# Build the image from the repository Dockerfile and push it to a registry your cluster can pull from.
+image:
+  repository: odm
+  tag: ""            # defaults to the chart appVersion
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# ODM keeps background services (reconciler, maintenance windows) and the agent CA on a local volume.
+# Run exactly one replica.
+replicaCount: 1
+
+# ---- Secrets -------------------------------------------------------------------------------
+# Either let the chart create a Secret from the values below, or reference an existing Secret
+# (recommended: sealed-secrets, external-secrets, ...). The existing Secret needs these keys:
+#   jwtSecret, secretsKey, adminPassword, databaseConnectionString, s3SecretKey
+# and optionally ldapBindPassword, oidcClientSecret.
+existingSecret: ""
+secrets:
+  jwtSecret: ""          # at least 32 characters
+  secretsKey: ""         # openssl rand -base64 32 - KEEP IT SAFE, stored secrets are unreadable without it
+  adminPassword: ""      # bootstrap administrator
+  ldapBindPassword: ""
+  oidcClientSecret: ""
+
+admin:
+  userName: admin
+
+# ---- Database ------------------------------------------------------------------------------
+database:
+  provider: Postgres     # Postgres | SqlServer
+  # Connection string of an external database. Ignored when postgresql.enabled=true.
+  connectionString: ""
+
+# Optional bundled single-node PostgreSQL (StatefulSet). Fine for evaluation and small setups;
+# for production prefer a managed or operator-run database and set database.connectionString.
+postgresql:
+  enabled: false
+  image: postgres:17
+  password: ""           # required when enabled
+  persistence:
+    size: 10Gi
+    storageClass: ""
+  resources: {}
+
+# ---- Package store (S3 compatible, external) -------------------------------------------------
+s3:
+  serviceUrl: ""         # empty = AWS S3
+  region: ""
+  bucket: odm-packages
+  accessKey: ""
+  secretKey: ""          # stored in the Secret
+  forcePathStyle: true
+
+# ---- Public address, agents, mTLS ------------------------------------------------------------
+publicUrl: ""            # e.g. https://odm.example.org (used in agent install scripts and OIDC redirects)
+
+agents:
+  heartbeatSeconds: 60
+  update:
+    mode: "Off"          # Off | Latest | Pinned
+    targetVersion: ""
+    rolloutPercent: 100
+
+# Agent client certificates. A reverse proxy / ingress does not pass client certificates on,
+# so Optional / Required only work when ODM terminates TLS itself (service.type LoadBalancer or
+# a TLS passthrough ingress plus Kestrel HTTPS configuration via extraEnv). Default: Off.
+mtls:
+  mode: "Off"            # Off | Optional | Required
+
+ldap:
+  enabled: false
+  host: ""
+  port: 636
+  security: Ldaps
+  baseDn: ""
+  bindDn: ""
+  adminGroup: ""
+  operatorGroup: ""
+  readOnlyGroup: ""
+
+software:
+  maxPackageMegabytes: 4096
+
+# Additional environment variables (e.g. Identity__Oidc__* or Kestrel__Endpoints__*), as in docker-compose.yml.
+extraEnv: []
+#  - name: Identity__Oidc__PublicBaseUrl
+#    value: https://odm.example.org
+extraEnvFrom: []
+
+# ---- Persistence (agent CA for mTLS) ---------------------------------------------------------
+persistence:
+  enabled: true
+  size: 100Mi
+  storageClass: ""
+  existingClaim: ""
+
+# ---- Networking ------------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  # Raise the upload limit to match software.maxPackageMegabytes (example for ingress-nginx).
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "4096m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  host: odm.example.org
+  tls:
+    enabled: true
+    secretName: ""       # certificate Secret (e.g. created by cert-manager)
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}

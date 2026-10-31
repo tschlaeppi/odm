@@ -1,0 +1,6 @@
+apiVersion: v2
+name: odm
+description: Open Device Manager - free device and software management (Intune / Configuration Manager alternative)
+type: application
+version: 0.1.0
+appVersion: "latest"

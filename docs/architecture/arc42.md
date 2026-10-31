@@ -44,7 +44,7 @@ Windows and Linux devices. Full requirements: [REQUIREMENTS.md](../../REQUIREMEN
 | Backend C# (.NET 10 LTS), agent C# | requirement; one language for server and agent |
 | Web UI in TypeScript | requirement; implemented with Svelte 5 and Vite |
 | PostgreSQL **or** SQL Server | requirement; selected by configuration |
-| Docker or Kubernetes | requirement; Docker Compose available, Helm chart planned |
+| Docker or Kubernetes | requirement; Docker Compose and Helm chart available |
 | Agent for Windows (client and server) and Linux (DEB and RPM) | requirement |
 | PSADT packages on S3-compatible storage | requirement |
 | REST between UI, API and agent | requirement |
@@ -199,7 +199,7 @@ flowchart LR
 ```
 
 - One image (multi-stage build: web, server, agent packages). Docker Compose files: `docker-compose.yml` (PostgreSQL) and
-  `deploy/docker-compose.mssql.yml` (SQL Server). A Helm chart for Kubernetes is planned.
+  `deploy/docker-compose.mssql.yml` (SQL Server). The Helm chart `deploy/helm/odm` deploys a single ODM instance for Kubernetes.
 - Agents run as a Windows service or systemd unit (`deploy/odm-agent.service`).
 - State to back up: database, S3 bucket, `ODM_SECRETS_KEY`, CA volume. See [operations](../operations.md).
 
@@ -252,6 +252,7 @@ flowchart LR
 | ADR-26 | Job result messages keep the **tail** of the output, up to 64 000 characters | the failure reason is at the end of PSADT / installer logs; larger columns | accepted |
 | ADR-27 | English for documentation and log messages; UI localised (de/en) | consistent operations language; UI for end users in their language | accepted |
 | ADR-28 | Agent logs to a rotating file, journald / Event Log | troubleshooting without server access | accepted |
+| ADR-29 | Helm chart deploys exactly one ODM replica; database optionally bundled, S3 always external | background services and the agent CA volume are not multi-instance safe yet; a managed DB / object store is the better production choice | accepted |
 
 ## 10. Quality requirements
 
@@ -273,7 +274,6 @@ flowchart LR
 | No audit log | changes are not traceable | add an audit trail for assignments, deletions, resets |
 | No notifications | failures and silent devices are visible only in the dashboard | e-mail / webhook alerts |
 | No housekeeping | old jobs and results accumulate | retention settings and cleanup job |
-| No Kubernetes manifests yet | Docker only | Helm chart |
 | Winget with *user* scope installs for SYSTEM | not for signed-in users | user-context execution |
 | No data migration between PostgreSQL and SQL Server | switching databases loses data | export / import tool if needed |
 | Pending EF model changes stop the server | forgotten migrations are noticed at start | documented in [development](../development.md) |

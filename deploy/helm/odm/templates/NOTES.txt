@@ -1,0 +1,12 @@
+Open Device Manager has been deployed.
+{{- if .Values.ingress.enabled }}
+
+  URL: {{ if .Values.ingress.tls.enabled }}https{{ else }}http{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+
+  kubectl port-forward svc/{{ include "odm.fullname" . }} 8080:{{ .Values.service.port }}   ->  http://localhost:8080
+{{- end }}
+
+Sign in as "{{ .Values.admin.userName }}" with the bootstrap password.
+Agents refuse plain HTTP: publish ODM through an ingress with TLS and set publicUrl.
+Back up secrets.secretsKey and the "{{ include "odm.fullname" . }}-pki" volume (agent CA).

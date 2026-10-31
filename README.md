@@ -6,7 +6,7 @@ OS update management and device inventory for Windows and Linux fleets.
 - **Server:** C# / .NET 10 modular monolith, PostgreSQL or SQL Server, S3-compatible package storage
 - **Web UI:** Svelte 5 + TypeScript (German / English, dark mode)
 - **Agent:** self-contained .NET worker service for Windows and Linux (DEB and RPM based)
-- **Deployment:** Docker / Docker Compose (Kubernetes: planned)
+- **Deployment:** Docker / Docker Compose, Kubernetes (Helm chart)
 
 The product requirements are in [REQUIREMENTS.md](REQUIREMENTS.md).
 

@@ -184,10 +184,11 @@ Acceptance criteria:
 - Reports and CSV export, e.g. devices per installed software and version, devices without a required package
 - Compliance view: devices that deviate from their assignments
 
-### 3.15 Kubernetes *(proposed)*
+### 3.15 Kubernetes
 
-- A Helm chart deploys ODM on Kubernetes with an external or bundled database and S3 store, ingress with TLS and secrets from the cluster
-- Health checks and several replicas are supported (stateless server; the agent CA is kept in shared storage or a secret)
+- A Helm chart deploys ODM on Kubernetes with an external or optionally bundled database, an external S3 store, ingress with TLS and secrets from the cluster *(implemented)*
+- Health checks (startup, readiness, liveness) *(implemented)*
+- Several replicas *(open: background services and the agent CA are single-instance for now, see ADR-29)*
 
 ### 3.16 Operation as a user *(proposed)*
 

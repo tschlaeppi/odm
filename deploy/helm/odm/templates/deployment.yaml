@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "odm.fullname" . }}
+  labels: {{- include "odm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  # One instance only: the agent CA volume is ReadWriteOnce and the background services must not run twice.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {{- include "odm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "odm.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- if not .Values.existingSecret }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}{{ toYaml . | nindent 8 }}{{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1654   # the "app" user of the .NET images
+      containers:
+        - name: odm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Behind an ingress the client address and scheme come from X-Forwarded-* headers.
+            - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+              value: {{ .Values.ingress.enabled | quote }}
+            - name: Database__Provider
+              value: {{ .Values.database.provider | quote }}
+            - name: Database__ConnectionString
+              valueFrom: { secretKeyRef: { name: {{ include "odm.secretName" . }}, key: databaseConnectionString } }
+            - name: Storage__S3__ServiceUrl
+              value: {{ .Values.s3.serviceUrl | quote }}
+            - name: Storage__S3__Region
+              value: {{ .Values.s3.region | quote }}
+            - name: Storage__S3__Bucket
+              value: {{ .Values.s3.bucket | quote }}
+            - name: Storage__S3__AccessKey
+              value: {{ .Values.s3.accessKey | quote }}
+            - name: Storage__S3__SecretKey
+              valueFrom: { secretKeyRef: { name: {{ include "odm.secretName" . }}, key: s3SecretKey } }
+            - name: Storage__S3__ForcePathStyle
+              value: {{ .Values.s3.forcePathStyle | quote }}
+            - name: Secrets__MasterKey
+              valueFrom: { secretKeyRef: { name: {{ include "odm.secretName" . }}, key: secretsKey } }
+            - name: Jwt__Secret
+              valueFrom: { secretKeyRef: { name: {{ include "odm.secretName" . }}, key: jwtSecret } }
+            - name: Identity__BootstrapAdmin__UserName
+              value: {{ .Values.admin.userName | quote }}
+            - name: Identity__BootstrapAdmin__Password
+              valueFrom: { secretKeyRef: { name: {{ include "odm.secretName" . }}, key: adminPassword } }
+            - name: Software__MaxPackageMegabytes
+              value: {{ .Values.software.maxPackageMegabytes | quote }}
+            - name: Agents__HeartbeatSeconds
+              value: {{ .Values.agents.heartbeatSeconds | quote }}
+            - name: Agents__PublicBaseUrl
+              value: {{ .Values.publicUrl | quote }}
+            - name: Agents__Update__Mode
+              value: {{ .Values.agents.update.mode | quote }}
+            - name: Agents__Update__TargetVersion
+              value: {{ .Values.agents.update.targetVersion | quote }}
+            - name: Agents__Update__RolloutPercent
+              value: {{ .Values.agents.update.rolloutPercent | quote }}
+            - name: Agents__Mtls__Mode
+              value: {{ .Values.mtls.mode | quote }}
+            - name: Agents__Mtls__CaDirectory
+              value: /pki
+            {{- if .Values.publicUrl }}
+            - name: Identity__Oidc__PublicBaseUrl
+              value: {{ .Values.publicUrl | quote }}
+            {{- end }}
+            {{- if .Values.ldap.enabled }}
+            - { name: Identity__Ldap__Enabled, value: "true" }
+            - { name: Identity__Ldap__Host, value: {{ .Values.ldap.host | quote }} }
+            - { name: Identity__Ldap__Port, value: {{ .Values.ldap.port | quote }} }
+            - { name: Identity__Ldap__Security, value: {{ .Values.ldap.security | quote }} }
+            - { name: Identity__Ldap__BaseDn, value: {{ .Values.ldap.baseDn | quote }} }
+            - { name: Identity__Ldap__BindDn, value: {{ .Values.ldap.bindDn | quote }} }
+            - name: Identity__Ldap__BindPassword
+              valueFrom: { secretKeyRef: { name: {{ include "odm.secretName" . }}, key: ldapBindPassword, optional: true } }
+            - { name: Identity__Ldap__AdminGroup, value: {{ .Values.ldap.adminGroup | quote }} }
+            - { name: Identity__Ldap__OperatorGroup, value: {{ .Values.ldap.operatorGroup | quote }} }
+            - { name: Identity__Ldap__ReadOnlyGroup, value: {{ .Values.ldap.readOnlyGroup | quote }} }
+            {{- end }}
+            {{- with .Values.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+            failureThreshold: 60     # migrations run at startup
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 20
+            failureThreshold: 6
+          volumeMounts:
+            - name: pki
+              mountPath: /pki
+          {{- with .Values.resources }}
+          resources: {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: pki
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-pki" (include "odm.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}

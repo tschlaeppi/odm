@@ -47,6 +47,39 @@ Settings come from `appsettings.json` and environment variables (`Section__Key`)
 | `Agents:Update:*` | off | agent self-update policy, see [agent.md](agent.md) |
 | `Agents:Mtls:*` | off | agent client certificates, see [agent.md](agent.md) |
 
+## Kubernetes (Helm)
+
+The chart lives in `deploy/helm/odm`. It deploys ODM as a single instance (background services and the agent CA volume
+require exactly one replica), a Service, an optional Ingress, a PVC for the agent CA and, optionally, a bundled
+single-node PostgreSQL. The package store (S3) is always external (AWS S3, MinIO, RustFS, ...).
+
+```bash
+docker build -t registry.example.org/odm:1.0 . && docker push registry.example.org/odm:1.0
+
+helm install odm deploy/helm/odm -n odm --create-namespace \
+  --set image.repository=registry.example.org/odm --set image.tag=1.0 \
+  --set publicUrl=https://odm.example.org \
+  --set ingress.enabled=true --set ingress.host=odm.example.org --set ingress.tls.secretName=odm-tls \
+  --set secrets.jwtSecret="$(openssl rand -base64 48)" \
+  --set secrets.secretsKey="$(openssl rand -base64 32)" \
+  --set secrets.adminPassword='...' \
+  --set database.connectionString='Host=pg.example.org;Database=odm;Username=odm;Password=...' \
+  --set s3.serviceUrl=https://s3.example.org --set s3.accessKey=odm --set s3.secretKey='...'
+```
+
+- **Secrets:** pass them as values (the chart creates a Secret) or set `existingSecret` to a Secret you manage
+  (keys: `jwtSecret`, `secretsKey`, `adminPassword`, `databaseConnectionString`, `s3SecretKey`, optional `ldapBindPassword`,
+  `oidcClientSecret`). Do not keep real secrets in a values file in Git.
+- **Database:** set `database.connectionString` (and `database.provider` for SQL Server), or `postgresql.enabled=true` with
+  `postgresql.password` for the bundled instance (evaluation and small setups only).
+- **Ingress:** the default annotations target ingress-nginx and raise the upload limit; adjust `proxy-body-size` to
+  `software.maxPackageMegabytes`. With the ingress enabled the chart switches on ASP.NET Core forwarded headers
+  (`ASPNETCORE_FORWARDEDHEADERS_ENABLED`) so client address and scheme are taken from the proxy.
+- **Other settings:** LDAP has its own values block; everything else (OIDC, Kestrel HTTPS, ...) goes through `extraEnv` using
+  the keys of the [configuration reference](#configuration-reference).
+- **mTLS** needs TLS terminated by ODM itself, which an ingress does not do; keep `mtls.mode=Off` behind an ingress.
+- **Upgrades:** `helm upgrade` replaces the pod (strategy `Recreate`); migrations run at startup.
+
 ## SQL Server instead of PostgreSQL
 
 ODM runs on PostgreSQL (default) or Microsoft SQL Server 2019 or newer. Select it by configuration only:
@@ -89,7 +122,7 @@ Back up:
 1. the database (PostgreSQL dump or SQL Server backup),
 2. the package bucket (S3),
 3. `ODM_SECRETS_KEY` (without it stored secrets cannot be decrypted),
-4. the CA directory (`odm-pki` volume, `ca.crt` / `ca.key`) when mTLS is used. If the CA is lost, all agents must be re-registered.
+4. the CA directory (`odm-pki` volume / Kubernetes PVC `<release>-odm-pki`, `ca.crt` / `ca.key`) when mTLS is used. If the CA is lost, all agents must be re-registered.
 
 ## Security notes
 
