@@ -122,13 +122,13 @@ public class PackageSpecTests
 
         Assert.Equal(spec, PackageSpec.Parse(spec.ToJson()));
         Assert.Equal(PackageSpec.Empty, PackageSpec.Parse(null));
-        Assert.Equal(PackageSpec.Empty, PackageSpec.Parse("kein json"));
+        Assert.Equal(PackageSpec.Empty, PackageSpec.Parse("not json"));
     }
 
     [Theory]
     [InlineData("a {{secret:LIZENZ}} b {{secret:A.b-1}} {{secret:LIZENZ}}", new[] { "LIZENZ", "A.b-1" })]
-    [InlineData("kein Verweis", new string[0])]
-    [InlineData("{{secret:mit Leerzeichen}}", new string[0])]
+    [InlineData("no reference", new string[0])]
+    [InlineData("{{secret:with space}}", new string[0])]
     [InlineData("{secret:EINFACH}", new string[0])]
     public void Secret_references_are_extracted_once_and_in_order(string text, string[] expected) =>
         Assert.Equal(expected, SecretReferences.Extract(text));

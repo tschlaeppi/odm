@@ -11,7 +11,7 @@ internal sealed class JobQueue(AgentsDbContext db) : IJobQueue
     {
         if (!JobTypes.All.Contains(type))
         {
-            throw new ArgumentException($"Unbekannter Auftragstyp '{type}'.", nameof(type));
+            throw new ArgumentException($"Unknown job type '{type}'.", nameof(type));
         }
 
         var hasAgent = await db.Credentials.AnyAsync(c => c.DeviceId == deviceId && c.RevokedAt == null, ct);

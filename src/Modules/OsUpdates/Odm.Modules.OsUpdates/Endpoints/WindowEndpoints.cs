@@ -103,7 +103,7 @@ internal static class WindowEndpoints
         if (request.DurationMinutes < MaintenanceWindow.MinDurationMinutes || request.DurationMinutes > MaintenanceWindow.MaxDurationMinutes)
             errors["durationMinutes"] = ["Duration must be between 15 minutes and 24 hours."];
         if (string.IsNullOrWhiteSpace(request.TimeZoneId) || request.TimeZoneId.Length > 64 || !MaintenanceWindow.IsValidTimeZone(request.TimeZoneId))
-            errors["timeZoneId"] = ["Unbekannte Zeitzone."];
+            errors["timeZoneId"] = ["Unknown time zone."];
 
         if (errors.Count == 0)
         {

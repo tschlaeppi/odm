@@ -60,7 +60,7 @@ public static class RepoInstaller
         "Rpm" => RpmAsync(p, extra, timeout, ct),
         "Flatpak" => FlatpakAsync(p, extra, timeout, ct),
         "Snap" => SnapAsync(p, extra, timeout, ct),
-        _ => Task.FromResult(Fail($"Unbekannter Paketmanager '{p.Manager}'."))
+        _ => Task.FromResult(Fail($"Unknown package manager '{p.Manager}'."))
     };
 
     // ---- Arguments (pure, without starting a process) ----
@@ -201,7 +201,7 @@ public static class RepoInstaller
                     : Summarize(await ProcessRunner.RunAsync(snap, SnapUninstallArguments(p), timeout, ct), [0]);
             }
             default:
-                return Fail($"Unbekannter Paketmanager '{p.Manager}'.");
+                return Fail($"Unknown package manager '{p.Manager}'.");
         }
     }
 

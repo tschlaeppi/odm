@@ -87,7 +87,7 @@ public sealed record ResolveSecretsRequest(Guid JobId);
 
 public sealed record ResolveSecretsResponse(IReadOnlyDictionary<string, string> Secrets);
 
-/// <summary>Inhalt des Auftrags "install-psadt" (vom Agent gelesen).</summary>
+/// <summary>Content of the "install-psadt" job (read by the agent).</summary>
 public sealed record InstallPsadtPayload(
     Guid VersionId, string PackageName, string Version, string Sha256, long SizeBytes, int TimeoutMinutes,
     string? Arguments, bool Uninstall = false);

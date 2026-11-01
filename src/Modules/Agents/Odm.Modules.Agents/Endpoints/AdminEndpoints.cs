@@ -82,7 +82,7 @@ internal static class AdminEndpoints
         jobs.MapPost("/", async (CreateJobRequest request, AgentsDbContext db, CancellationToken ct) =>
         {
             var errors = new Dictionary<string, string[]>();
-            if (request.Type is null || !JobTypes.UserCreatable.Contains(request.Type)) errors["type"] = ["Unbekannter Auftragstyp."];
+            if (request.Type is null || !JobTypes.UserCreatable.Contains(request.Type)) errors["type"] = ["Unknown job type."];
             if (request.Payload is { Length: > 4000 }) errors["payload"] = ["At most 4000 characters."];
             if (errors.Count > 0)
             {

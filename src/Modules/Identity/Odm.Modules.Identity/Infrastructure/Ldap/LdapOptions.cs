@@ -49,12 +49,12 @@ public sealed class LdapOptions
     /// <summary>Describes the first problem of the configuration or returns null.</summary>
     public string? Problem()
     {
-        if (string.IsNullOrWhiteSpace(Host)) return "Host fehlt.";
+        if (string.IsNullOrWhiteSpace(Host)) return "Host is missing.";
         if (Port is < 1 or > 65535) return "Port is invalid.";
-        if (string.IsNullOrWhiteSpace(BaseDn)) return "BaseDn fehlt.";
+        if (string.IsNullOrWhiteSpace(BaseDn)) return "BaseDn is missing.";
         if (!UserFilter.Contains("{0}", StringComparison.Ordinal)) return "UserFilter must contain {0}.";
         if (TimeoutSeconds is < 1 or > 120) return "TimeoutSeconds must be between 1 and 120.";
-        if (!string.IsNullOrEmpty(BindDn) && string.IsNullOrEmpty(BindPassword)) return "BindPassword fehlt.";
+        if (!string.IsNullOrEmpty(BindDn) && string.IsNullOrEmpty(BindPassword)) return "BindPassword is missing.";
         if (string.IsNullOrWhiteSpace(AdminGroup) && string.IsNullOrWhiteSpace(OperatorGroup) &&
             string.IsNullOrWhiteSpace(ReadOnlyGroup))
         {

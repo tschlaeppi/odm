@@ -238,7 +238,7 @@ public sealed partial class AgentUpdater(HttpClient http, AgentStateStore store,
         process.WaitForExit(15_000);
         if (process.HasExited && process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"systemd-run endete mit Code {process.ExitCode}.");
+            throw new InvalidOperationException($"systemd-run exited with code {process.ExitCode}.");
         }
     }
 

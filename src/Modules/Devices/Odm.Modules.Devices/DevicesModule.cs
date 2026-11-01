@@ -72,7 +72,7 @@ public sealed class DevicesModule : IModule
                     GroupRule.Create(GroupField.Name, MatchOperator.StartsWith, "SRV"),
                     GroupRule.Create(GroupField.Name, MatchOperator.Contains, "-srv-")
                 ]),
-                DeviceGroup.Create("Finanz", "Hauptbenutzer in der OU Finanz", GroupMatchMode.All,
+                DeviceGroup.Create("Finanz", "Primary users in the OU Finanz", GroupMatchMode.All,
                 [
                     GroupRule.Create(GroupField.OrgUnit, MatchOperator.Is, "Finanz")
                 ]));

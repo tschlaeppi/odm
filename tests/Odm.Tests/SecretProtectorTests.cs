@@ -14,17 +14,17 @@ public class SecretProtectorTests
     public void Roundtrip()
     {
         var protector = Protector();
-        var data = protector.Protect("LIZENZ", "geheim äöü 123");
+        var data = protector.Protect("LICENCE", "secret äöü 123");
 
-        Assert.Equal("geheim äöü 123", protector.Unprotect("LIZENZ", data));
+        Assert.Equal("secret äöü 123", protector.Unprotect("LICENCE", data));
     }
 
     [Fact]
     public void Ciphertext_does_not_contain_the_plaintext_and_differs_each_time()
     {
         var protector = Protector();
-        var a = protector.Protect("LIZENZ", "geheim");
-        var b = protector.Protect("LIZENZ", "geheim");
+        var a = protector.Protect("LICENCE", "geheim");
+        var b = protector.Protect("LICENCE", "geheim");
 
         Assert.NotEqual(a, b); // random nonce
         Assert.DoesNotContain("geheim", System.Text.Encoding.UTF8.GetString(a));
@@ -34,7 +34,7 @@ public class SecretProtectorTests
     public void Value_cannot_be_reused_under_another_name()
     {
         var protector = Protector();
-        var data = protector.Protect("LIZENZ", "geheim");
+        var data = protector.Protect("LICENCE", "geheim");
 
         Assert.ThrowsAny<CryptographicException>(() => protector.Unprotect("ANDERER_NAME", data));
     }
@@ -43,18 +43,18 @@ public class SecretProtectorTests
     public void Tampering_is_detected()
     {
         var protector = Protector();
-        var data = protector.Protect("LIZENZ", "geheim");
+        var data = protector.Protect("LICENCE", "geheim");
         data[^1] ^= 0xFF;
 
-        Assert.ThrowsAny<CryptographicException>(() => protector.Unprotect("LIZENZ", data));
+        Assert.ThrowsAny<CryptographicException>(() => protector.Unprotect("LICENCE", data));
     }
 
     [Fact]
     public void Wrong_key_cannot_decrypt()
     {
-        var data = Protector(7).Protect("LIZENZ", "geheim");
+        var data = Protector(7).Protect("LICENCE", "geheim");
 
-        Assert.ThrowsAny<CryptographicException>(() => Protector(8).Unprotect("LIZENZ", data));
+        Assert.ThrowsAny<CryptographicException>(() => Protector(8).Unprotect("LICENCE", data));
     }
 
     [Theory]
@@ -66,6 +66,6 @@ public class SecretProtectorTests
 
     [Theory]
     [InlineData("")]
-    [InlineData("das ist kein base64!")]
+    [InlineData("this is not base64!")]
     public void Master_key_must_be_base64(string key) => Assert.False(SecretsOptions.IsValid(key));
 }

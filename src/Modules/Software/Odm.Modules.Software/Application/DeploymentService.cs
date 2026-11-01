@@ -203,7 +203,7 @@ public sealed class DeploymentService(
                 {
                     if (!installation.EvaluateRemoval(now))
                     {
-                        db.Installations.Remove(installation); // war nie installiert: nichts zu entfernen
+                        db.Installations.Remove(installation); // was never installed: nothing to remove
                     }
 
                     continue;

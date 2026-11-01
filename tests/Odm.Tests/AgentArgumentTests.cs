@@ -45,7 +45,7 @@ public class SecretSubstitutionTests
     public void References_are_replaced_inside_a_token()
     {
         Assert.Equal("--key=abc-123", SecretSubstitution.Apply("--key={{secret:LIZENZ}}", Secrets));
-        Assert.Equal("ohne", SecretSubstitution.Apply("ohne", Secrets));
+        Assert.Equal("without", SecretSubstitution.Apply("without", Secrets));
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class RepoInstallerArgumentTests
     private static string After(IReadOnlyList<string> args, string option)
     {
         var index = args.ToList().IndexOf(option);
-        Assert.True(index >= 0 && index + 1 < args.Count, $"'{option}' fehlt oder hat keinen Wert: {string.Join(' ', args)}");
+        Assert.True(index >= 0 && index + 1 < args.Count, $"'{option}' is missing or has no value: {string.Join(' ', args)}");
         return args[index + 1];
     }
 

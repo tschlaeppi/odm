@@ -59,7 +59,7 @@ public class InstallationTests
     {
         var installation = Installation.Create(Guid.NewGuid(), Guid.NewGuid(), V1, T0);
         installation.MarkQueued(Guid.NewGuid(), T0);
-        installation.Complete(success: false, "Fehler", T0);
+        installation.Complete(success: false, "Error", T0);
 
         installation.Evaluate(V1, T0.AddMinutes(14));
         Assert.Equal(InstallStatus.Failed, installation.Status);
@@ -77,7 +77,7 @@ public class InstallationTests
         for (var attempt = 1; attempt <= Installation.MaxAttempts; attempt++)
         {
             installation.MarkQueued(Guid.NewGuid(), now);
-            installation.Complete(success: false, $"Fehler {attempt}", now);
+            installation.Complete(success: false, $"Error {attempt}", now);
             now = now.AddMinutes(16);
             installation.Evaluate(V1, now);
         }
@@ -95,7 +95,7 @@ public class InstallationTests
     {
         var installation = Installation.Create(Guid.NewGuid(), Guid.NewGuid(), V1, T0);
         installation.MarkQueued(Guid.NewGuid(), T0);
-        installation.Complete(success: false, "Fehler", T0);
+        installation.Complete(success: false, "Error", T0);
 
         installation.Evaluate(V2, T0.AddSeconds(1));
 

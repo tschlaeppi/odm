@@ -2,6 +2,18 @@
 // Patterns may contain {placeholders} which are carried over to the translation.
 
 const de: [string, string][] = [
+  ["Unknown package manager '{p.Manager}'.", "Unbekannter Paketmanager '{p.Manager}'."],
+  ["A rollout plan needs 1 to {MaxStages} stages.", "Ein Tranchenplan braucht 1 bis {MaxStages} Stufen."],
+  ["Each stage needs a percentage from 1 to 100.", "Jede Stufe braucht einen Prozentwert von 1 bis 100."],
+  ["Each stage needs a subgroup.", "Jede Stufe braucht eine Untergruppe."],
+  ["Each subgroup may appear only once.", "Jede Untergruppe darf nur einmal vorkommen."],
+  ["Unknown package kind.", "Unbekannte Paketart."],
+  ["The ZIP file is missing.", "Die ZIP-Datei fehlt."],
+  ["A profile needs at least one package.", "Ein Profil braucht mindestens ein Paket."],
+  ["Each package may appear only once.", "Jedes Paket darf nur einmal vorkommen."],
+  ["Unknown secret: {names}.", "Unbekanntes Secret: {names}."],
+  ["Unknown time zone.", "Unbekannte Zeitzone."],
+  ["Unknown job type.", "Unbekannter Auftragstyp."],
   ["Platform: Windows or Linux.", "Plattform: Windows oder Linux."],
   ["The ZIP contains no Invoke-AppDeployToolkit.ps1 (PSAppDeployToolkit-Linux package).", "Das ZIP enthält keine Invoke-AppDeployToolkit.ps1 (PSAppDeployToolkit-Linux-Paket)."],
   ["Linux needs a PSAppDeployToolkit-Linux package (Invoke-AppDeployToolkit.ps1).", "Linux benötigt ein PSAppDeployToolkit-Linux-Paket (Invoke-AppDeployToolkit.ps1)."],

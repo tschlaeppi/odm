@@ -17,7 +17,7 @@ public sealed record RunDto(
     string Status, int? Installed, int? Failed, bool RebootRequired, bool Rebooting, string? Message,
     DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt);
 
-/// <summary>Inhalt des Auftrags "os-update" (vom Agent gelesen).</summary>
+/// <summary>Content of the "os-update" job (read by the agent).</summary>
 public sealed record OsUpdatePayload(string Mode, bool AllowReboot, DateTimeOffset WindowEndsAt, int TimeoutMinutes);
 
 /// <summary>Result that the agent reports as job output (JSON).</summary>
