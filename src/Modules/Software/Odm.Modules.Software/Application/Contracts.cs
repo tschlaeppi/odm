@@ -104,3 +104,15 @@ public sealed record ComplianceRowDto(
 /// <summary>Installations in total, how many deviate, deviations per reason and the (filtered) rows.</summary>
 public sealed record ComplianceDto(
     int Total, int Deviating, IReadOnlyDictionary<string, int> ByReason, IReadOnlyList<ComplianceRowDto> Rows);
+
+/// <summary>
+/// A package of a profile that applies to a device. Status = installation status, or without installation:
+/// Scheduled (rollout stage not reached yet), NotApplicable (other platform/distribution), NoVersion (nothing uploaded / pinned version invalid).
+/// </summary>
+public sealed record DeviceProfileItemDto(
+    int Position, Guid PackageId, string PackageName, string Status, string? TargetVersion, string? InstalledVersion,
+    int Attempts, string? Message, DateTimeOffset? UpdatedAt);
+
+/// <summary>A profile that applies to a device; Source = Device, User or Group (SourceName: user or group name).</summary>
+public sealed record DeviceProfileDto(
+    Guid ProfileId, string ProfileName, string Source, string? SourceName, IReadOnlyList<DeviceProfileItemDto> Items);

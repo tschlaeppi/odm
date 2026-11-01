@@ -296,6 +296,26 @@ export interface SoftwareStatsDto {
   failures: FailureDto[]
 }
 
+export interface DeviceProfileItemDto {
+  position: number
+  packageId: string
+  packageName: string
+  status: string
+  targetVersion: string | null
+  installedVersion: string | null
+  attempts: number
+  message: string | null
+  updatedAt: string | null
+}
+
+export interface DeviceProfileDto {
+  profileId: string
+  profileName: string
+  source: 'Device' | 'User' | 'Group'
+  sourceName: string | null
+  items: DeviceProfileItemDto[]
+}
+
 export interface InstallationDto {
   id: string
   deviceId: string
@@ -628,6 +648,7 @@ export const api = {
   device: (id: string) => request<DeviceDto>(`/devices/${id}`),
   deviceGroups: (id: string) => request<DeviceGroupRefDto[]>(`/devices/${id}/groups`),
   deviceInstallations: (id: string) => request<InstallationDto[]>(`/software/installations/by-device?deviceId=${id}`),
+  deviceProfiles: (id: string) => request<DeviceProfileDto[]>(`/software/profile-assignments/by-device?deviceId=${id}`),
   agentPackages: () => request<AgentPackagesDto>('/agent/packages'),
   login: (userName: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ userName, password }) }),

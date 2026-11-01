@@ -129,6 +129,92 @@ internal static class ProfileEndpoints
                 now)));
         });
 
+        // Profiles that apply to a device (directly, via its user or via a group) with the state of each package.
+        assignments.MapGet("/by-device", async (Guid deviceId, SoftwareDbContext db, IDeviceDirectory directory, CancellationToken ct) =>
+        {
+            var device = await directory.GetAsync(deviceId, ct);
+            if (device is null)
+            {
+                return Results.NotFound();
+            }
+
+            var matching = new List<ProfileAssignment>();
+            foreach (var a in await db.ProfileAssignments.AsNoTracking().OrderBy(a => a.CreatedAt).ToListAsync(ct))
+            {
+                var applies = a.TargetKind switch
+                {
+                    TargetKind.Device => Guid.TryParse(a.Target, out var id) && id == deviceId,
+                    TargetKind.Group => Guid.TryParse(a.Target, out var groupId) &&
+                                        (await directory.ResolveGroupAsync(groupId, ct)).Any(d => d.Id == deviceId),
+                    TargetKind.User => (await directory.ResolveUserAsync(a.Target, ct)).Any(d => d.Id == deviceId),
+                    _ => false
+                };
+                if (applies)
+                {
+                    matching.Add(a);
+                }
+            }
+
+            if (matching.Count == 0)
+            {
+                return Results.Ok(Array.Empty<DeviceProfileDto>());
+            }
+
+            var profileIds = matching.Select(a => a.ProfileId).Distinct().ToList();
+            var profiles = await db.Profiles.AsNoTracking().Where(p => profileIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
+            var items = (await db.ProfileItems.AsNoTracking().Where(i => profileIds.Contains(i.ProfileId)).ToListAsync(ct))
+                .OrderBy(i => i.Position).ToList();
+            var packageIds = items.Select(i => i.PackageId).Distinct().ToList();
+            var packages = await db.Packages.AsNoTracking().Where(p => packageIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
+            var versions = await db.Versions.AsNoTracking()
+                .Where(v => packageIds.Contains(v.PackageId))
+                .Select(v => new { v.Id, v.PackageId, v.Version, v.UploadedAt })
+                .ToListAsync(ct);
+            var versionNames = versions.ToDictionary(v => v.Id, v => v.Version);
+            var hasVersion = versions.Select(v => v.PackageId).ToHashSet();
+            var installations = await db.Installations.AsNoTracking()
+                .Where(i => i.DeviceId == deviceId && packageIds.Contains(i.PackageId))
+                .ToDictionaryAsync(i => i.PackageId, ct);
+            var groupNames = await directory.GetGroupNamesAsync(
+                matching.Where(a => a.TargetKind == TargetKind.Group && Guid.TryParse(a.Target, out _))
+                    .Select(a => Guid.Parse(a.Target)).ToList(), ct);
+
+            var result = matching
+                .Where(a => profiles.ContainsKey(a.ProfileId))
+                .Select(a => new DeviceProfileDto(
+                    a.ProfileId, profiles[a.ProfileId].Name, a.TargetKind.ToString(),
+                    a.TargetKind switch
+                    {
+                        TargetKind.User => a.Target,
+                        TargetKind.Group when Guid.TryParse(a.Target, out var g) => groupNames.GetValueOrDefault(g),
+                        _ => null
+                    },
+                    items.Where(i => i.ProfileId == a.ProfileId).Select((i, index) =>
+                    {
+                        if (!packages.TryGetValue(i.PackageId, out var package))
+                        {
+                            return null;
+                        }
+
+                        if (installations.TryGetValue(i.PackageId, out var installation))
+                        {
+                            return new DeviceProfileItemDto(
+                                index, package.Id, package.Name, installation.Status.ToString(),
+                                versionNames.GetValueOrDefault(installation.TargetVersionId),
+                                installation.InstalledVersionId is { } installed ? versionNames.GetValueOrDefault(installed) : null,
+                                installation.Attempts, installation.Message, installation.UpdatedAt);
+                        }
+
+                        var status = !DistroFamily.Applies(package.Kind, package.Spec, device) ? "NotApplicable"
+                            : !hasVersion.Contains(package.Id) ? "NoVersion"
+                            : "Scheduled";
+                        return new DeviceProfileItemDto(index, package.Id, package.Name, status, null, null, 0, null, null);
+                    }).OfType<DeviceProfileItemDto>().ToList()))
+                .ToList();
+
+            return Results.Ok(result);
+        });
+
         assignments.MapPost("/", async (
                 ProfileAssignmentRequest request, SoftwareDbContext db, IDeviceDirectory directory,
                 DeploymentTrigger trigger, CancellationToken ct) =>
