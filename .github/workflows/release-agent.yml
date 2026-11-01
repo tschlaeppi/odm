@@ -31,7 +31,7 @@ jobs:
           upload-artifact: false
           upload-release-assets: false
       - name: Signed build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: agent-packages/*
       - uses: actions/upload-artifact@v7
