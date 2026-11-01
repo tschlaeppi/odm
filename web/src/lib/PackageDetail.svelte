@@ -17,6 +17,7 @@
   } from './api'
   import { auth } from './auth.svelte'
   import DataTable, { type Column } from './DataTable.svelte'
+  import DependencyPicker, { type DependencyOption } from './DependencyPicker.svelte'
   import { formatSize } from './format'
   import { i18n, type MessageKey } from './i18n.svelte'
   import MessageDialog from './MessageDialog.svelte'
@@ -41,7 +42,7 @@
   // Settings (additional arguments; for repo packages also identifier, version etc.)
   let spec = $state(emptySpec('Psadt'))
   let secretNames = $state<string[]>([])
-  let allPackages = $state<{ id: string; name: string }[]>([])
+  let allPackages = $state<DependencyOption[]>([])
   let dependsOn = $state<string[]>([])
   let configMessage = $state<string | null>(null)
   let configError = $state<string | null>(null)
@@ -102,7 +103,7 @@
       groups = []
     }
     try {
-      allPackages = (await api.packages()).filter((p) => p.id !== id).map((p) => ({ id: p.id, name: p.name }))
+      allPackages = (await api.packages()).filter((p) => p.id !== id).map((p) => ({ id: p.id, name: p.name, kind: p.kind }))
     } catch {
       allPackages = []
     }
@@ -379,12 +380,7 @@
           {#if allPackages.length === 0}
             <p class="muted small">{i18n.t('sw.deps.none')}</p>
           {:else}
-            {#each allPackages as other (other.id)}
-              <label class="check">
-                <input type="checkbox" value={other.id} bind:group={dependsOn} />
-                {other.name}
-              </label>
-            {/each}
+            <DependencyPicker options={allPackages} bind:selected={dependsOn} />
           {/if}
         </div>
       </fieldset>
@@ -557,12 +553,6 @@
   }
   .deps-title {
     font-weight: 600;
-  }
-  .check {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0.2rem 0;
   }
   .back {
     color: var(--muted);
