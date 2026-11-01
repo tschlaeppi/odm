@@ -15,7 +15,7 @@ internal sealed class HistoryRow
     public string Title { get; init; } = "";
     public Guid? RunId { get; init; }
     public Guid DeviceId { get; init; }
-    public RunStatus Status { get; init; }
+    public string Status { get; init; } = "";
     public DateTimeOffset At { get; init; }
     public bool ViaOdm { get; init; }
 }
@@ -56,7 +56,9 @@ internal static class RunEndpoints
                          join r in db.Runs.AsNoTracking() on i.RunId equals r.Id
                          select new HistoryRow
                          {
-                             Title = i.Title, RunId = r.Id, DeviceId = r.DeviceId, Status = r.Status,
+                             Title = i.Title, RunId = r.Id, DeviceId = r.DeviceId,
+                             // Written as text constants on both sides: the status column is stored as text, an enum constant would become a number in the UNION
+                             Status = r.Status == RunStatus.Succeeded ? "Succeeded" : r.Status == RunStatus.Failed ? "Failed" : "Queued",
                              At = r.CompletedAt ?? r.CreatedAt, ViaOdm = true
                          };
 
@@ -67,7 +69,7 @@ internal static class RunEndpoints
                     r.DeviceId == e.DeviceId && r.CompletedAt != null && e.InstalledAt >= r.CreatedAt && e.InstalledAt <= r.CompletedAt))
                 .Select(e => new HistoryRow
                 {
-                    Title = e.Title, RunId = null, DeviceId = e.DeviceId, Status = RunStatus.Succeeded,
+                    Title = e.Title, RunId = null, DeviceId = e.DeviceId, Status = "Succeeded",
                     At = e.InstalledAt, ViaOdm = false
                 });
 
@@ -98,7 +100,7 @@ internal static class RunEndpoints
 
             return Results.Ok(new HistoryPageDto(total, rows.Select(r => new HistoryItemDto(
                 r.RunId, r.DeviceId, devices.TryGetValue(r.DeviceId, out var d) ? d.Name : null,
-                r.Title, r.Status.ToString(), r.At, r.ViaOdm)).ToList()));
+                r.Title, r.Status, r.At, r.ViaOdm)).ToList()));
         });
 
         group.MapPost("/devices/{deviceId:guid}/run", async (Guid deviceId, UpdateSchedulingService scheduling, CancellationToken ct) =>
