@@ -78,6 +78,9 @@ A profile is an ordered list of packages (PSADT and repository packages mixed).
 - When the same package comes from several sources, the more specific wins: device before user before group; for the same
   target a single package assignment before a profile.
 - Profile items of PSADT packages may pin a version.
+- The device page shows every profile that applies to the device (directly, via its user or via a group) below the software table, with the
+  state of each package: the installation status, or *Scheduled* (rollout stage not reached yet), *Not applicable* (other platform or
+  distribution) or *No version available*.
 
 ## Rollouts in stages
 
