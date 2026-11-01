@@ -1,97 +1,162 @@
-using System.Text.Json;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using Microsoft.Win32;
 
 namespace Odm.Agent.Os;
 
 /// <summary>
-/// Windows updates through the Windows Update Agent API (COM, Microsoft.Update.Session) – without additional modules.
-/// Runs as SYSTEM; "SecurityOnly" installs security and critical updates.
+/// Windows updates through the Windows Update Agent API (COM, Microsoft.Update.Session), called directly from C# with
+/// late binding – no script and no extra process. Runs as SYSTEM; "SecurityOnly" installs security and critical updates.
 /// </summary>
-public sealed class WindowsUpdater : IOsUpdater
+public sealed class WindowsUpdater(ILogger<WindowsUpdater> logger) : IOsUpdater
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private const string SearchCriteria = "IsInstalled=0 and IsHidden=0 and Type='Software'";
+    private const int ResultSucceeded = 2; // OperationResultCode.orcSucceeded
 
-    private const string Script = """
-        param([string]$Mode = 'All')
-        $ErrorActionPreference = 'Stop'
-        $session = New-Object -ComObject Microsoft.Update.Session
-        $searcher = $session.CreateUpdateSearcher()
-        $found = $searcher.Search("IsInstalled=0 and IsHidden=0 and Type='Software'")
-        $selected = New-Object -ComObject Microsoft.Update.UpdateColl
-        $titles = @()
-        foreach ($u in $found.Updates) {
-            if ($u.InstallationBehavior.CanRequestUserInput) { continue }
-            if ($Mode -eq 'SecurityOnly') {
-                $isSecurity = $false
-                foreach ($c in $u.Categories) {
-                    if ($c.Name -eq 'Security Updates' -or $c.Name -eq 'Critical Updates') { $isSecurity = $true }
-                }
-                if (-not $isSecurity) { continue }
-            }
-            if (-not $u.EulaAccepted) { $u.AcceptEula() }
-            [void]$selected.Add($u)
-            $titles += $u.Title
-        }
-        $installed = 0
-        $failed = 0
-        $reboot = $false
-        if ($selected.Count -gt 0) {
-            $downloader = $session.CreateUpdateDownloader()
-            $downloader.Updates = $selected
-            [void]$downloader.Download()
-            $installer = $session.CreateUpdateInstaller()
-            $installer.Updates = $selected
-            $result = $installer.Install()
-            $reboot = [bool]$result.RebootRequired
-            for ($i = 0; $i -lt $selected.Count; $i++) {
-                if ($result.GetUpdateResult($i).ResultCode -eq 2) { $installed++ } else { $failed++ }
-            }
-        }
-        if (-not $reboot) {
-            $reboot = (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired') -or
-                      (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending')
-        }
-        @{ installed = $installed; failed = $failed; titles = @($titles); rebootRequired = $reboot } | ConvertTo-Json -Compress
-        """;
-
-    private sealed record ScriptOutput(int Installed, int Failed, string[]? Titles, bool RebootRequired);
+    private static readonly string[] SecurityCategories = ["Security Updates", "Critical Updates"];
 
     public async Task<OsUpdateResult> RunAsync(OsUpdatePayload payload, string workDirectory, CancellationToken ct)
     {
-        var scriptPath = Path.Combine(workDirectory, "update.ps1");
-        await File.WriteAllTextAsync(scriptPath, Script, ct);
+        if (!OperatingSystem.IsWindows())
+        {
+            return Fail("Windows updates are only available on Windows.");
+        }
 
-        var powershell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
         var timeout = TimeSpan.FromMinutes(Math.Clamp(payload.TimeoutMinutes, 5, 24 * 60));
+        var securityOnly = payload.Mode == "SecurityOnly";
+        var completion = new TaskCompletionSource<OsUpdateResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var result = await ProcessRunner.RunAsync(
-            powershell,
-            ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", scriptPath, "-Mode", payload.Mode],
-            timeout, ct);
-
-        if (result.TimedOut)
+        // The Windows Update COM objects are used from a dedicated single-threaded apartment. The COM calls block and
+        // cannot be cancelled, so a timeout abandons the (background) thread; the update service itself carries on.
+        var thread = new Thread(() =>
         {
-            return new OsUpdateResult(false, 0, 0, [], false, $"Timed out after {timeout.TotalMinutes:N0} minutes.");
+            try
+            {
+                completion.SetResult(Run(securityOnly));
+            }
+            catch (Exception ex)
+            {
+                completion.SetException(ex);
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "windows-update"
+        };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+
+        try
+        {
+            return await completion.Task.WaitAsync(timeout, ct);
+        }
+        catch (TimeoutException)
+        {
+            return Fail($"Timed out after {timeout.TotalMinutes:N0} minutes.");
+        }
+        catch (COMException ex)
+        {
+            logger.LogWarning(ex, "Windows Update failed.");
+            return Fail($"Windows Update failed (0x{ex.HResult:X8}). {ex.Message.Trim()}");
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private OsUpdateResult Run(bool securityOnly)
+    {
+        dynamic session = Create("Microsoft.Update.Session");
+        dynamic searcher = session.CreateUpdateSearcher();
+        dynamic found = searcher.Search(SearchCriteria);
+        dynamic selected = Create("Microsoft.Update.UpdateColl");
+
+        var titles = new List<string>();
+        dynamic available = found.Updates;
+        int availableCount = available.Count;
+        for (var i = 0; i < availableCount; i++)
+        {
+            dynamic update = available.Item(i);
+            if ((bool)update.InstallationBehavior.CanRequestUserInput)
+            {
+                continue; // needs a user; not possible unattended
+            }
+
+            if (securityOnly && !IsSecurity(CategoryNames(update)))
+            {
+                continue;
+            }
+
+            if (!(bool)update.EulaAccepted)
+            {
+                update.AcceptEula();
+            }
+
+            selected.Add(update);
+            titles.Add((string)update.Title);
         }
 
-        if (result.ExitCode != 0)
+        var installed = 0;
+        var failed = 0;
+        var reboot = false;
+        int selectedCount = selected.Count;
+        if (selectedCount > 0)
         {
-            return new OsUpdateResult(false, 0, 0, [], false,
-                $"Windows Update failed (exit code {result.ExitCode}). {Tail(result.Error.Length > 0 ? result.Error : result.Output)}");
-        }
+            logger.LogInformation("Installing {Count} Windows update(s).", selectedCount);
 
-        // The last JSON line of the output is the result; warnings may precede it.
-        var line = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault(l => l.StartsWith('{'));
-        var parsed = line is null ? null : JsonSerializer.Deserialize<ScriptOutput>(line, Json);
-        if (parsed is null)
-        {
-            return new OsUpdateResult(false, 0, 0, [], false, "The output of the update script could not be read.");
+            dynamic downloader = session.CreateUpdateDownloader();
+            downloader.Updates = selected;
+            downloader.Download();
+
+            dynamic installer = session.CreateUpdateInstaller();
+            installer.Updates = selected;
+            dynamic result = installer.Install();
+            reboot = (bool)result.RebootRequired;
+            for (var i = 0; i < selectedCount; i++)
+            {
+                int code = result.GetUpdateResult(i).ResultCode;
+                if (code == ResultSucceeded)
+                {
+                    installed++;
+                }
+                else
+                {
+                    failed++;
+                }
+            }
         }
 
         return new OsUpdateResult(
-            parsed.Failed == 0, parsed.Installed, parsed.Failed, parsed.Titles ?? [], parsed.RebootRequired,
-            parsed.Failed > 0 ? $"{parsed.Failed} update(s) could not be installed." : null);
+            failed == 0, installed, failed, titles, reboot || RebootPending(), failed > 0 ? $"{failed} update(s) could not be installed." : null);
     }
 
-    private static string Tail(string text) => text.Length <= 500 ? text.Trim() : text[^500..].Trim();
+    [SupportedOSPlatform("windows")]
+    private static object Create(string progId) =>
+        Activator.CreateInstance(Type.GetTypeFromProgID(progId, throwOnError: true)!)!;
+
+    [SupportedOSPlatform("windows")]
+    private static List<string> CategoryNames(dynamic update)
+    {
+        var names = new List<string>();
+        dynamic categories = update.Categories;
+        int count = categories.Count;
+        for (var i = 0; i < count; i++)
+        {
+            names.Add((string)categories.Item(i).Name);
+        }
+
+        return names;
+    }
+
+    /// <summary>Security and critical updates count as security updates.</summary>
+    public static bool IsSecurity(IEnumerable<string> categoryNames) =>
+        categoryNames.Any(n => SecurityCategories.Contains(n, StringComparer.Ordinal));
+
+    [SupportedOSPlatform("windows")]
+    private static bool RebootPending()
+    {
+        using var windowsUpdate = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired");
+        using var servicing = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending");
+        return windowsUpdate is not null || servicing is not null;
+    }
+
+    private static OsUpdateResult Fail(string message) => new(false, 0, 0, [], false, message);
 }

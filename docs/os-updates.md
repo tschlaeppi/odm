@@ -12,7 +12,7 @@
 
 ## How the agent updates
 
-- **Windows:** Windows Update Agent API (COM, no extra module) as SYSTEM. *Security only* = categories Security Updates and Critical Updates.
+- **Windows:** Windows Update Agent API (COM, called directly from the agent without a script or an extra process) as SYSTEM. *Security only* = categories Security Updates and Critical Updates.
 - **Linux (DEB):** `apt-get update`, then `upgrade`; for *security only* just packages from `*-security` sources.
 - **Linux (RPM):** `dnf` or `yum` (`--security` for *security only*).
 - **Restart:** only if the policy allows it, a restart is required and at least 5 minutes remain in the window. It is scheduled with
