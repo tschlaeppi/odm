@@ -27,3 +27,9 @@ Besides the runs, the individual updates of each run are stored: the title of a 
 They are shown in the **Update history** section of the *OS updates* page (all devices) and on each device page, with a search field.
 Up to 500 entries per run are reported by the agent and up to 1000 are kept; the run itself always shows the exact counts.
 The history is deleted together with its run after `OsUpdates:RunRetentionDays`. Runs from before this feature have no entries.
+
+Updates that were **not installed by ODM** (manually, or by Windows Update or `unattended-upgrades` on their own) are listed as well and marked
+*Not via ODM*. The agent reads them from the operating system together with the inventory (every `Agent:InventoryHours`):
+Windows from the Windows Update history (successful installations), Linux/DEB from `/var/log/dpkg.log*` (upgrades only).
+RPM based systems are not supported yet. Entries that fall into the time span of an ODM run count as installed by ODM and are not listed twice.
+Only the last `OsUpdates:RunRetentionDays` days are kept.

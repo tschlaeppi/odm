@@ -24,7 +24,11 @@ public sealed record HardwareReport(
 
 public sealed record ProgramReport(string Name, string? Version, string? Publisher);
 
-public sealed record InventoryRequest(HardwareReport Hardware, IReadOnlyList<ProgramReport> Software);
+public sealed record UpdateReport(string Title, DateTimeOffset InstalledAt);
+
+/// <summary>Updates = history of the operating system (null if it could not be read; the server then keeps its data).</summary>
+public sealed record InventoryRequest(
+    HardwareReport Hardware, IReadOnlyList<ProgramReport> Software, IReadOnlyList<UpdateReport>? Updates = null);
 
 /// <summary>
 /// Collects basic hardware data and the installed programs: Windows from the machine-wide uninstall registry keys
@@ -46,7 +50,8 @@ public sealed partial class InventoryCollector(ILogger<InventoryCollector> logge
         var (lastUser, lastLogin) = await CollectLastLoginAsync(ct);
         hardware = hardware with { LastUser = lastUser, LastLoginAt = lastLogin };
         var software = await CollectSoftwareAsync(ct);
-        return new InventoryRequest(hardware, software);
+        var updates = await CollectUpdatesAsync(ct);
+        return new InventoryRequest(hardware, software, updates);
     }
 
     // ---- Hardware ----
@@ -373,6 +378,97 @@ public sealed partial class InventoryCollector(ILogger<InventoryCollector> logge
     {
         var text = value?.Trim();
         return string.IsNullOrEmpty(text) ? null : text;
+    }
+
+    // ---- Update history of the operating system ----
+
+    private static readonly TimeSpan HistoryWindow = TimeSpan.FromDays(400);
+
+    private async Task<IReadOnlyList<UpdateReport>?> CollectUpdatesAsync(CancellationToken ct)
+    {
+        try
+        {
+            var since = DateTimeOffset.UtcNow - HistoryWindow;
+            if (OperatingSystem.IsWindows())
+            {
+                return await Task.Run(() => OperatingSystem.IsWindows() ? WindowsUpdater.ReadHistory(since) : null, ct);
+            }
+
+            if (OperatingSystem.IsLinux() && File.Exists("/var/log/dpkg.log"))
+            {
+                return ReadDpkgHistory("/var/log", since);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "The update history of the operating system could not be read.");
+        }
+
+        return null;
+    }
+
+    private static List<UpdateReport> ReadDpkgHistory(string directory, DateTimeOffset since)
+    {
+        var architecture = RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "armhf",
+            Architecture.X86 => "i386",
+            _ => "amd64"
+        };
+        var updates = new List<UpdateReport>();
+        foreach (var file in Directory.EnumerateFiles(directory, "dpkg.log*").OrderBy(f => f, StringComparer.Ordinal))
+        {
+            try
+            {
+                using var raw = File.OpenRead(file);
+                using Stream stream = file.EndsWith(".gz", StringComparison.Ordinal)
+                    ? new System.IO.Compression.GZipStream(raw, System.IO.Compression.CompressionMode.Decompress)
+                    : raw;
+                using var reader = new StreamReader(stream);
+                while (reader.ReadLine() is { } line)
+                {
+                    if (ParseDpkgLine(line, architecture) is { } update && update.InstalledAt >= since)
+                    {
+                        updates.Add(update);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                // unreadable log file: skip it
+            }
+        }
+
+        return updates;
+    }
+
+    /// <summary>
+    /// "2024-05-01 06:12:33 upgrade libssl3:amd64 3.0.2-1 3.0.2-2" becomes "libssl3 3.0.2-1 → 3.0.2-2" (the same
+    /// format the update runs use). Only upgrades count as updates; other actions are ignored.
+    /// </summary>
+    public static UpdateReport? ParseDpkgLine(string line, string nativeArchitecture)
+    {
+        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 6 || parts[2] != "upgrade")
+        {
+            return null;
+        }
+
+        if (!DateTime.TryParseExact(
+                $"{parts[0]} {parts[1]}", "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var local))
+        {
+            return null;
+        }
+
+        var name = parts[3];
+        var colon = name.IndexOf(':', StringComparison.Ordinal);
+        if (colon > 0 && name[(colon + 1)..] is var arch && (arch == nativeArchitecture || arch == "all"))
+        {
+            name = name[..colon];
+        }
+
+        return new UpdateReport($"{name} {parts[4]} → {parts[5]}", new DateTimeOffset(local));
     }
 
     // ---- Software ----

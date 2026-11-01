@@ -348,12 +348,13 @@ export interface OsAssignmentDto {
 }
 
 export interface UpdateHistoryItemDto {
-  runId: string
+  runId: string | null
   deviceId: string
   deviceName: string | null
   title: string
   status: 'Queued' | 'Succeeded' | 'Failed'
   at: string
+  viaOdm: boolean
 }
 
 export interface UpdateHistoryPageDto {

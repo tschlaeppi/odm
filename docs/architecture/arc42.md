@@ -266,6 +266,7 @@ flowchart LR
 | ADR-39 | PSADT packages get a platform (Windows or Linux) stored in the package settings; the Linux variant runs PSAppDeployToolkit-Linux packages with `pwsh` | reuses the PSADT knowledge for Linux without a new package kind or a migration; the platform field is omitted from the JSON when it is Windows, so existing settings and revisions stay unchanged | accepted |
 | ADR-40 | Trust is built on checks anyone can read and rerun (CI, CodeQL, Dependabot, guard tests, signed build provenance, SBOM) and documented in [security](../security.md), not on promises | free for open source repositories; users can verify a release themselves | accepted |
 | ADR-41 | The individual updates of a run are stored in a separate table (`run_items`), not as text in the run | allows searching across devices ("who got this update?") and paging; deleted with the run by cascade | accepted |
+| ADR-42 | Updates from the operating system's own history are stored separately (`reported_updates`) and marked "not via ODM" unless they fall into an ODM run's time span | no fragile title matching; also correct for runs from before per-run lists existed | accepted |
 
 ## 10. Quality requirements
 

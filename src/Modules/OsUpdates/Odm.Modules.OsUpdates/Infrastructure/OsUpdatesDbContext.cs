@@ -14,6 +14,7 @@ public sealed class OsUpdatesDbContext(DbContextOptions<OsUpdatesDbContext> opti
     public DbSet<OsAssignment> Assignments => Set<OsAssignment>();
     public DbSet<UpdateRun> Runs => Set<UpdateRun>();
     public DbSet<UpdateRunItem> RunItems => Set<UpdateRunItem>();
+    public DbSet<ReportedUpdateEntry> ReportedUpdates => Set<ReportedUpdateEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +59,14 @@ public sealed class OsUpdatesDbContext(DbContextOptions<OsUpdatesDbContext> opti
             b.HasIndex(r => new { r.DeviceId, r.WindowId, r.OccurrenceStart }).IsUnique();
             b.HasIndex(r => r.JobId);
             b.HasIndex(r => r.CreatedAt);
+        });
+
+        modelBuilder.Entity<ReportedUpdateEntry>(b =>
+        {
+            b.ToTable("reported_updates");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Title).HasMaxLength(ReportedUpdateEntry.MaxTitleLength).IsRequired();
+            b.HasIndex(e => new { e.DeviceId, e.InstalledAt });
         });
 
         modelBuilder.Entity<UpdateRunItem>(b =>

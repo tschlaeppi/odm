@@ -129,6 +129,76 @@ public sealed class WindowsUpdater(ILogger<WindowsUpdater> logger) : IOsUpdater
             failed == 0, installed, failed, titles, reboot || RebootPending(), failed > 0 ? $"{failed} update(s) could not be installed." : null);
     }
 
+    /// <summary>
+    /// Installed updates from the Windows Update history (successful installations since the given time), newest first.
+    /// Used for the update history, independent of ODM.
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    public static IReadOnlyList<Inventory.UpdateReport> ReadHistory(DateTimeOffset since)
+    {
+        const int maxEntries = 2000;
+        const int operationInstallation = 1; // UpdateOperation.uoInstallation
+        List<Inventory.UpdateReport>? result = null;
+        Exception? error = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                result = OperatingSystem.IsWindows() ? Query() : [];
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "windows-update-history"
+        };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        if (!thread.Join(TimeSpan.FromMinutes(2)))
+        {
+            throw new TimeoutException("Reading the Windows Update history timed out.");
+        }
+
+        return error is null ? result ?? [] : throw error;
+
+        [SupportedOSPlatform("windows")]
+        List<Inventory.UpdateReport> Query()
+        {
+            dynamic session = Create("Microsoft.Update.Session");
+            dynamic searcher = session.CreateUpdateSearcher();
+            int total = searcher.GetTotalHistoryCount();
+            var updates = new List<Inventory.UpdateReport>();
+            if (total <= 0)
+            {
+                return updates;
+            }
+
+            dynamic entries = searcher.QueryHistory(0, Math.Min(total, maxEntries));
+            int count = entries.Count;
+            for (var i = 0; i < count; i++)
+            {
+                dynamic entry = entries.Item(i);
+                if ((int)entry.Operation != operationInstallation || (int)entry.ResultCode != ResultSucceeded)
+                {
+                    continue;
+                }
+
+                var title = (string?)entry.Title;
+                var date = new DateTimeOffset(DateTime.SpecifyKind((DateTime)entry.Date, DateTimeKind.Utc));
+                if (!string.IsNullOrWhiteSpace(title) && date >= since)
+                {
+                    updates.Add(new Inventory.UpdateReport(title.Trim(), date));
+                }
+            }
+
+            return updates;
+        }
+    }
+
     [SupportedOSPlatform("windows")]
     private static object Create(string progId) =>
         Activator.CreateInstance(Type.GetTypeFromProgID(progId, throwOnError: true)!)!;

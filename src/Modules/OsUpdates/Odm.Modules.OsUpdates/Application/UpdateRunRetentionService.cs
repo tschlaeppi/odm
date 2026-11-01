@@ -45,6 +45,7 @@ public sealed class UpdateRunRetentionService(
         var db = scope.ServiceProvider.GetRequiredService<OsUpdatesDbContext>();
         var cutoff = now.AddDays(-retentionDays);
         var deleted = await db.Runs.Where(r => r.CompletedAt != null && r.CompletedAt < cutoff).ExecuteDeleteAsync(ct);
+        deleted += await db.ReportedUpdates.Where(e => e.InstalledAt < cutoff).ExecuteDeleteAsync(ct);
         if (deleted > 0)
         {
             logger.LogInformation("Housekeeping deleted {Count} update runs older than {Days} days.", deleted, retentionDays);
