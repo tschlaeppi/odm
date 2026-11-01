@@ -94,6 +94,30 @@ namespace Odm.Migrations.SqlServer.OsUpdates
                     b.ToTable("assignments", "osupdates");
                 });
 
+            modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.ReportedUpdateEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("InstalledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "InstalledAt");
+
+                    b.ToTable("reported_updates", "osupdates");
+                });
+
             modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.UpdatePolicy", b =>
                 {
                     b.Property<Guid>("Id")
