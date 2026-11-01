@@ -128,6 +128,28 @@ namespace Odm.Migrations.SqlServer.Software
                     b.ToTable("installations", "software");
                 });
 
+            modelBuilder.Entity("Odm.Modules.Software.Domain.PackageDependency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DependsOnId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DependsOnId");
+
+                    b.HasIndex("PackageId", "DependsOnId")
+                        .IsUnique();
+
+                    b.ToTable("package_dependencies", "software");
+                });
+
             modelBuilder.Entity("Odm.Modules.Software.Domain.PackageVersion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -342,6 +364,21 @@ namespace Odm.Migrations.SqlServer.Software
 
             modelBuilder.Entity("Odm.Modules.Software.Domain.Installation", b =>
                 {
+                    b.HasOne("Odm.Modules.Software.Domain.SoftwarePackage", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Odm.Modules.Software.Domain.PackageDependency", b =>
+                {
+                    b.HasOne("Odm.Modules.Software.Domain.SoftwarePackage", null)
+                        .WithMany()
+                        .HasForeignKey("DependsOnId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Odm.Modules.Software.Domain.SoftwarePackage", null)
                         .WithMany()
                         .HasForeignKey("PackageId")
