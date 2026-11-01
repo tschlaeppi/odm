@@ -211,12 +211,22 @@ internal static class AssignmentEndpoints
                 .Where(v => packageIds.Contains(v.PackageId))
                 .ToDictionaryAsync(v => v.Id, v => v.Version, ct);
 
+            // Waiting installations: which required packages are not installed yet?
+            var edges = (await db.Dependencies.AsNoTracking().Select(d => new { d.PackageId, d.DependsOnId }).ToListAsync(ct))
+                .ToLookup(d => d.PackageId, d => d.DependsOnId);
+            var statusByPackage = rows.ToDictionary(i => i.PackageId, i => i.Status);
+
             return Results.Ok(rows.Select(i => new InstallationDto(
                 i.Id, i.DeviceId, device.Name,
                 i.PackageId, names.GetValueOrDefault(i.PackageId, "?"),
                 versions.GetValueOrDefault(i.TargetVersionId),
                 i.InstalledVersionId is { } installed ? versions.GetValueOrDefault(installed) : null,
-                i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt, i.Removal)));
+                i.Status.ToString(), i.Attempts, i.Message, i.UpdatedAt, i.Removal,
+                i.Status == InstallStatus.Pending && !i.Removal
+                    ? DependencyRules.Closure(i.PackageId, edges)
+                        .Where(d => statusByPackage.TryGetValue(d, out var s) && s != InstallStatus.Installed)
+                        .Select(d => names.GetValueOrDefault(d, "?")).Order().ToList()
+                    : null)));
         });
 
         installations.MapPost("/{id:guid}/retry", async (Guid id, SoftwareDbContext db, DeploymentTrigger trigger, CancellationToken ct) =>

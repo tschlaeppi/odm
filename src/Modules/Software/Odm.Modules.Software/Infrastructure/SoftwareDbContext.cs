@@ -11,6 +11,7 @@ public sealed class SoftwareDbContext(DbContextOptions<SoftwareDbContext> option
 
     public DbSet<SoftwarePackage> Packages => Set<SoftwarePackage>();
     public DbSet<PackageVersion> Versions => Set<PackageVersion>();
+    public DbSet<PackageDependency> Dependencies => Set<PackageDependency>();
     public DbSet<Assignment> Assignments => Set<Assignment>();
     public DbSet<Installation> Installations => Set<Installation>();
     public DbSet<SoftwareSecret> Secrets => Set<SoftwareSecret>();
@@ -45,6 +46,17 @@ public sealed class SoftwareDbContext(DbContextOptions<SoftwareDbContext> option
             b.Property(v => v.Notes).HasMaxLength(1024);
             b.HasIndex(v => new { v.PackageId, v.Version }).IsUnique();
             b.HasOne<SoftwarePackage>().WithMany().HasForeignKey(v => v.PackageId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PackageDependency>(b =>
+        {
+            b.ToTable("package_dependencies");
+            b.HasKey(d => d.Id);
+            b.HasIndex(d => new { d.PackageId, d.DependsOnId }).IsUnique();
+            b.HasIndex(d => d.DependsOnId);
+            b.HasOne<SoftwarePackage>().WithMany().HasForeignKey(d => d.PackageId).OnDelete(DeleteBehavior.Cascade);
+            // No second cascade path (SQL Server): rows that point at a deleted package are removed by the delete endpoint.
+            b.HasOne<SoftwarePackage>().WithMany().HasForeignKey(d => d.DependsOnId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Assignment>(b =>

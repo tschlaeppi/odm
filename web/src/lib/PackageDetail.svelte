@@ -41,6 +41,8 @@
   // Settings (additional arguments; for repo packages also identifier, version etc.)
   let spec = $state(emptySpec('Psadt'))
   let secretNames = $state<string[]>([])
+  let allPackages = $state<{ id: string; name: string }[]>([])
+  let dependsOn = $state<string[]>([])
   let configMessage = $state<string | null>(null)
   let configError = $state<string | null>(null)
 
@@ -70,6 +72,7 @@
       pkg = await api.package(id)
       spec = specFromDto(pkg.spec)
       pkgName = pkg.name
+      dependsOn = pkg.dependsOn.map((d) => d.id)
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) notFound = true
     }
@@ -97,6 +100,11 @@
       groups = await api.groups()
     } catch {
       groups = []
+    }
+    try {
+      allPackages = (await api.packages()).filter((p) => p.id !== id).map((p) => ({ id: p.id, name: p.name }))
+    } catch {
+      allPackages = []
     }
     try {
       secretNames = (await api.secrets()).map((s) => s.name)
@@ -210,7 +218,7 @@
     configMessage = null
     configError = null
     try {
-      await api.updatePackage(id, pkg.description, specToDto(spec), pkgName.trim())
+      await api.updatePackage(id, pkg.description, specToDto(spec), pkgName.trim(), dependsOn)
       configMessage = i18n.t('sw.configSaved')
       await Promise.all([loadPackage(), loadInstallations()])
     } catch (e) {
@@ -365,6 +373,20 @@
         {#key pkg.id}
           <PackageSpecForm kind={pkg.kind} bind:spec {secretNames} platformLocked />
         {/key}
+        <div class="deps">
+          <span class="deps-title">{i18n.t('sw.deps')}</span>
+          <p class="muted small">{i18n.t('sw.deps.hint')}</p>
+          {#if allPackages.length === 0}
+            <p class="muted small">{i18n.t('sw.deps.none')}</p>
+          {:else}
+            {#each allPackages as other (other.id)}
+              <label class="check">
+                <input type="checkbox" value={other.id} bind:group={dependsOn} />
+                {other.name}
+              </label>
+            {/each}
+          {/if}
+        </div>
       </fieldset>
       {#if auth.canEdit}
         <div class="row">
@@ -530,6 +552,18 @@
 <MessageDialog bind:this={messageDialog} />
 
 <style>
+  .deps {
+    margin-top: 1rem;
+  }
+  .deps-title {
+    font-weight: 600;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.2rem 0;
+  }
   .back {
     color: var(--muted);
     text-decoration: none;

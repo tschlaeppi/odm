@@ -18,6 +18,25 @@ internal static partial class PackageEndpoints
     [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._+\-]{0,63}$")]
     private static partial Regex VersionPattern();
 
+    /// <summary>Validates the requested direct dependencies of a package (null = none).</summary>
+    private static async Task<(List<Guid> Ids, string? Error)> CheckDependenciesAsync(
+        SoftwareDbContext db, Guid packageId, List<Guid>? requested, CancellationToken ct)
+    {
+        var ids = (requested ?? []).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return (ids, null);
+        }
+
+        var existing = (await db.Packages.AsNoTracking().Select(p => p.Id).ToListAsync(ct)).ToHashSet();
+        var edges = (await db.Dependencies.AsNoTracking()
+                .Where(d => d.PackageId != packageId)
+                .Select(d => new { d.PackageId, d.DependsOnId })
+                .ToListAsync(ct))
+            .ToLookup(d => d.PackageId, d => d.DependsOnId);
+        return (ids, DependencyRules.Validate(packageId, ids, existing, edges));
+    }
+
     public static void Map(IEndpointRouteBuilder endpoints, long maxPackageBytes)
     {
         var group = endpoints.MapGroup("/software/packages").WithTags("Software").RequireAuthorization();
@@ -51,10 +70,17 @@ internal static partial class PackageEndpoints
                 .OrderByDescending(v => v.UploadedAt)
                 .ToListAsync(ct);
 
+            var required = await (from d in db.Dependencies.AsNoTracking()
+                                  join p in db.Packages.AsNoTracking() on d.DependsOnId equals p.Id
+                                  where d.PackageId == id
+                                  orderby p.Name
+                                  select new PackageRefDto(p.Id, p.Name)).ToListAsync(ct);
+
             return Results.Ok(new PackageDetailDto(
                 package.Id, package.Name, package.Description, package.Kind.ToString(), package.CreatedAt,
                 ToDto(package.Spec),
-                versions.Select(v => new VersionDto(v.Id, v.Version, v.SizeBytes, v.Sha256, v.Notes, v.UploadedAt)).ToList()));
+                versions.Select(v => new VersionDto(v.Id, v.Version, v.SizeBytes, v.Sha256, v.Notes, v.UploadedAt)).ToList(),
+                required));
         });
 
         group.MapPost("/", async (CreatePackageRequest request, SoftwareDbContext db, CancellationToken ct) =>
@@ -83,7 +109,14 @@ internal static partial class PackageEndpoints
                 }
 
                 var package = SoftwarePackage.Create(name, request.Description, kind, spec);
+                var (dependencyIds, dependencyError) = await CheckDependenciesAsync(db, package.Id, request.DependsOn, ct);
+                if (dependencyError is not null)
+                {
+                    return Invalid("dependsOn", dependencyError);
+                }
+
                 db.Packages.Add(package);
+                db.Dependencies.AddRange(dependencyIds.Select(d => PackageDependency.Create(package.Id, d)));
 
                 // Repo packages have no file: the first revision makes them directly assignable.
                 if (kind.IsRepo())
@@ -143,6 +176,18 @@ internal static partial class PackageEndpoints
                     spec = spec with { Platform = package.Spec.Platform };
                 }
 
+                if (request.DependsOn is not null)
+                {
+                    var (dependencyIds, dependencyError) = await CheckDependenciesAsync(db, id, request.DependsOn, ct);
+                    if (dependencyError is not null)
+                    {
+                        return Invalid("dependsOn", dependencyError);
+                    }
+
+                    await db.Dependencies.Where(d => d.PackageId == id).ExecuteDeleteAsync(ct);
+                    db.Dependencies.AddRange(dependencyIds.Select(d => PackageDependency.Create(id, d)));
+                }
+
                 var changed = package.SpecJson != spec.ToJson();
                 package.Update(request.Description, spec);
 
@@ -173,6 +218,8 @@ internal static partial class PackageEndpoints
                     .Select(v => v.ObjectKey!)
                     .ToListAsync(ct);
 
+                // Other packages no longer need the deleted one.
+                await db.Dependencies.Where(d => d.DependsOnId == id).ExecuteDeleteAsync(ct);
                 db.Packages.Remove(package);
                 await db.SaveChangesAsync(ct);
 

@@ -122,10 +122,16 @@ public sealed class DeploymentService(
         // (device, package) -> version; with several sources the more specific wins (device before user before group,
         // within that the single package assignment before the profile).
         var desired = new Dictionary<(Guid Device, Guid Package), Desired>();
+        var deviceRefs = new Dictionary<Guid, DeviceRef>();
 
         foreach (var source in sources)
         {
             var devices = await ResolveAsync(source.Kind, source.Target, ct);
+            foreach (var d in devices)
+            {
+                deviceRefs[d.Id] = d;
+            }
+
             var elapsed = now - source.Start;
             var priority = (int)source.Kind * 2 + (source.FromProfile ? 1 : 0);
             var earlier = new Dictionary<Guid, List<Guid>>();
@@ -191,6 +197,57 @@ public sealed class DeploymentService(
                         list.Add(item.PackageId);
                     }
                 }
+            }
+        }
+
+        // 1b. Dependencies: whatever a wanted package needs is wanted as well (lowest priority, so an explicit assignment
+        // stays as it is) and becomes a prerequisite: the package starts when everything it needs is installed.
+        var dependencyEdges = (await db.Dependencies.AsNoTracking().Select(d => new { d.PackageId, d.DependsOnId }).ToListAsync(ct))
+            .ToLookup(d => d.PackageId, d => d.DependsOnId);
+        if (dependencyEdges.Count > 0)
+        {
+            const int dependencyPriority = 1000;
+            var closures = new Dictionary<Guid, HashSet<Guid>>();
+            HashSet<Guid> Needs(Guid id) =>
+                closures.TryGetValue(id, out var cached) ? cached : closures[id] = DependencyRules.Closure(id, dependencyEdges);
+
+            foreach (var (key, want) in desired.Where(d => !d.Value.Uninstall).ToList())
+            {
+                if (!deviceRefs.TryGetValue(key.Device, out var device))
+                {
+                    continue;
+                }
+
+                foreach (var dependencyId in Needs(key.Package))
+                {
+                    if (!packages.TryGetValue(dependencyId, out var dependency) ||
+                        !DistroFamily.Applies(dependency.Kind, specs[dependencyId], device) ||
+                        !latestByPackage.TryGetValue(dependencyId, out var latest))
+                    {
+                        continue; // other platform or nothing to install: does not block
+                    }
+
+                    // A needed package is installed even if an uninstall was assigned for it.
+                    if (!desired.TryGetValue((key.Device, dependencyId), out var current) || current.Uninstall)
+                    {
+                        desired[(key.Device, dependencyId)] = new Desired(latest, dependencyPriority, []);
+                    }
+                }
+            }
+
+            foreach (var (key, want) in desired.Where(d => !d.Value.Uninstall).ToList())
+            {
+                var prerequisites = want.Prerequisites.ToList();
+                foreach (var dependencyId in Needs(key.Package))
+                {
+                    if (desired.TryGetValue((key.Device, dependencyId), out var dependency) && !dependency.Uninstall &&
+                        !prerequisites.Contains(dependencyId))
+                    {
+                        prerequisites.Add(dependencyId);
+                    }
+                }
+
+                desired[key] = want with { Prerequisites = prerequisites };
             }
         }
 

@@ -118,7 +118,11 @@
 {/snippet}
 
 {#snippet message(i: InstallationDto)}
-  <span class="msg" title={i18n.server(i.message)}>{i18n.server(i.message) || '–'}</span>
+  {#if i.waitingFor && i.waitingFor.length > 0}
+    <span class="msg">{i18n.t('dev.detail.waitingFor', { names: i.waitingFor.join(', ') })}</span>
+  {:else}
+    <span class="msg" title={i18n.server(i.message)}>{i18n.server(i.message) || '–'}</span>
+  {/if}
 {/snippet}
 
 {#snippet softwareActions(i: InstallationDto)}
