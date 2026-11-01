@@ -14,8 +14,8 @@ jobs:
   agent:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Build agent packages
@@ -31,7 +31,7 @@ jobs:
           upload-artifact: false
           upload-release-assets: false
       - name: Signed build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: agent-packages/*
       - uses: actions/upload-artifact@v7
