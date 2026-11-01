@@ -31,7 +31,7 @@ of materials (CycloneDX) and `SHA256SUMS` are attached.
 
 ```bash
 # the file really was built by this repository's workflow from the tagged commit
-gh attestation verify <agent package from the release> --repo tschlaeppi/odm
+gh attestation verify <agent package from the release> --repo ch-tscdev/odm
 sha256sum -c SHA256SUMS
 ```
 
