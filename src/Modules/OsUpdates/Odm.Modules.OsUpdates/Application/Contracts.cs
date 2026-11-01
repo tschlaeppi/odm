@@ -17,8 +17,9 @@ public sealed record RunDto(
     string Status, int? Installed, int? Failed, bool RebootRequired, bool Rebooting, string? Message,
     DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt);
 
+/// <summary>ViaOdm = installed by an ODM update run; otherwise reported by the operating system (RunId is null).</summary>
 public sealed record HistoryItemDto(
-    Guid RunId, Guid DeviceId, string? DeviceName, string Title, string Status, DateTimeOffset At);
+    Guid? RunId, Guid DeviceId, string? DeviceName, string Title, string Status, DateTimeOffset At, bool ViaOdm);
 
 public sealed record HistoryPageDto(int Total, IReadOnlyList<HistoryItemDto> Items);
 

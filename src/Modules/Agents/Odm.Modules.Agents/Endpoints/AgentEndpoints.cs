@@ -16,6 +16,7 @@ namespace Odm.Modules.Agents.Endpoints;
 internal static class AgentEndpoints
 {
     private const int MaxInventoryPrograms = 5000;
+    private const int MaxInventoryUpdates = 20000;
 
     private static readonly string[] OsFamilies = ["Windows", "Linux"];
 
@@ -70,8 +71,14 @@ internal static class AgentEndpoints
 
         // Hardware and installed programs; replaces the device's previous snapshot. Limits protect the database.
         group.MapPost("/inventory", async (
-                ClaimsPrincipal principal, InventoryRequest request, IDeviceInventory inventory, CancellationToken ct) =>
+                ClaimsPrincipal principal, InventoryRequest request, IDeviceInventory inventory, IOsUpdateHistory updateHistory,
+                CancellationToken ct) =>
             {
+                if (request.Updates is { Count: > MaxInventoryUpdates })
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["updates"] = ["Too many entries."] });
+                }
+
                 if (request.Software is { Count: > MaxInventoryPrograms })
                 {
                     return Results.ValidationProblem(new Dictionary<string, string[]> { ["software"] = ["Too many entries."] });
@@ -93,6 +100,14 @@ internal static class AgentEndpoints
                     .ToList();
 
                 await inventory.ReplaceAsync(deviceId, hardware, software, ct);
+                if (request.Updates is not null)
+                {
+                    await updateHistory.ReplaceReportedAsync(
+                        deviceId,
+                        request.Updates.Where(u => !string.IsNullOrWhiteSpace(u.Title)).Select(u => new ReportedUpdate(u.Title!, u.InstalledAt)).ToList(),
+                        ct);
+                }
+
                 return Results.NoContent();
             })
             .RequireAuthorization(Policies.Agent);

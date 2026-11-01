@@ -53,7 +53,11 @@ public sealed record InventoryHardwareDto(
 
 public sealed record InventoryProgramDto(string? Name, string? Version, string? Publisher);
 
-public sealed record InventoryRequest(InventoryHardwareDto? Hardware, List<InventoryProgramDto>? Software);
+public sealed record InventoryUpdateDto(string? Title, DateTimeOffset InstalledAt);
+
+/// <summary>Updates is the history the operating system lists itself; null = not reported (stored data stays unchanged).</summary>
+public sealed record InventoryRequest(
+    InventoryHardwareDto? Hardware, List<InventoryProgramDto>? Software, List<InventoryUpdateDto>? Updates = null);
 
 public sealed class AgentMtlsOptions
 {

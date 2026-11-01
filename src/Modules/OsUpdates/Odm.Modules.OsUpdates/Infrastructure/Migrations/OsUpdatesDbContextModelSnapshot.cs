@@ -94,6 +94,30 @@ namespace Odm.Modules.OsUpdates.Infrastructure.Migrations
                     b.ToTable("assignments", "osupdates");
                 });
 
+            modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.ReportedUpdateEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("InstalledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "InstalledAt");
+
+                    b.ToTable("reported_updates", "osupdates");
+                });
+
             modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.UpdatePolicy", b =>
                 {
                     b.Property<Guid>("Id")

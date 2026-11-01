@@ -45,12 +45,16 @@
     { key: 'at', label: i18n.t('os.when'), value: (i) => i.at, cell: when, filter: 'none' },
     ...(deviceId ? [] : [{ key: 'device', label: i18n.t('devices.name'), value: (i: UpdateHistoryItemDto) => i.deviceName ?? i.deviceId, cell: device, strong: true } as Column<UpdateHistoryItemDto>]),
     { key: 'title', label: i18n.t('os.update'), value: (i) => i.title },
+    { key: 'source', label: i18n.t('os.history.source'), value: (i) => i18n.t(i.viaOdm ? 'os.history.viaOdm' : 'os.history.external'), cell: source, filter: 'select' },
     { key: 'status', label: i18n.t('sw.status'), value: (i) => i18n.t(`os.status.${i.status}` as MessageKey), cell: status, filter: 'select' },
   ])
 </script>
 
 {#snippet when(i: UpdateHistoryItemDto)}{i18n.formatDate(i.at)}{/snippet}
 {#snippet device(i: UpdateHistoryItemDto)}<a href={`#/devices/${i.deviceId}`}>{i.deviceName ?? i.deviceId}</a>{/snippet}
+{#snippet source(i: UpdateHistoryItemDto)}
+  <span class="badge {i.viaOdm ? 'ok' : 'run'}">{i18n.t(i.viaOdm ? 'os.history.viaOdm' : 'os.history.external')}</span>
+{/snippet}
 {#snippet status(i: UpdateHistoryItemDto)}
   <span class="badge {statusClass[i.status]}">{i18n.t(`os.status.${i.status}` as MessageKey)}</span>
 {/snippet}
@@ -68,7 +72,7 @@
   <DataTable
     rows={items}
     {columns}
-    rowKey={(i) => `${i.runId}\u0000${i.title}`}
+    rowKey={(i) => `${i.deviceId}\u0000${i.at}\u0000${i.title}`}
     stale={loading}
     emptyText={i18n.t('os.history.empty')}
     pageSize={25}
