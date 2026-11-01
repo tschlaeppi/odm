@@ -186,6 +186,36 @@ namespace Odm.Modules.OsUpdates.Infrastructure.Migrations
 
                     b.ToTable("runs", "osupdates");
                 });
+
+            modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.UpdateRunItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RunId");
+
+                    b.ToTable("run_items", "osupdates");
+                });
+
+            modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.UpdateRunItem", b =>
+                {
+                    b.HasOne("Odm.Modules.OsUpdates.Domain.UpdateRun", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 #pragma warning restore 612, 618
         }
     }
