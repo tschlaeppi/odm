@@ -32,7 +32,8 @@ public sealed class WindowsUpdater(ILogger<WindowsUpdater> logger) : IOsUpdater
         {
             try
             {
-                completion.SetResult(Run(securityOnly));
+                // The platform check sits inside the lambda so that the analyzer (CA1416) sees it at the call site.
+                completion.SetResult(OperatingSystem.IsWindows() ? Run(securityOnly) : Fail("Windows updates are only available on Windows."));
             }
             catch (Exception ex)
             {
