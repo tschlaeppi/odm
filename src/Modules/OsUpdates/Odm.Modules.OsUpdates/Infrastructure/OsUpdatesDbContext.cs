@@ -13,6 +13,7 @@ public sealed class OsUpdatesDbContext(DbContextOptions<OsUpdatesDbContext> opti
     public DbSet<MaintenanceWindow> Windows => Set<MaintenanceWindow>();
     public DbSet<OsAssignment> Assignments => Set<OsAssignment>();
     public DbSet<UpdateRun> Runs => Set<UpdateRun>();
+    public DbSet<UpdateRunItem> RunItems => Set<UpdateRunItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +58,15 @@ public sealed class OsUpdatesDbContext(DbContextOptions<OsUpdatesDbContext> opti
             b.HasIndex(r => new { r.DeviceId, r.WindowId, r.OccurrenceStart }).IsUnique();
             b.HasIndex(r => r.JobId);
             b.HasIndex(r => r.CreatedAt);
+        });
+
+        modelBuilder.Entity<UpdateRunItem>(b =>
+        {
+            b.ToTable("run_items");
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Title).HasMaxLength(UpdateRunItem.MaxTitleLength).IsRequired();
+            b.HasIndex(i => i.RunId);
+            b.HasOne<UpdateRun>().WithMany().HasForeignKey(i => i.RunId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

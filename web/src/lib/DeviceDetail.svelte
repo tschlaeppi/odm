@@ -4,6 +4,7 @@
   import { auth } from './auth.svelte'
   import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
+  import UpdateHistory from './UpdateHistory.svelte'
   import MessageDialog from './MessageDialog.svelte'
   import { formatSize } from './format'
   import { isOnline } from './status'
@@ -228,6 +229,9 @@
       emptyText={i18n.t('dev.detail.softwareEmpty')}
       pageSize={25}
     />
+
+    <h2>{i18n.t('os.history')}</h2>
+    <UpdateHistory deviceId={device.id} />
 
     <h2>{i18n.t('inv.programs')} ({inventory?.software.length ?? 0})</h2>
     <DataTable

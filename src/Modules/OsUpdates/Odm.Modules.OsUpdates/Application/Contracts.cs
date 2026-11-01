@@ -17,6 +17,11 @@ public sealed record RunDto(
     string Status, int? Installed, int? Failed, bool RebootRequired, bool Rebooting, string? Message,
     DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt);
 
+public sealed record HistoryItemDto(
+    Guid RunId, Guid DeviceId, string? DeviceName, string Title, string Status, DateTimeOffset At);
+
+public sealed record HistoryPageDto(int Total, IReadOnlyList<HistoryItemDto> Items);
+
 /// <summary>Content of the "os-update" job (read by the agent).</summary>
 public sealed record OsUpdatePayload(string Mode, bool AllowReboot, DateTimeOffset WindowEndsAt, int TimeoutMinutes);
 

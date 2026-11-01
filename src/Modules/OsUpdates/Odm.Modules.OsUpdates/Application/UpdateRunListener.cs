@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Odm.Modules.OsUpdates.Domain;
 using Odm.Modules.OsUpdates.Infrastructure;
 using Odm.SharedKernel.Contracts;
 
@@ -39,6 +40,21 @@ public sealed class UpdateRunListener(OsUpdatesDbContext db) : IJobResultListene
         run.Complete(
             completion.Success, output?.Installed, output?.Failed,
             output?.RebootRequired ?? false, output?.Rebooting ?? false, message, DateTimeOffset.UtcNow);
+
+        if (output?.Titles is { Count: > 0 } items)
+        {
+            var existing = await db.RunItems.AnyAsync(i => i.RunId == run.Id, ct);
+            if (!existing)
+            {
+                db.RunItems.AddRange(items
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim())
+                    .Distinct()
+                    .Take(UpdateRunItem.MaxPerRun)
+                    .Select(t => UpdateRunItem.Create(run.Id, t)));
+            }
+        }
+
         await db.SaveChangesAsync(ct);
     }
 }
