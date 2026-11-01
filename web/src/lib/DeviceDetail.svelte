@@ -4,6 +4,7 @@
   import { auth } from './auth.svelte'
   import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
+  import UpdateRuns from './UpdateRuns.svelte'
   import UpdateHistory from './UpdateHistory.svelte'
   import MessageDialog from './MessageDialog.svelte'
   import { formatSize } from './format'
@@ -229,6 +230,9 @@
       emptyText={i18n.t('dev.detail.softwareEmpty')}
       pageSize={25}
     />
+
+    <h2>{i18n.t('os.runs')}</h2>
+    <UpdateRuns deviceId={device.id} />
 
     <h2>{i18n.t('os.history')}</h2>
     <UpdateHistory deviceId={device.id} />
