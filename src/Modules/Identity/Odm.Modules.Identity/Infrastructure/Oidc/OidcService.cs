@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Odm.Modules.Identity.Application;
 using Odm.Modules.Identity.Infrastructure.Ldap;
+using Odm.SharedKernel.Text;
 
 namespace Odm.Modules.Identity.Infrastructure.Oidc;
 

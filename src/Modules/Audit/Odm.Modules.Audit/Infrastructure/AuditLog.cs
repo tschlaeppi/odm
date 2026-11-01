@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Odm.Modules.Audit.Domain;
 using Odm.SharedKernel.Contracts;
+using Odm.SharedKernel.Text;
 
 namespace Odm.Modules.Audit.Infrastructure;
 
@@ -25,7 +26,7 @@ public sealed class AuditLog(AuditDbContext db, IHttpContextAccessor accessor, T
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // The audit log must never break the action it records.
-            logger.LogError(ex, "Could not write audit entry {Action}.", e.Action);
+            logger.LogError(ex, "Could not write audit entry {Action}.", LogSanitizer.Clean(e.Action));
         }
     }
 
