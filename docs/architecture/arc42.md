@@ -267,6 +267,7 @@ flowchart LR
 | ADR-40 | Trust is built on checks anyone can read and rerun (CI, CodeQL, Dependabot, guard tests, signed build provenance, SBOM) and documented in [security](../security.md), not on promises | free for open source repositories; users can verify a release themselves | accepted |
 | ADR-41 | The individual updates of a run are stored in a separate table (`run_items`), not as text in the run | allows searching across devices ("who got this update?") and paging; deleted with the run by cascade | accepted |
 | ADR-42 | Updates from the operating system's own history are stored separately (`reported_updates`) and marked "not via ODM" unless they fall into an ODM run's time span | no fragile title matching; also correct for runs from before per-run lists existed | accepted |
+| ADR-43 | Package dependencies are expanded in the reconciler into desired state at lowest priority plus prerequisites; package managers (Chocolatey, Flatpak, Snap) are not installed implicitly but can be modelled as ordinary packages that others require | reuses the prerequisite mechanism of profiles; no hidden installs of system tooling | accepted |
 
 ## 10. Quality requirements
 

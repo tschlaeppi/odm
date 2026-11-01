@@ -16,6 +16,10 @@
   )
 </script>
 
+{#if kind === 'Chocolatey' || kind === 'Flatpak' || kind === 'Snap'}
+  <p class="hint" role="note">{i18n.t('sw.manager.hint', { name: kind === 'Chocolatey' ? 'Chocolatey' : kind })}</p>
+{/if}
+
 <div class="grid">
   {#if !isRepo}
     <label>
@@ -98,6 +102,13 @@
 {/if}
 
 <style>
+  .hint {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--accent, #3b82f6);
+    background: var(--surface-2, rgba(127, 127, 127, 0.1));
+    font-size: 0.9rem;
+  }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));

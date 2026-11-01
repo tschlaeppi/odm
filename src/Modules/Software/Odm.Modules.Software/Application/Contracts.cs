@@ -5,9 +5,14 @@ public sealed record PackageSpecDto(
     string? Identifier, string? Version, string? Scope, string? Source, string? Remote, string? Channel,
     bool Classic, string? Arguments, string? Platform = null);
 
-public sealed record CreatePackageRequest(string? Name, string? Description, string? Kind, PackageSpecDto? Spec);
+public sealed record CreatePackageRequest(
+    string? Name, string? Description, string? Kind, PackageSpecDto? Spec, List<Guid>? DependsOn = null);
 
-public sealed record UpdatePackageRequest(string? Description, PackageSpecDto? Spec, string? Name = null);
+/// <summary>DependsOn: null = unchanged, otherwise replaces the list of required packages.</summary>
+public sealed record UpdatePackageRequest(
+    string? Description, PackageSpecDto? Spec, string? Name = null, List<Guid>? DependsOn = null);
+
+public sealed record PackageRefDto(Guid Id, string Name);
 
 public sealed record VersionDto(Guid Id, string Version, long SizeBytes, string? Sha256, string? Notes, DateTimeOffset UploadedAt);
 
@@ -17,7 +22,7 @@ public sealed record PackageDto(
 
 public sealed record PackageDetailDto(
     Guid Id, string Name, string? Description, string Kind, DateTimeOffset CreatedAt,
-    PackageSpecDto Spec, IReadOnlyList<VersionDto> Versions);
+    PackageSpecDto Spec, IReadOnlyList<VersionDto> Versions, IReadOnlyList<PackageRefDto>? DependsOn = null);
 
 /// <summary>Tranche plan. Mode "Percent" (stages with percentages) or "Groups" (stages with a subgroup).</summary>
 public sealed record RolloutStageDto(int AfterDays, int? Percent, Guid? GroupId);
@@ -64,7 +69,7 @@ public sealed record ProfileAssignmentDto(
 public sealed record InstallationDto(
     Guid Id, Guid DeviceId, string? DeviceName, Guid PackageId, string PackageName,
     string? TargetVersion, string? InstalledVersion, string Status, int Attempts, string? Message,
-    DateTimeOffset UpdatedAt, bool Removal = false);
+    DateTimeOffset UpdatedAt, bool Removal = false, IReadOnlyList<string>? WaitingFor = null);
 
 public sealed record InstallTotalsDto(
     int Installed, int Pending, int Running, int Failed, int Removing, int RemovalFailed);

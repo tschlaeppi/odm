@@ -145,6 +145,7 @@ export interface PackageDetailDto {
   createdAt: string
   spec: PackageSpec
   versions: VersionDto[]
+  dependsOn: { id: string; name: string }[]
 }
 
 export type TargetKind = 'Device' | 'User' | 'Group'
@@ -329,6 +330,7 @@ export interface InstallationDto {
   message: string | null
   updatedAt: string
   removal: boolean
+  waitingFor: string[] | null
 }
 
 export type UpdateMode = 'SecurityOnly' | 'All'
@@ -706,8 +708,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name, description, kind, spec }),
     }),
-  updatePackage: (id: string, description: string | null, spec: PackageSpec, name?: string) =>
-    request<void>(`/software/packages/${id}`, { method: 'PUT', body: JSON.stringify({ description, spec, name }) }),
+  updatePackage: (id: string, description: string | null, spec: PackageSpec, name?: string, dependsOn?: string[]) =>
+    request<void>(`/software/packages/${id}`, { method: 'PUT', body: JSON.stringify({ description, spec, name, dependsOn }) }),
 
   secrets: () => request<SecretDto[]>('/software/secrets'),
   setSecret: (name: string, value: string) =>

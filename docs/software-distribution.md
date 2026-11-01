@@ -29,6 +29,27 @@ Notes:
   of an exit code, so 3010 and 1641 (restart) arrive as 194 and 105; the agent treats 0, 105 and 194 as success.
 - Maximum package size: `Software:MaxPackageMegabytes` (default 4096). Behind a reverse proxy its upload limit must match.
 
+## Package dependencies
+
+A package can **require** other packages (package page, setting *Requires*).
+
+- Whatever a package requires is assigned to the same devices automatically, directly and indirectly, and is installed first. The package
+  itself starts only when everything it requires is installed. While it waits, the device page shows *Waiting for: ...*; if a required
+  package fails, the dependent package stays waiting.
+- An explicit assignment of the required package stays as it is. A required package is installed even if an *uninstall* was assigned for it.
+- Required packages that do not apply to a device (other platform or distribution) or have no version are skipped and do not block.
+- Cycles are rejected; at most 20 direct dependencies per package and 10 levels of nesting. A required package counts as fulfilled with any
+  installed version. Uninstalling a package never removes what it required. Deleting a package removes it from the *Requires* lists.
+
+### Package managers are not installed by ODM
+
+ODM never installs **Chocolatey, Flatpak or Snap** itself (nor winget, apt or dnf). They must be present on the device; otherwise the
+installation fails with a clear message (e.g. "Chocolatey is not installed on this device."). The package form shows a note about this.
+
+If you want ODM to roll out such a manager, make it a package of its own and let the packages that need it **require** that package.
+Example: a PSADT or Winget package "Chocolatey" installs the manager, and every Chocolatey package requires it. Likewise a Chocolatey package
+can require a Winget package that installs Chocolatey.
+
 ## Repository packages
 
 Winget, Chocolatey, APT, RPM, Flatpak and Snap. ODM stores only the configuration; the device's package manager does the work.
