@@ -4,12 +4,26 @@ updates:
     directory: /
     schedule: { interval: weekly }
     open-pull-requests-limit: 10
+    groups:
+      test-tooling:
+        patterns: ["Microsoft.NET.Test.Sdk", "xunit*"]
   - package-ecosystem: npm
     directory: /web
     schedule: { interval: weekly }
+    # Major versions of the toolchain are upgraded by hand: svelte-check only supports certain TypeScript versions,
+    # @types/node must match the Node version of the Docker image and CI.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly }
+    # Only LTS Node versions (even numbers) are used; the major version is changed by hand together with CI and @types/node.
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
