@@ -103,7 +103,7 @@ public sealed class OidcService(
 
             if (OidcRoleMapper.Map(identity.GroupValues, provider) is not { } role)
             {
-                logger.LogInformation("OIDC user '{UserName}' ({Provider}) has no ODM role; rejected.", identity.UserName, provider.Id);
+                logger.LogInformation("OIDC user '{UserName}' ({Provider}) has no ODM role; rejected.", LogSanitizer.Clean(identity.UserName), provider.Id);
                 return new OidcResult(null, "denied");
             }
 
