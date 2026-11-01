@@ -38,7 +38,7 @@ database:
 postgresql:
   enabled: false
   image: postgres:17
-  password: ""           # required when enabled
+  # password: set it when enabled (--set postgresql.password=...); the chart refuses to render without it
   persistence:
     size: 10Gi
     storageClass: ""
