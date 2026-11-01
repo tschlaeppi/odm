@@ -26,12 +26,20 @@ for rid in "${RIDS[@]}"; do
     -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -o "$dir"
   # Licence texts travel with every package: ODM (Apache-2.0) and the bundled .NET runtime (MIT, third-party notices).
   cp LICENSE NOTICE "$dir/"
-  runtime_pack=$(ls -d "${NUGET_PACKAGES:-$HOME/.nuget/packages}/microsoft.netcore.app.runtime.$rid"/*/ 2>/dev/null | sort -V | tail -n 1 || true)
-  if [ -n "$runtime_pack" ] && [ -f "${runtime_pack}LICENSE.txt" ] && [ -f "${runtime_pack}THIRD-PARTY-NOTICES.TXT" ]; then
-    cp "${runtime_pack}LICENSE.txt" "$dir/dotnet-LICENSE.txt"
-    cp "${runtime_pack}THIRD-PARTY-NOTICES.TXT" "$dir/dotnet-THIRD-PARTY-NOTICES.txt"
-  else
-    echo "WARNING: licence files of the .NET runtime pack not found for $rid; the package lacks dotnet-LICENSE.txt and dotnet-THIRD-PARTY-NOTICES.txt." >&2
+  # The runtime pack is where "dotnet publish -r" got it from: the NuGet cache, or the packs folder of the SDK.
+  dotnet_root="${DOTNET_ROOT:-$(dirname "$(readlink -f "$(command -v dotnet)")")}"
+  found=0
+  for root in "${NUGET_PACKAGES:-$HOME/.nuget/packages}/microsoft.netcore.app.runtime.$rid" "$dotnet_root/packs/Microsoft.NETCore.App.Runtime.$rid"; do
+    runtime_pack=$(ls -d "$root"/*/ 2>/dev/null | sort -V | tail -n 1 || true)
+    if [ -n "$runtime_pack" ] && [ -f "${runtime_pack}LICENSE.txt" ] && [ -f "${runtime_pack}THIRD-PARTY-NOTICES.TXT" ]; then
+      cp "${runtime_pack}LICENSE.txt" "$dir/dotnet-LICENSE.txt"
+      cp "${runtime_pack}THIRD-PARTY-NOTICES.TXT" "$dir/dotnet-THIRD-PARTY-NOTICES.txt"
+      found=1
+      break
+    fi
+  done
+  if [ "$found" = 0 ]; then
+    echo "WARNING: licence files of the .NET runtime pack not found for $rid (searched the NuGet cache and $dotnet_root/packs); the package lacks dotnet-LICENSE.txt and dotnet-THIRD-PARTY-NOTICES.txt. Set NUGET_PACKAGES or DOTNET_ROOT if your folders are elsewhere." >&2
   fi
   extras=$(cd "$dir" && ls LICENSE NOTICE dotnet-*.txt 2>/dev/null | tr '\n' ' ' || true)
   case "$rid" in
