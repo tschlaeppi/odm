@@ -1,7 +1,7 @@
-namespace Odm.Modules.Identity.Infrastructure;
+namespace Odm.SharedKernel.Text;
 
-/// <summary>Makes values that come from outside (sign-in form, identity provider) safe to write to a log line.</summary>
-internal static class LogSanitizer
+/// <summary>Makes values that come from outside (sign-in form, identity provider, request) safe to write to a log line.</summary>
+public static class LogSanitizer
 {
     private const int MaxLength = 128;
 

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Odm.Modules.Identity.Application;
 using Odm.Modules.Identity.Domain;
+using Odm.SharedKernel.Text;
 
 namespace Odm.Modules.Identity.Infrastructure.Ldap;
 
