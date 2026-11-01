@@ -139,7 +139,7 @@ public sealed class LinuxUpdater : IOsUpdater
         }
 
         var result = await ProcessRunner.RunAsync(tool, ["-r"], TimeSpan.FromMinutes(2), ct);
-        return result.ExitCode == 1; // 1 = Neustart erforderlich
+        return result.ExitCode == 1; // 1 = restart required
     }
 
     private static IReadOnlyList<string> Titles(List<string> packages) => packages.Take(50).ToList();

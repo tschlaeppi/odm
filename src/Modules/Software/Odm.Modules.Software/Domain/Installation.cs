@@ -62,7 +62,7 @@ public sealed class Installation : Entity
 
         if (Removal)
         {
-            // Die Absicht hat wieder auf "installieren" gewechselt.
+            // The intent changed back to "install".
             Removal = false;
             Requeue(now, resetAttempts: true);
             return;

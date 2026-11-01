@@ -42,7 +42,7 @@ public class GroupRequestParserTests
     }
 
     [Theory]
-    [InlineData("Unbekannt", "Is", "x")]
+    [InlineData("Unknown", "Is", "x")]
     [InlineData("Name", "Matches", "x")]
     [InlineData("Name", "Is", "")]
     public void Invalid_rules_are_rejected(string field, string op, string value)

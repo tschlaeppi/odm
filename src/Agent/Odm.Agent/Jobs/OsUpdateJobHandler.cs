@@ -3,7 +3,7 @@ using Odm.Agent.Os;
 
 namespace Odm.Agent.Jobs;
 
-/// <summary>Ausgabe des Auftrags (JSON), vom Server ausgewertet.</summary>
+/// <summary>Output of the job (JSON), evaluated by the server.</summary>
 public sealed record OsUpdateOutput(
     int Installed, int Failed, IReadOnlyList<string> Titles, bool RebootRequired, bool Rebooting, string? Message);
 
@@ -81,7 +81,7 @@ public sealed class OsUpdateJobHandler(
 
     private async Task<bool> TryScheduleRebootAsync(CancellationToken ct)
     {
-        const string reason = "Open Device Manager: Neustart nach Updates";
+        const string reason = "Open Device Manager: restart after updates";
         try
         {
             ProcessRunner.Result result;

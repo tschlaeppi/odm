@@ -111,7 +111,7 @@ public class LdapTests
     private sealed class ThrowingDirectory : ILdapDirectory
     {
         public Task<LdapUser?> FindUserAsync(string userName, CancellationToken ct) =>
-            throw new InvalidOperationException("Verzeichnis nicht erreichbar");
+            throw new InvalidOperationException("Directory not reachable");
 
         public Task<bool> VerifyPasswordAsync(string userDn, string password, CancellationToken ct) =>
             Task.FromResult(true);

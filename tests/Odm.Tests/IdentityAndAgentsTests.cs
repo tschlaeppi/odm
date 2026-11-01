@@ -30,7 +30,7 @@ public class PasswordHasherTests
 
     [Theory]
     [InlineData("")]
-    [InlineData("kein-hash")]
+    [InlineData("no-hash")]
     [InlineData("v1.abc.def.ghi")]
     [InlineData("v1.0.AAAA.AAAA")]
     [InlineData("v1.1000.@@@.@@@")]

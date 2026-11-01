@@ -232,7 +232,7 @@ internal static class ProfileEndpoints
     {
         if (requested is null or { Count: 0 })
         {
-            return ([], "Ein Profil braucht mindestens ein Paket.");
+            return ([], "A profile needs at least one package.");
         }
 
         if (requested.Count > MaxItems)
@@ -242,7 +242,7 @@ internal static class ProfileEndpoints
 
         if (requested.Select(r => r.PackageId).Distinct().Count() != requested.Count)
         {
-            return ([], "Jedes Paket darf nur einmal vorkommen.");
+            return ([], "Each package may appear only once.");
         }
 
         var ids = requested.Select(r => r.PackageId).ToList();

@@ -70,7 +70,7 @@ public class MaintenanceWindowTests
     public void Start_time_in_the_spring_gap_is_moved_by_one_hour()
     {
         // 29 March 2026: 02:00 jumps to 03:00, 02:30 does not exist. The start becomes 03:30 local time = 01:30 UTC.
-        var window = MaintenanceWindow.Create("Lücke", WeekDays.Sunday, 150, 60, "Europe/Zurich");
+        var window = MaintenanceWindow.Create("Gap", WeekDays.Sunday, 150, 60, "Europe/Zurich");
 
         var found = window.TryGetOccurrence(Utc("2026-03-29T01:45:00Z"), out var start, out var end);
 

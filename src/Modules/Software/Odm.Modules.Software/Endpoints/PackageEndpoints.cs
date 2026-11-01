@@ -67,7 +67,7 @@ internal static partial class PackageEndpoints
 
                 if (!Enum.TryParse<PackageKind>(request.Kind ?? nameof(PackageKind.Psadt), true, out var kind) || !Enum.IsDefined(kind))
                 {
-                    return Invalid("kind", "Unbekannte Paketart.");
+                    return Invalid("kind", "Unknown package kind.");
                 }
 
                 var secrets = await KnownSecretsAsync(db, ct);
@@ -216,7 +216,7 @@ internal static partial class PackageEndpoints
                 var errors = new Dictionary<string, string[]>();
                 if (!VersionPattern().IsMatch(version)) errors["version"] = ["Version: 1-64 Zeichen (Buchstaben, Ziffern, . _ + -)."];
                 if (notes.Length > 1024) errors["notes"] = ["At most 1024 characters."];
-                if (file is null || file.Length == 0) errors["file"] = ["ZIP-Datei fehlt."];
+                if (file is null || file.Length == 0) errors["file"] = ["The ZIP file is missing."];
                 else if (file.Length > maxPackageBytes) errors["file"] = ["The file exceeds the allowed size."];
                 if (errors.Count > 0)
                 {

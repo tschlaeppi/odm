@@ -116,7 +116,7 @@ public static partial class PackageSpecValidator
                 var unknown = SecretReferences.Extract(arguments).Where(n => !knownSecrets.Contains(n)).ToList();
                 if (unknown.Count > 0)
                 {
-                    errors["arguments"] = [$"Unbekanntes Secret: {string.Join(", ", unknown)}."];
+                    errors["arguments"] = [$"Unknown secret: {string.Join(", ", unknown)}."];
                 }
             }
         }

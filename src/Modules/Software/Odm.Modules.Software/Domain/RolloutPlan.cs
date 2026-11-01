@@ -45,7 +45,7 @@ public sealed class RolloutPlan
         var list = stages.OrderBy(s => s.AfterDays).ToList();
         if (list.Count is 0 or > MaxStages)
         {
-            return (null, $"Ein Tranchenplan braucht 1 bis {MaxStages} Stufen.");
+            return (null, $"A rollout plan needs 1 to {MaxStages} stages.");
         }
 
         if (list.Any(s => s.AfterDays is < 0 or > MaxDays))
@@ -57,7 +57,7 @@ public sealed class RolloutPlan
         {
             if (list.Any(s => s.Percent is null or < 1 or > 100 || s.GroupId is not null))
             {
-                return (null, "Jede Stufe braucht einen Prozentwert von 1 bis 100.");
+                return (null, "Each stage needs a percentage from 1 to 100.");
             }
 
             if (list.Select(s => s.AfterDays).Distinct().Count() != list.Count ||
@@ -75,12 +75,12 @@ public sealed class RolloutPlan
         {
             if (list.Any(s => s.GroupId is null || s.GroupId == Guid.Empty || s.Percent is not null))
             {
-                return (null, "Jede Stufe braucht eine Untergruppe.");
+                return (null, "Each stage needs a subgroup.");
             }
 
             if (list.Select(s => s.GroupId).Distinct().Count() != list.Count)
             {
-                return (null, "Jede Untergruppe darf nur einmal vorkommen.");
+                return (null, "Each subgroup may appear only once.");
             }
         }
 

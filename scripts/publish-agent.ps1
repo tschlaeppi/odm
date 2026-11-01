@@ -9,7 +9,7 @@ Set-Location (Join-Path $PSScriptRoot '..')
 
 $project = 'src/Agent/Odm.Agent/Odm.Agent.csproj'
 $version = (& dotnet msbuild $project -getProperty:Version -nologo).Trim()
-if (-not $version) { throw 'Version konnte nicht ermittelt werden.' }
+if (-not $version) { throw 'Could not determine the version.' }
 
 New-Item -ItemType Directory -Path $Out -Force | Out-Null
 $Out = (Resolve-Path $Out).Path
@@ -20,7 +20,7 @@ try {
         Write-Host "==> $rid ($version)"
         & dotnet publish $project -c Release -r $rid --self-contained true `
             -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -o $dir
-        if ($LASTEXITCODE -ne 0) { throw "dotnet publish ($rid) fehlgeschlagen." }
+        if ($LASTEXITCODE -ne 0) { throw "dotnet publish ($rid) failed." }
         # Licence texts travel with every package: ODM (Apache-2.0) and the bundled .NET runtime (MIT, third-party notices).
         Copy-Item LICENSE, NOTICE -Destination $dir
         $nugetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $HOME '.nuget/packages' }
@@ -39,10 +39,10 @@ try {
             Compress-Archive -Path (@('odm-agent.exe', 'appsettings.json') + $extras | ForEach-Object { Join-Path $dir $_ }) -DestinationPath $target
         } else {
             & tar.exe -czf (Join-Path $Out "odm-agent-$version-$rid.tar.gz") -C $dir (@('odm-agent', 'appsettings.json') + $extras)
-            if ($LASTEXITCODE -ne 0) { throw 'tar fehlgeschlagen.' }
+            if ($LASTEXITCODE -ne 0) { throw 'tar failed.' }
         }
     }
-    Write-Host "Pakete in $Out"
+    Write-Host "Packages in $Out"
 } finally {
     Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 }

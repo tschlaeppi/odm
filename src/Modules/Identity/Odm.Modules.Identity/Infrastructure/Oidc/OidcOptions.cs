@@ -110,9 +110,9 @@ public sealed class OidcProviderOptions
     {
         if (!OidcOptions.IsValidId(Id)) return "Id may only contain a-z, 0-9 and hyphen (at most 32 characters).";
         if (!OidcOptions.IsAllowedUrl(Authority)) return "Authority must be an https address (http only for localhost).";
-        if (string.IsNullOrWhiteSpace(ClientId)) return "ClientId fehlt.";
-        if (string.IsNullOrWhiteSpace(GroupsClaim)) return "GroupsClaim fehlt.";
-        if (string.IsNullOrWhiteSpace(UserNameClaim)) return "UserNameClaim fehlt.";
+        if (string.IsNullOrWhiteSpace(ClientId)) return "ClientId is missing.";
+        if (string.IsNullOrWhiteSpace(GroupsClaim)) return "GroupsClaim is missing.";
+        if (string.IsNullOrWhiteSpace(UserNameClaim)) return "UserNameClaim is missing.";
         if (AdminValues.Count + OperatorValues.Count + ReadOnlyValues.Count == 0)
         {
             return "At least one value in AdminValues, OperatorValues or ReadOnlyValues is required.";

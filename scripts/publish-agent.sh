@@ -12,7 +12,7 @@ RIDS=("$@")
 
 PROJECT=src/Agent/Odm.Agent/Odm.Agent.csproj
 VERSION=$(dotnet msbuild "$PROJECT" -getProperty:Version -nologo | tr -d '[:space:]')
-[ -n "$VERSION" ] || { echo "Version konnte nicht ermittelt werden." >&2; exit 1; }
+[ -n "$VERSION" ] || { echo "Could not determine the version." >&2; exit 1; }
 
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
@@ -46,4 +46,4 @@ for rid in "${RIDS[@]}"; do
 done
 
 (cd "$OUT" && sha256sum odm-agent-"$VERSION"-* > "odm-agent-$VERSION.sha256")
-echo "Pakete in $OUT"
+echo "Packages in $OUT"

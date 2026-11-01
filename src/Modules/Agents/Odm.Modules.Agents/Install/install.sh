@@ -21,7 +21,7 @@ INSTALL_DIR=/opt/odm-agent
 STATE_DIR=/var/lib/odm-agent
 UNIT=/etc/systemd/system/odm-agent.service
 
-die() { echo "Fehler: $*" >&2; exit 1; }
+die() { echo "Error: $*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "'$1' is required but not installed."; }
 
 while [ $# -gt 0 ]; do
@@ -64,7 +64,7 @@ esac
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT INT TERM
 
-echo "Lade Agent $VERSION ($PLATFORM) von $SERVER ..."
+echo "Downloading agent $VERSION ($PLATFORM) from $SERVER ..."
 fetch "$SERVER/api/agent/download/$PLATFORM" "$TMP/agent.tar.gz"
 echo "$SHA  $TMP/agent.tar.gz" | sha256sum -c - >/dev/null 2>&1 \
   || die "The checksum of the download does not match. Installation aborted."
@@ -123,4 +123,4 @@ systemctl daemon-reload
 systemctl enable odm-agent >/dev/null 2>&1
 systemctl restart odm-agent
 
-echo "Agent $VERSION installiert und gestartet. Status: systemctl status odm-agent"
+echo "Agent $VERSION installed and started. Status: systemctl status odm-agent"

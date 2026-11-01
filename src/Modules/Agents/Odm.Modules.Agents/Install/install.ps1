@@ -34,7 +34,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 
 if ($Server -notmatch '^https?://[A-Za-z0-9.\-\[\]:]+(/[A-Za-z0-9._~\-/]*)?$') { throw "Invalid server address: $Server" }
 if ($Server.StartsWith('http://') -and -not $AllowInsecureHttp) {
-    throw 'Die Server-Adresse verwendet http. Der Agent verlangt https (Test: -AllowInsecureHttp).'
+    throw 'The server address uses http. The agent requires https (for tests: -AllowInsecureHttp).'
 }
 $Server = $Server.TrimEnd('/')
 if ($Token -and $Token -notmatch '^[A-Za-z0-9._~+/=\-]+$') { throw 'The token contains invalid characters.' }
@@ -47,7 +47,7 @@ if (-not $package.Sha) { throw "The server offers no agent for $platform an." }
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('odm-agent-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp | Out-Null
 try {
-    Write-Host "Lade Agent $($package.Version) ($platform) von $Server ..."
+    Write-Host "Downloading agent $($package.Version) ($platform) from $Server ..."
     $zip = Join-Path $temp 'agent.zip'
     Invoke-WebRequest -UseBasicParsing -Uri "$Server/api/agent/download/$platform" -OutFile $zip
     $hash = (Get-FileHash -Algorithm SHA256 -Path $zip).Hash
@@ -78,7 +78,7 @@ try {
     # State directory for SYSTEM and administrators only (contains the agent secret and configuration)
     New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
     & icacls.exe $stateDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Die Berechtigungen des Zustandsverzeichnisses konnten nicht gesetzt werden.' }
+    if ($LASTEXITCODE -ne 0) { throw 'The permissions of the state directory could not be set.' }
 
     $config = Join-Path $stateDir 'agent.json'
     $statePresent = Test-Path (Join-Path $stateDir 'agent-state.json')
@@ -102,7 +102,7 @@ try {
     & sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/30000/restart/60000 | Out-Null
 
     Start-Service -Name $serviceName
-    Write-Host "Agent $($package.Version) installiert und gestartet (Dienst $serviceName)."
+    Write-Host "Agent $($package.Version) installed and started (service $serviceName)."
 }
 finally {
     Remove-Item -Path $temp -Recurse -Force -ErrorAction SilentlyContinue

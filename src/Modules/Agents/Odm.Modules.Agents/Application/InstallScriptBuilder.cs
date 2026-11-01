@@ -38,7 +38,7 @@ public static partial class InstallScriptBuilder
     {
         var assembly = typeof(InstallScriptBuilder).Assembly;
         using var stream = assembly.GetManifestResourceStream($"Odm.Install.{name}")
-                           ?? throw new InvalidOperationException($"Vorlage {name} fehlt.");
+                           ?? throw new InvalidOperationException($"Template {name} is missing.");
         using var reader = new StreamReader(stream);
         // Always deliver scripts with LF (sh does not tolerate CRLF).
         return reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);

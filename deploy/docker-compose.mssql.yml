@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${ODM_DB_PASSWORD:?set ODM_DB_PASSWORD in .env (mindestens 8 Zeichen, Gross-/Kleinbuchstaben, Ziffern)}
+      MSSQL_SA_PASSWORD: ${ODM_DB_PASSWORD:?set ODM_DB_PASSWORD in .env (at least 8 characters, upper and lower case letters, digits)}
     volumes:
       - odm-db:/var/opt/mssql
     healthcheck:
