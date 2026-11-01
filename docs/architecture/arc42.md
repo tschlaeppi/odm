@@ -265,6 +265,7 @@ flowchart LR
 | ADR-38 | Local users are managed in the UI by administrators (list, create, role, deactivate, set password, delete) and every local user can change the own password; protections against self-lockout live in `UserRules` | no CLI or database access should be needed for daily user work; the last active administrator and the own account cannot be removed or demoted; no migration was needed because the `users` table already had all columns | accepted |
 | ADR-39 | PSADT packages get a platform (Windows or Linux) stored in the package settings; the Linux variant runs PSAppDeployToolkit-Linux packages with `pwsh` | reuses the PSADT knowledge for Linux without a new package kind or a migration; the platform field is omitted from the JSON when it is Windows, so existing settings and revisions stay unchanged | accepted |
 | ADR-40 | Trust is built on checks anyone can read and rerun (CI, CodeQL, Dependabot, guard tests, signed build provenance, SBOM) and documented in [security](../security.md), not on promises | free for open source repositories; users can verify a release themselves | accepted |
+| ADR-41 | The individual updates of a run are stored in a separate table (`run_items`), not as text in the run | allows searching across devices ("who got this update?") and paging; deleted with the run by cascade | accepted |
 
 ## 10. Quality requirements
 

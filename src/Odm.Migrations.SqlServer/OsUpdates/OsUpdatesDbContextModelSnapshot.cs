@@ -186,6 +186,36 @@ namespace Odm.Migrations.SqlServer.OsUpdates
 
                     b.ToTable("runs", "osupdates");
                 });
+
+            modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.UpdateRunItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RunId");
+
+                    b.ToTable("run_items", "osupdates");
+                });
+
+            modelBuilder.Entity("Odm.Modules.OsUpdates.Domain.UpdateRunItem", b =>
+                {
+                    b.HasOne("Odm.Modules.OsUpdates.Domain.UpdateRun", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 #pragma warning restore 612, 618
         }
     }

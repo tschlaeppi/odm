@@ -347,6 +347,20 @@ export interface OsAssignmentDto {
   targetName: string | null
 }
 
+export interface UpdateHistoryItemDto {
+  runId: string
+  deviceId: string
+  deviceName: string | null
+  title: string
+  status: 'Queued' | 'Succeeded' | 'Failed'
+  at: string
+}
+
+export interface UpdateHistoryPageDto {
+  total: number
+  items: UpdateHistoryItemDto[]
+}
+
 export interface UpdateRunDto {
   id: string
   deviceId: string
@@ -748,6 +762,13 @@ export const api = {
     if (options.deviceId) query.set('deviceId', options.deviceId)
     query.set('take', String(options.take ?? 100))
     return request<UpdateRunDto[]>(`/os-updates/runs?${query}`)
+  },
+  osHistory: (options: { deviceId?: string; q?: string; take?: number } = {}) => {
+    const query = new URLSearchParams()
+    if (options.deviceId) query.set('deviceId', options.deviceId)
+    if (options.q) query.set('q', options.q)
+    query.set('take', String(options.take ?? 500))
+    return request<UpdateHistoryPageDto>(`/os-updates/history?${query}`)
   },
   runOsUpdatesNow: (deviceId: string) => request<void>(`/os-updates/devices/${deviceId}/run`, { method: 'POST' }),
 

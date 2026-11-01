@@ -12,6 +12,7 @@
     type WeekDay,
   } from './api'
   import { auth } from './auth.svelte'
+  import UpdateHistory from './UpdateHistory.svelte'
   import DataTable, { type Column } from './DataTable.svelte'
   import { i18n, type MessageKey } from './i18n.svelte'
   import TargetPicker from './TargetPicker.svelte'
@@ -385,6 +386,12 @@
     {:else}
       <DataTable rows={runs} columns={runColumns} rowKey={(r) => r.id} pageSize={25} />
     {/if}
+
+    <h2>{i18n.t('os.history')}</h2>
+    <p class="muted">{i18n.t('os.history.intro')}</p>
+    {#key runs.length}
+      <UpdateHistory />
+    {/key}
   {/if}
 </section>
 

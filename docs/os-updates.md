@@ -20,3 +20,10 @@
 - On Linux, if `shutdown` is refused because of an inhibitor (e.g. an open desktop session), the restart is scheduled with `systemd-run ... systemctl reboot --ignore-inhibitors`; the policy's "restart if required" therefore also applies to devices with logged-in users.
 - On RPM systems restart detection needs `needs-restarting` (package `dnf-utils` / `yum-utils`).
 - The server needs time zone data (`tzdata`); the default Debian based image contains it.
+
+## Update history
+
+Besides the runs, the individual updates of each run are stored: the title of a Windows update, or `package old → new` on Linux (DEB), `package version` on RPM systems.
+They are shown in the **Update history** section of the *OS updates* page (all devices) and on each device page, with a search field.
+Up to 500 entries per run are reported by the agent and up to 1000 are kept; the run itself always shows the exact counts.
+The history is deleted together with its run after `OsUpdates:RunRetentionDays`. Runs from before this feature have no entries.
